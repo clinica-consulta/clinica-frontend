@@ -1,2 +1,9 @@
-# clinica-frontend
-Interface web acessível e simplificada para agendamento de consultas médicas e gestão de atendimento da recepção. Projeto Integrador - SENAI.
+Clínica Médica - Frontend
+
+> **Projeto Integrador - SENAI**  
+> Interface web simples e acessível para recepção e pacientes agendarem consultas.
+
+---
+
+## Objetivo
+Oferecer uma tela fácil e acessível (com foco em idosos) para agendamento rápido de consultas e visualização de horários vagos.
