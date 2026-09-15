@@ -1,0 +1,3 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { DashboardPage } from "@/components/clinic-pages";
+export const Route = createFileRoute("/dashboard")({ head: () => ({ meta: [{ title: "Dashboard — Gestão de Consultas" }, { name: "description", content: "Acompanhe os indicadores e atendimentos da clínica." }, { property: "og:title", content: "Dashboard — Gestão de Consultas" }, { property: "og:description", content: "Acompanhe os indicadores e atendimentos da clínica." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }), component: DashboardPage });

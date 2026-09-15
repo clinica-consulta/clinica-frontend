@@ -1,0 +1,3 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { AgendaPage } from "@/components/clinic-pages";
+export const Route = createFileRoute("/agenda")({ head: () => ({ meta: [{ title: "Agenda — Gestão de Consultas" }, { name: "description", content: "Organize os horários dos profissionais de saúde." }, { property: "og:title", content: "Agenda — Gestão de Consultas" }, { property: "og:description", content: "Organize os horários dos profissionais de saúde." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }), component: AgendaPage });
