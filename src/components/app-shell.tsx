@@ -3,7 +3,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Bell, CalendarDays, CalendarRange, ChartNoAxesCombined, ChevronLeft, ClipboardCheck, LayoutDashboard, Menu, Search, Settings, Stethoscope, UserRound, UsersRound, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoadingScreen } from "@/components/loading-screen";
-import logoAsset from "@/assets/gestao-consultas-logo.png.asset.json";
+import logo from "@/assets/gestao-consultas-logo-transparent.png";
 
 const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -39,7 +39,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <aside className={`fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col bg-sidebar text-sidebar-foreground transition-transform duration-300 lg:sticky lg:top-0 lg:h-screen lg:w-auto ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
         <div className="grid h-20 grid-cols-[minmax(0,1fr)_auto] items-center border-b border-sidebar-border px-4">
           <Link to="/dashboard" className="flex min-w-0 items-center gap-3" aria-label="Gestão de Consultas">
-            <span className="grid size-11 shrink-0 place-items-center rounded-md bg-sidebar-accent"><img src={logoAsset.url} alt="" className="size-9 object-contain" /></span>
+             <span className="grid size-11 shrink-0 place-items-center"><img src={logo} alt="" className="size-10 object-contain" /></span>
             {!collapsed && <span className="min-w-0"><span className="block truncate font-display text-lg uppercase">Gestão de</span><span className="block truncate text-[10px] font-semibold uppercase tracking-widest text-sidebar-muted">Consultas</span></span>}
           </Link>
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen(false)} aria-label="Fechar menu"><X /></Button>
