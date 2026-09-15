@@ -1,0 +1,3 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { ProfessionalsPage } from "@/components/clinic-pages";
+export const Route = createFileRoute("/profissionais")({ head: () => ({ meta: [{ title: "Profissionais — Gestão de Consultas" }, { name: "description", content: "Gerencie profissionais, especialidades e agendas." }, { property: "og:title", content: "Profissionais — Gestão de Consultas" }, { property: "og:description", content: "Gerencie profissionais, especialidades e agendas." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }), component: ProfessionalsPage });
