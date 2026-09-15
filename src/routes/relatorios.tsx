@@ -1,0 +1,3 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { ReportsPage } from "@/components/clinic-pages";
+export const Route = createFileRoute("/relatorios")({ head: () => ({ meta: [{ title: "Relatórios — Gestão de Consultas" }, { name: "description", content: "Acompanhe consultas, presença e faltas." }, { property: "og:title", content: "Relatórios — Gestão de Consultas" }, { property: "og:description", content: "Acompanhe consultas, presença e faltas." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }), component: ReportsPage });
