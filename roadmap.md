@@ -15,3 +15,4 @@
 - [x] Aplicar Montserrat em todos os textos e campos de Login e Cadastro
 - [x] Reforçar as bordas cinzas dos campos no Login e Cadastro
 - [x] Igualar o espaçamento do seletor de acesso e reforçar sua borda cinza
+- [x] Reforçar a borda externa do Login e suavizar discretamente as bordas do Cadastro
