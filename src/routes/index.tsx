@@ -29,43 +29,45 @@ function LoginPage() {
           <span className={`font-display text-xl uppercase transition-colors duration-700 sm:text-2xl ${isSignup ? "text-primary-foreground" : "text-primary"}`}>Gestão de Consultas</span>
         </div>
 
-        <div className={`relative grid h-11 grid-cols-2 rounded-xl p-1 transition-colors duration-700 ${isSignup ? "bg-auth-input" : "bg-muted"}`} role="tablist" aria-label="Acesso">
-          <span className={`absolute bottom-1 top-1 w-[calc(50%-4px)] rounded-lg transition-transform duration-500 ease-out ${isSignup ? "translate-x-full bg-secondary" : "translate-x-0 bg-primary"}`} aria-hidden="true" />
-          <Button type="button" variant="ghost" role="tab" aria-selected={!isSignup} onClick={() => setMode("login")} className={`relative z-10 h-full rounded-lg text-sm font-semibold hover:bg-transparent ${isSignup ? "text-primary-foreground" : "text-primary-foreground"}`}>Login</Button>
-          <Button type="button" variant="ghost" role="tab" aria-selected={isSignup} onClick={() => setMode("signup")} className={`relative z-10 h-full rounded-lg text-sm font-semibold hover:bg-transparent ${isSignup ? "text-primary" : "text-muted-foreground"}`}>Cadastre-se</Button>
-        </div>
+        <div className={`rounded-2xl border p-3 transition-colors duration-700 sm:p-4 ${isSignup ? "border-auth-input bg-auth-panel" : "border-border bg-muted/55"}`}>
+          <div className={`relative grid h-11 grid-cols-2 rounded-xl p-1 transition-colors duration-700 ${isSignup ? "bg-auth-input" : "bg-card"}`} role="tablist" aria-label="Acesso">
+            <span className={`absolute bottom-1 top-1 w-[calc(50%-4px)] rounded-lg transition-transform duration-500 ease-out ${isSignup ? "translate-x-full bg-secondary" : "translate-x-0 bg-primary"}`} aria-hidden="true" />
+            <Button type="button" variant="ghost" role="tab" aria-selected={!isSignup} onClick={() => setMode("login")} className="relative z-10 h-full rounded-lg text-sm font-semibold text-primary-foreground hover:bg-transparent">Login</Button>
+            <Button type="button" variant="ghost" role="tab" aria-selected={isSignup} onClick={() => setMode("signup")} className={`relative z-10 h-full rounded-lg text-sm font-semibold hover:bg-transparent ${isSignup ? "text-primary" : "text-muted-foreground"}`}>Cadastre-se</Button>
+          </div>
 
-        <div className="mt-8 overflow-hidden">
-          <div className={`flex w-[200%] items-start transition-transform duration-500 ease-out ${isSignup ? "-translate-x-1/2" : "translate-x-0"}`}>
-            <div className="w-1/2 shrink-0 px-1">
-              <div className="mb-6">
-                <h1 className="text-xl font-bold text-foreground sm:text-2xl">Bem-vindo de volta</h1>
-                <p className="mt-3 text-sm text-muted-foreground">Digite suas credenciais para acessar sua conta.</p>
-              </div>
-              <form className="space-y-5" onSubmit={(event) => { event.preventDefault(); navigate({ to: "/dashboard" }); }}>
-                <AuthField label="E-mail" icon={<Mail />} type="email" autoComplete="email" placeholder="voce@exemplo.com" />
-                <PasswordField label="Senha" show={showPassword} onToggle={() => setShowPassword((visible) => !visible)} autoComplete="current-password" placeholder="Digite sua senha" />
-                <Button type="submit" size="lg" className="h-12 w-full rounded-xl text-sm font-semibold">Entrar <ArrowRight /></Button>
+          <div className="mt-7 overflow-hidden px-2 pb-2">
+            <div className={`flex w-[200%] items-start transition-transform duration-500 ease-out ${isSignup ? "-translate-x-1/2" : "translate-x-0"}`}>
+              <div className="w-1/2 shrink-0 px-1">
+                <div className="mb-6">
+                  <h1 className="text-xl font-bold text-foreground sm:text-2xl">Bem-vindo de volta</h1>
+                  <p className="mt-3 text-sm text-muted-foreground">Digite suas credenciais para acessar sua conta.</p>
+                </div>
+                <form className="space-y-5" onSubmit={(event) => { event.preventDefault(); navigate({ to: "/dashboard" }); }}>
+                  <AuthField label="E-mail" icon={<Mail />} type="email" autoComplete="email" placeholder="voce@exemplo.com" />
+                  <PasswordField label="Senha" show={showPassword} onToggle={() => setShowPassword((visible) => !visible)} autoComplete="current-password" placeholder="Digite sua senha" />
+                  <Button type="submit" size="lg" className="h-12 w-full rounded-xl text-sm font-semibold">Entrar <ArrowRight /></Button>
+                </form>
               </form>
-            </div>
 
-            <div className="w-1/2 shrink-0 px-1">
-              <div className="mb-6">
-                <h2 className="text-xl font-bold text-primary-foreground sm:text-2xl">Crie sua conta</h2>
-                <p className="mt-3 text-sm text-accent">Preencha seus dados para criar uma nova conta.</p>
+              <div className="w-1/2 shrink-0 px-1">
+                <div className="mb-6">
+                  <h2 className="text-xl font-bold text-primary-foreground sm:text-2xl">Crie sua conta</h2>
+                  <p className="mt-3 text-sm text-accent">Preencha seus dados para criar uma nova conta.</p>
+                </div>
+                <form className="space-y-5 [&_label]:text-primary-foreground [&_input]:border-auth-input [&_input]:bg-auth-input [&_input]:text-primary-foreground [&_input]:placeholder:text-accent [&_.field-icon]:text-accent" onSubmit={submitSignup}>
+                  <AuthField label="Nome Completo" icon={<UserRound />} type="text" autoComplete="name" placeholder="Digite seu nome" />
+                  <AuthField label="E-mail" icon={<Mail />} type="email" autoComplete="email" placeholder="voce@exemplo.com" />
+                  <PasswordField label="Senha" show={showPassword} onToggle={() => setShowPassword((visible) => !visible)} autoComplete="new-password" placeholder="Crie uma senha" />
+                  <Button type="submit" size="lg" className="h-12 w-full rounded-xl bg-secondary text-sm font-semibold text-secondary-foreground hover:bg-secondary/90">Criar conta <ArrowRight /></Button>
+                </form>
               </div>
-              <form className="space-y-5 [&_label]:text-primary-foreground [&_input]:border-auth-input [&_input]:bg-auth-input [&_input]:text-primary-foreground [&_input]:placeholder:text-accent [&_.field-icon]:text-accent" onSubmit={submitSignup}>
-                <AuthField label="Nome Completo" icon={<UserRound />} type="text" autoComplete="name" placeholder="Digite seu nome" />
-                <AuthField label="E-mail" icon={<Mail />} type="email" autoComplete="email" placeholder="voce@exemplo.com" />
-                <PasswordField label="Senha" show={showPassword} onToggle={() => setShowPassword((visible) => !visible)} autoComplete="new-password" placeholder="Crie uma senha" />
-                <Button type="submit" size="lg" className="h-12 w-full rounded-xl bg-secondary text-sm font-semibold text-secondary-foreground hover:bg-secondary/90">Criar conta <ArrowRight /></Button>
-              </form>
             </div>
           </div>
         </div>
-
+        </div>
       </section>
-      <footer className={`mx-auto w-full py-5 text-center text-xs transition-colors duration-700 ${isSignup ? "text-accent" : "text-muted-foreground"}`}>© 2026 Gestão de Consultas. Todos os direitos reservados.</footer>
+      <footer className={`mt-auto w-full shrink-0 py-5 text-center text-xs transition-colors duration-700 ${isSignup ? "text-accent" : "text-muted-foreground"}`}>© 2026 Gestão de Consultas. Todos os direitos reservados.</footer>
     </main>
   );
 }
