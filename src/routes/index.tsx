@@ -48,7 +48,7 @@ function LoginPage() {
                   <PasswordField label="Senha" show={showPassword} onToggle={() => setShowPassword((visible) => !visible)} autoComplete="current-password" placeholder="Digite sua senha" />
                   <Button type="submit" size="lg" className="h-12 w-full rounded-xl text-sm font-semibold">Entrar <ArrowRight /></Button>
                 </form>
-              </form>
+              </div>
 
               <div className="w-1/2 shrink-0 px-1">
                 <div className="mb-6">
@@ -64,7 +64,6 @@ function LoginPage() {
               </div>
             </div>
           </div>
-        </div>
         </div>
       </section>
       <footer className={`mt-auto w-full shrink-0 py-5 text-center text-xs transition-colors duration-700 ${isSignup ? "text-accent" : "text-muted-foreground"}`}>© 2026 Gestão de Consultas. Todos os direitos reservados.</footer>
