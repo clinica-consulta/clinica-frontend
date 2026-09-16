@@ -43,7 +43,7 @@ function LoginPage() {
                   <h2 className="text-xl font-bold text-primary-foreground sm:text-2xl">Crie sua conta</h2>
                   <p className="mt-3 text-sm text-accent">Preencha seus dados para criar uma nova conta.</p>
                 </div>
-                <form className="space-y-5 [&_label]:text-primary-foreground [&_input]:border-auth-input [&_input]:bg-auth-input [&_input]:text-primary-foreground [&_input]:placeholder:text-accent [&_.field-icon]:text-accent" onSubmit={submitSignup}>
+                <form className="space-y-5 [&_label]:text-primary-foreground [&_input]:border-border [&_input]:bg-auth-input [&_input]:text-primary-foreground [&_input]:placeholder:text-accent [&_.field-icon]:text-accent" onSubmit={submitSignup}>
                   <AuthField label="Nome Completo" icon={<UserRound />} type="text" autoComplete="name" placeholder="Digite seu nome" />
                   <AuthField label="E-mail" icon={<Mail />} type="email" autoComplete="email" placeholder="voce@exemplo.com" />
                   <PasswordField label="Senha" show={showPassword} onToggle={() => setShowPassword((visible) => !visible)} autoComplete="new-password" placeholder="Crie uma senha" />
@@ -77,7 +77,7 @@ function AuthField({ label, icon, ...props }: React.InputHTMLAttributes<HTMLInpu
       {label}
       <span className="relative">
         <span className="field-icon absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground [&>svg]:size-5" aria-hidden="true">{icon}</span>
-        <input {...props} required className="h-12 w-full rounded-xl border border-input bg-card pl-12 pr-4 text-sm font-normal text-foreground outline-none transition placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20" />
+        <input {...props} required className="h-12 w-full rounded-xl border-2 border-input bg-card pl-12 pr-4 text-sm font-normal text-foreground outline-none transition placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20" />
       </span>
     </label>
   );
@@ -89,7 +89,7 @@ function PasswordField({ label, show, onToggle, ...props }: Omit<React.InputHTML
       {label}
       <span className="relative">
         <LockKeyhole className="field-icon absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-        <input {...props} type={show ? "text" : "password"} required className="h-12 w-full rounded-xl border border-input bg-card pl-12 pr-14 text-sm font-normal text-foreground outline-none transition placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20" />
+        <input {...props} type={show ? "text" : "password"} required className="h-12 w-full rounded-xl border-2 border-input bg-card pl-12 pr-14 text-sm font-normal text-foreground outline-none transition placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20" />
         <Button type="button" variant="ghost" size="icon" onClick={onToggle} className="field-icon absolute right-2 top-1/2 -translate-y-1/2 rounded-lg text-muted-foreground hover:bg-transparent hover:text-inherit" aria-label={show ? "Ocultar senha" : "Mostrar senha"}>
           {show ? <EyeOff /> : <Eye />}
         </Button>
