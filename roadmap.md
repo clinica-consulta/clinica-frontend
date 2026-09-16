@@ -8,3 +8,4 @@
 - [x] Simplificar o loading com logo transparente e círculo animado
 - [x] Adicionar login e cadastro com transição lateral e cores alternadas
 - [x] Reduzir a tela de acesso, remover o contêiner externo e aplicar a paleta enviada
+- [x] Alinhar login e cadastro às referências, com campos de cadastro em #4D6277 e rodapé fixado ao fim da tela
