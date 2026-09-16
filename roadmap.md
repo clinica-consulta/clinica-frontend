@@ -9,3 +9,4 @@
 - [x] Adicionar login e cadastro com transição lateral e cores alternadas
 - [x] Reduzir a tela de acesso, remover o contêiner externo e aplicar a paleta enviada
 - [x] Alinhar login e cadastro às referências, com campos de cadastro em #4D6277 e rodapé fixado ao fim da tela
+- [x] Destacar o acesso com uma caixa compacta e manter os direitos autorais no final centralizado
