@@ -22,27 +22,27 @@ function LoginPage() {
   }
 
   return (
-    <main className={`relative flex min-h-screen items-center justify-center overflow-hidden px-5 py-8 transition-colors duration-700 ${isSignup ? "bg-primary" : "bg-background"}`}>
-      <section className="w-full max-w-[450px] overflow-hidden">
-        <div className="mb-5 flex items-center justify-center gap-2.5" aria-label="Gestão de Consultas">
+    <main className={`relative flex min-h-screen flex-col overflow-hidden px-5 transition-colors duration-700 ${isSignup ? "bg-primary" : "bg-background"}`}>
+      <section className="mx-auto flex w-full max-w-[450px] flex-1 flex-col justify-center overflow-hidden py-8">
+        <div className="mb-6 flex items-center justify-center gap-2.5" aria-label="Gestão de Consultas">
           <img src={logo} alt="" className="size-12 object-contain sm:size-14" />
           <span className={`font-display text-xl uppercase transition-colors duration-700 sm:text-2xl ${isSignup ? "text-primary-foreground" : "text-primary"}`}>Gestão de Consultas</span>
         </div>
 
-        <div className={`relative grid h-12 grid-cols-2 rounded-xl p-1 transition-colors duration-700 ${isSignup ? "bg-primary-foreground/15" : "bg-muted"}`} role="tablist" aria-label="Acesso">
-          <span className={`absolute bottom-1 top-1 w-[calc(50%-4px)] rounded-lg shadow-sm transition-transform duration-500 ease-out ${isSignup ? "translate-x-full bg-secondary" : "translate-x-0 bg-primary"}`} aria-hidden="true" />
+        <div className={`relative grid h-11 grid-cols-2 rounded-xl p-1 transition-colors duration-700 ${isSignup ? "bg-auth-input" : "bg-muted"}`} role="tablist" aria-label="Acesso">
+          <span className={`absolute bottom-1 top-1 w-[calc(50%-4px)] rounded-lg transition-transform duration-500 ease-out ${isSignup ? "translate-x-full bg-secondary" : "translate-x-0 bg-primary"}`} aria-hidden="true" />
           <Button type="button" variant="ghost" role="tab" aria-selected={!isSignup} onClick={() => setMode("login")} className={`relative z-10 h-full rounded-lg text-sm font-semibold hover:bg-transparent ${isSignup ? "text-primary-foreground" : "text-primary-foreground"}`}>Login</Button>
-          <Button type="button" variant="ghost" role="tab" aria-selected={isSignup} onClick={() => setMode("signup")} className={`relative z-10 h-full rounded-xl text-sm font-semibold hover:bg-transparent ${isSignup ? "text-primary" : "text-muted-foreground"}`}>Cadastre-se</Button>
+          <Button type="button" variant="ghost" role="tab" aria-selected={isSignup} onClick={() => setMode("signup")} className={`relative z-10 h-full rounded-lg text-sm font-semibold hover:bg-transparent ${isSignup ? "text-primary" : "text-muted-foreground"}`}>Cadastre-se</Button>
         </div>
 
-        <div className="mt-6 overflow-hidden">
+        <div className="mt-8 overflow-hidden">
           <div className={`flex w-[200%] items-start transition-transform duration-500 ease-out ${isSignup ? "-translate-x-1/2" : "translate-x-0"}`}>
-            <div className="w-1/2 shrink-0 px-1 [&_label]:text-primary-foreground">
-              <div className="mb-5">
+            <div className="w-1/2 shrink-0 px-1">
+              <div className="mb-6">
                 <h1 className="text-xl font-bold text-foreground sm:text-2xl">Bem-vindo de volta</h1>
-                <p className="mt-2 text-sm text-muted-foreground">Digite suas credenciais para acessar sua conta.</p>
+                <p className="mt-3 text-sm text-muted-foreground">Digite suas credenciais para acessar sua conta.</p>
               </div>
-              <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); navigate({ to: "/dashboard" }); }}>
+              <form className="space-y-5" onSubmit={(event) => { event.preventDefault(); navigate({ to: "/dashboard" }); }}>
                 <AuthField label="E-mail" icon={<Mail />} type="email" autoComplete="email" placeholder="voce@exemplo.com" />
                 <PasswordField label="Senha" show={showPassword} onToggle={() => setShowPassword((visible) => !visible)} autoComplete="current-password" placeholder="Digite sua senha" />
                 <Button type="submit" size="lg" className="h-12 w-full rounded-xl text-sm font-semibold">Entrar <ArrowRight /></Button>
@@ -50,12 +50,12 @@ function LoginPage() {
             </div>
 
             <div className="w-1/2 shrink-0 px-1">
-              <div className="mb-5">
+              <div className="mb-6">
                 <h2 className="text-xl font-bold text-primary-foreground sm:text-2xl">Crie sua conta</h2>
-                <p className="mt-2 text-sm text-secondary">Preencha seus dados para começar.</p>
+                <p className="mt-3 text-sm text-accent">Preencha seus dados para criar uma nova conta.</p>
               </div>
-              <form className="space-y-4" onSubmit={submitSignup}>
-                <AuthField label="Nome completo" icon={<UserRound />} type="text" autoComplete="name" placeholder="Digite seu nome" />
+              <form className="space-y-5 [&_label]:text-primary-foreground [&_input]:border-auth-input [&_input]:bg-auth-input [&_input]:text-primary-foreground [&_input]:placeholder:text-accent [&_.field-icon]:text-accent" onSubmit={submitSignup}>
+                <AuthField label="Nome Completo" icon={<UserRound />} type="text" autoComplete="name" placeholder="Digite seu nome" />
                 <AuthField label="E-mail" icon={<Mail />} type="email" autoComplete="email" placeholder="voce@exemplo.com" />
                 <PasswordField label="Senha" show={showPassword} onToggle={() => setShowPassword((visible) => !visible)} autoComplete="new-password" placeholder="Crie uma senha" />
                 <Button type="submit" size="lg" className="h-12 w-full rounded-xl bg-secondary text-sm font-semibold text-secondary-foreground hover:bg-secondary/90">Criar conta <ArrowRight /></Button>
@@ -64,8 +64,8 @@ function LoginPage() {
           </div>
         </div>
 
-        <p className={`mt-6 text-center text-xs transition-colors duration-700 ${isSignup ? "text-secondary" : "text-muted-foreground"}`}>© 2026 Gestão de Consultas. Todos os direitos reservados.</p>
       </section>
+      <footer className={`mx-auto w-full py-5 text-center text-xs transition-colors duration-700 ${isSignup ? "text-accent" : "text-muted-foreground"}`}>© 2026 Gestão de Consultas. Todos os direitos reservados.</footer>
     </main>
   );
 }
@@ -75,8 +75,8 @@ function AuthField({ label, icon, ...props }: React.InputHTMLAttributes<HTMLInpu
     <label className="grid gap-1.5 text-sm font-semibold text-foreground">
       {label}
       <span className="relative">
-        <span className="absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground [&>svg]:size-5" aria-hidden="true">{icon}</span>
-        <input {...props} required className="h-12 w-full rounded-xl border border-input bg-background pl-12 pr-4 text-sm font-normal text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20" />
+        <span className="field-icon absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground [&>svg]:size-5" aria-hidden="true">{icon}</span>
+        <input {...props} required className="h-12 w-full rounded-xl border border-input bg-card pl-12 pr-4 text-sm font-normal text-foreground outline-none transition placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20" />
       </span>
     </label>
   );
@@ -87,9 +87,9 @@ function PasswordField({ label, show, onToggle, ...props }: Omit<React.InputHTML
     <label className="grid gap-1.5 text-sm font-semibold text-foreground">
       {label}
       <span className="relative">
-        <LockKeyhole className="absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-        <input {...props} type={show ? "text" : "password"} required className="h-12 w-full rounded-xl border border-input bg-background pl-12 pr-14 text-sm font-normal text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20" />
-        <Button type="button" variant="ghost" size="icon" onClick={onToggle} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg text-muted-foreground" aria-label={show ? "Ocultar senha" : "Mostrar senha"}>
+        <LockKeyhole className="field-icon absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+        <input {...props} type={show ? "text" : "password"} required className="h-12 w-full rounded-xl border border-input bg-card pl-12 pr-14 text-sm font-normal text-foreground outline-none transition placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20" />
+        <Button type="button" variant="ghost" size="icon" onClick={onToggle} className="field-icon absolute right-2 top-1/2 -translate-y-1/2 rounded-lg text-muted-foreground hover:bg-transparent hover:text-inherit" aria-label={show ? "Ocultar senha" : "Mostrar senha"}>
           {show ? <EyeOff /> : <Eye />}
         </Button>
       </span>
