@@ -29,8 +29,8 @@ function LoginPage() {
           <span className={`font-display text-xl uppercase transition-colors duration-700 sm:text-2xl ${isSignup ? "text-primary-foreground" : "text-primary"}`}>Gestão de Consultas</span>
         </div>
 
-        <div className={`rounded-2xl border p-3 transition-colors duration-700 sm:p-4 ${isSignup ? "border-auth-input bg-auth-panel" : "border-border bg-muted/55"}`}>
-          <div className={`relative grid h-11 grid-cols-2 rounded-xl border-2 border-border p-1 transition-colors duration-700 ${isSignup ? "bg-auth-input" : "bg-card"}`} role="tablist" aria-label="Acesso">
+        <div className={`rounded-2xl border-border p-3 transition-colors duration-700 sm:p-4 ${isSignup ? "border-[1.5px] bg-auth-panel" : "border-2 bg-muted/55"}`}>
+          <div className={`relative grid h-11 grid-cols-2 rounded-xl border-border p-1 transition-colors duration-700 ${isSignup ? "border-[1.5px] bg-auth-input" : "border-2 bg-card"}`} role="tablist" aria-label="Acesso">
             <span className={`absolute bottom-1 left-1 top-1 w-[calc(50%-4px)] rounded-lg transition-transform duration-500 ease-out ${isSignup ? "translate-x-full bg-secondary" : "translate-x-0 bg-primary"}`} aria-hidden="true" />
             <Button type="button" variant="ghost" role="tab" aria-selected={!isSignup} onClick={() => setMode("login")} className="relative z-10 h-full rounded-lg text-sm font-semibold text-primary-foreground hover:bg-transparent">Login</Button>
             <Button type="button" variant="ghost" role="tab" aria-selected={isSignup} onClick={() => setMode("signup")} className={`relative z-10 h-full rounded-lg text-sm font-semibold hover:bg-transparent ${isSignup ? "text-primary" : "text-muted-foreground"}`}>Cadastre-se</Button>
@@ -43,7 +43,7 @@ function LoginPage() {
                   <h2 className="text-xl font-bold text-primary-foreground sm:text-2xl">Crie sua conta</h2>
                   <p className="mt-3 text-sm text-accent">Preencha seus dados para criar uma nova conta.</p>
                 </div>
-                <form className="space-y-5 [&_label]:text-primary-foreground [&_input]:border-border [&_input]:bg-auth-input [&_input]:text-primary-foreground [&_input]:placeholder:text-accent [&_.field-icon]:text-accent" onSubmit={submitSignup}>
+                <form className="space-y-5 [&_label]:text-primary-foreground [&_input]:border-[1.5px] [&_input]:border-border [&_input]:bg-auth-input [&_input]:text-primary-foreground [&_input]:placeholder:text-accent [&_.field-icon]:text-accent" onSubmit={submitSignup}>
                   <AuthField label="Nome Completo" icon={<UserRound />} type="text" autoComplete="name" placeholder="Digite seu nome" />
                   <AuthField label="E-mail" icon={<Mail />} type="email" autoComplete="email" placeholder="voce@exemplo.com" />
                   <PasswordField label="Senha" show={showPassword} onToggle={() => setShowPassword((visible) => !visible)} autoComplete="new-password" placeholder="Crie uma senha" />
