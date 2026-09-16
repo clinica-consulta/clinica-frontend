@@ -7,3 +7,4 @@
 - [x] Refazer login conforme a referência, sem seleção de perfil
 - [x] Simplificar o loading com logo transparente e círculo animado
 - [x] Adicionar login e cadastro com transição lateral e cores alternadas
+- [x] Reduzir a tela de acesso, remover o contêiner externo e aplicar a paleta enviada
