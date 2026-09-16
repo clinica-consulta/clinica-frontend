@@ -13,3 +13,4 @@
 - [x] Ajustar cada modo de acesso à própria altura e impedir vazamento entre Login e Cadastro
 - [x] Aplicar Montserrat em todos os títulos e textos principais do acesso
 - [x] Aplicar Montserrat em todos os textos e campos de Login e Cadastro
+- [x] Reforçar as bordas cinzas dos campos no Login e Cadastro
