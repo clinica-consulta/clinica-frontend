@@ -17,3 +17,4 @@
 - [x] Igualar o espaçamento do seletor de acesso e reforçar sua borda cinza
 - [x] Reforçar a borda externa do Login e suavizar discretamente as bordas do Cadastro
 - [x] Destacar a borda externa e reduzir as bordas internas apenas no Cadastro
+- [x] Reduzir discretamente a borda externa do Login e Cadastro
