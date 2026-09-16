@@ -37,7 +37,7 @@ function LoginPage() {
 
         <div className="mt-6 overflow-hidden">
           <div className={`flex w-[200%] items-start transition-transform duration-500 ease-out ${isSignup ? "-translate-x-1/2" : "translate-x-0"}`}>
-            <div className="w-1/2 shrink-0 px-1">
+            <div className="w-1/2 shrink-0 px-1 [&_label]:text-primary-foreground">
               <div className="mb-5">
                 <h1 className="text-xl font-bold text-foreground sm:text-2xl">Bem-vindo de volta</h1>
                 <p className="mt-2 text-sm text-muted-foreground">Digite suas credenciais para acessar sua conta.</p>
