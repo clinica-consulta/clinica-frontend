@@ -72,6 +72,7 @@
   --color-overlay: var(--overlay);
   --color-sidebar-muted: var(--sidebar-muted);
   --color-auth-input: var(--auth-input);
+  --color-auth-panel: var(--auth-panel);
 }
 
 :root {
@@ -96,6 +97,7 @@
   --input: oklch(0.866 0.011 244);
   --ring: oklch(0.665 0.044 253);
   --auth-input: oklch(0.487 0.042 249);
+  --auth-panel: oklch(0.314 0.044 249);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
