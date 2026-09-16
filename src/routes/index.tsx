@@ -30,8 +30,8 @@ function LoginPage() {
         </div>
 
         <div className={`rounded-2xl border p-3 transition-colors duration-700 sm:p-4 ${isSignup ? "border-auth-input bg-auth-panel" : "border-border bg-muted/55"}`}>
-          <div className={`relative grid h-11 grid-cols-2 rounded-xl p-1 transition-colors duration-700 ${isSignup ? "bg-auth-input" : "bg-card"}`} role="tablist" aria-label="Acesso">
-            <span className={`absolute bottom-1 top-1 w-[calc(50%-4px)] rounded-lg transition-transform duration-500 ease-out ${isSignup ? "translate-x-full bg-secondary" : "translate-x-0 bg-primary"}`} aria-hidden="true" />
+          <div className={`relative grid h-11 grid-cols-2 rounded-xl border-2 border-border p-1 transition-colors duration-700 ${isSignup ? "bg-auth-input" : "bg-card"}`} role="tablist" aria-label="Acesso">
+            <span className={`absolute bottom-1 left-1 top-1 w-[calc(50%-4px)] rounded-lg transition-transform duration-500 ease-out ${isSignup ? "translate-x-full bg-secondary" : "translate-x-0 bg-primary"}`} aria-hidden="true" />
             <Button type="button" variant="ghost" role="tab" aria-selected={!isSignup} onClick={() => setMode("login")} className="relative z-10 h-full rounded-lg text-sm font-semibold text-primary-foreground hover:bg-transparent">Login</Button>
             <Button type="button" variant="ghost" role="tab" aria-selected={isSignup} onClick={() => setMode("signup")} className={`relative z-10 h-full rounded-lg text-sm font-semibold hover:bg-transparent ${isSignup ? "text-primary" : "text-muted-foreground"}`}>Cadastre-se</Button>
           </div>
