@@ -11,3 +11,4 @@
 - [x] Alinhar login e cadastro às referências, com campos de cadastro em #4D6277 e rodapé fixado ao fim da tela
 - [x] Destacar o acesso com uma caixa compacta e manter os direitos autorais no final centralizado
 - [x] Ajustar cada modo de acesso à própria altura e impedir vazamento entre Login e Cadastro
+- [x] Aplicar Montserrat em todos os títulos e textos principais do acesso
