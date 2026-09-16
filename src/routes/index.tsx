@@ -37,20 +37,8 @@ function LoginPage() {
           </div>
 
           <div className="mt-7 overflow-hidden px-2 pb-2">
-            <div className={`flex w-[200%] items-start transition-transform duration-500 ease-out ${isSignup ? "-translate-x-1/2" : "translate-x-0"}`}>
-              <div className="w-1/2 shrink-0 px-1">
-                <div className="mb-6">
-                  <h1 className="text-xl font-bold text-foreground sm:text-2xl">Bem-vindo de volta</h1>
-                  <p className="mt-3 text-sm text-muted-foreground">Digite suas credenciais para acessar sua conta.</p>
-                </div>
-                <form className="space-y-5" onSubmit={(event) => { event.preventDefault(); navigate({ to: "/dashboard" }); }}>
-                  <AuthField label="E-mail" icon={<Mail />} type="email" autoComplete="email" placeholder="voce@exemplo.com" />
-                  <PasswordField label="Senha" show={showPassword} onToggle={() => setShowPassword((visible) => !visible)} autoComplete="current-password" placeholder="Digite sua senha" />
-                  <Button type="submit" size="lg" className="h-12 w-full rounded-xl text-sm font-semibold">Entrar <ArrowRight /></Button>
-                </form>
-              </div>
-
-              <div className="w-1/2 shrink-0 px-1">
+            {isSignup ? (
+              <div key="signup" className="auth-slide-right">
                 <div className="mb-6">
                   <h2 className="text-xl font-bold text-primary-foreground sm:text-2xl">Crie sua conta</h2>
                   <p className="mt-3 text-sm text-accent">Preencha seus dados para criar uma nova conta.</p>
@@ -62,7 +50,19 @@ function LoginPage() {
                   <Button type="submit" size="lg" className="h-12 w-full rounded-xl bg-secondary text-sm font-semibold text-secondary-foreground hover:bg-secondary/90">Criar conta <ArrowRight /></Button>
                 </form>
               </div>
-            </div>
+            ) : (
+              <div key="login" className="auth-slide-left">
+                <div className="mb-6">
+                  <h1 className="text-xl font-bold text-foreground sm:text-2xl">Bem-vindo de volta</h1>
+                  <p className="mt-3 text-sm text-muted-foreground">Digite suas credenciais para acessar sua conta.</p>
+                </div>
+                <form className="space-y-5" onSubmit={(event) => { event.preventDefault(); navigate({ to: "/dashboard" }); }}>
+                  <AuthField label="E-mail" icon={<Mail />} type="email" autoComplete="email" placeholder="voce@exemplo.com" />
+                  <PasswordField label="Senha" show={showPassword} onToggle={() => setShowPassword((visible) => !visible)} autoComplete="current-password" placeholder="Digite sua senha" />
+                  <Button type="submit" size="lg" className="h-12 w-full rounded-xl text-sm font-semibold">Entrar <ArrowRight /></Button>
+                </form>
+              </div>
+            )}
           </div>
         </div>
       </section>
