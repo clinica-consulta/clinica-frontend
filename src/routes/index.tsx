@@ -23,7 +23,7 @@ function LoginPage() {
 
   return (
     <main className={`relative flex min-h-screen flex-col overflow-hidden px-5 transition-colors duration-700 ${isSignup ? "bg-primary" : "bg-background"}`}>
-      <section className="mx-auto flex w-full max-w-[450px] flex-1 flex-col justify-center overflow-hidden py-8 [&_[role=tab]]:font-display [&_label]:font-display">
+      <section className="mx-auto flex w-full max-w-[450px] flex-1 flex-col justify-center overflow-hidden py-8 font-display">
         <div className="mb-6 flex items-center justify-center gap-2.5" aria-label="Gestão de Consultas">
           <img src={logo} alt="" className="size-12 object-contain sm:size-14" />
           <span className={`font-display text-xl uppercase transition-colors duration-700 sm:text-2xl ${isSignup ? "text-primary-foreground" : "text-primary"}`}>Gestão de Consultas</span>
