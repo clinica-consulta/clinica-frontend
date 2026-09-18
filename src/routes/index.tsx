@@ -4,7 +4,8 @@ import { ArrowRight, CalendarDays, Eye, EyeOff, IdCard, LockKeyhole, Mail, Phone
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/gestao-consultas-logo-transparent.png";
-import { roleFromEmail, roleProfiles } from "@/lib/role-data";
+import { roleProfiles } from "@/lib/role-data";
+import { useClinic } from "@/lib/clinic-store";
 
 export const Route = createFileRoute("/")({
   head: () => ({ meta: [{ title: "Acesso — Gestão de Consultas" }, { name: "description", content: "Entre ou crie seu acesso à plataforma de gestão de consultas da clínica." }, { property: "og:title", content: "Acesso — Gestão de Consultas" }, { property: "og:description", content: "Entre ou crie seu acesso à plataforma de gestão de consultas da clínica." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
@@ -12,6 +13,7 @@ export const Route = createFileRoute("/")({
 });
 function LoginPage() {
   const navigate = useNavigate();
+  const { login, addPatient } = useClinic();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
@@ -19,6 +21,15 @@ function LoginPage() {
 
   function submitSignup(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    addPatient({
+      name: String(data.get("name") ?? ""),
+      cpf: String(data.get("cpf") ?? ""),
+      phone: String(data.get("phone") ?? ""),
+      email: String(data.get("email") ?? ""),
+      birthDate: String(data.get("birthDate") ?? ""),
+    });
+    setEmail(String(data.get("email") ?? ""));
     toast.success("Cadastro realizado! Agora você já pode entrar.");
     setMode("login");
   }
@@ -46,12 +57,12 @@ function LoginPage() {
                   <p className="mt-3 text-sm text-accent">Preencha seus dados para criar uma nova conta.</p>
                 </div>
                 <form className="space-y-5 [&_label]:text-primary-foreground [&_input]:rounded-md [&_input]:border [&_input]:border-border [&_input]:bg-auth-input [&_input]:text-primary-foreground [&_input]:placeholder:text-accent [&_.field-icon]:text-accent" onSubmit={submitSignup}>
-                  <AuthField label="Nome" icon={<UserRound />} type="text" autoComplete="name" placeholder="Digite seu nome" />
-                  <AuthField label="CPF" icon={<IdCard />} type="text" inputMode="numeric" autoComplete="off" placeholder="000.000.000-00" />
-                  <AuthField label="Telefone" icon={<Phone />} type="tel" inputMode="tel" autoComplete="tel" placeholder="(00) 00000-0000" />
-                  <AuthField label="E-mail" icon={<Mail />} type="email" autoComplete="email" placeholder="voce@exemplo.com" />
+                  <AuthField label="Nome" name="name" icon={<UserRound />} type="text" autoComplete="name" placeholder="Digite seu nome" />
+                  <AuthField label="CPF" name="cpf" icon={<IdCard />} type="text" inputMode="numeric" autoComplete="off" placeholder="000.000.000-00" />
+                  <AuthField label="Telefone" name="phone" icon={<Phone />} type="tel" inputMode="tel" autoComplete="tel" placeholder="(00) 00000-0000" />
+                  <AuthField label="E-mail" name="email" icon={<Mail />} type="email" autoComplete="email" placeholder="voce@exemplo.com" />
                   <PasswordField label="Senha" show={showPassword} onToggle={() => setShowPassword((visible) => !visible)} autoComplete="new-password" placeholder="Crie uma senha" />
-                  <AuthField label="Data de nascimento" icon={<CalendarDays />} type="date" autoComplete="bday" />
+                  <AuthField label="Data de nascimento" name="birthDate" icon={<CalendarDays />} type="date" autoComplete="bday" />
                   <Button type="submit" size="lg" className="h-12 w-full rounded-md bg-secondary text-sm font-semibold text-secondary-foreground hover:bg-secondary hover:text-secondary-foreground">Criar conta <ArrowRight /></Button>
                 </form>
               </div>
@@ -61,7 +72,7 @@ function LoginPage() {
                   <h1 className="text-xl font-bold text-foreground sm:text-2xl">Bem-vindo de volta</h1>
                   <p className="mt-3 text-sm text-muted-foreground">Digite suas credenciais para acessar sua conta.</p>
                 </div>
-                <form className="space-y-5" onSubmit={(event) => { event.preventDefault(); const role = roleFromEmail(email); navigate({ to: roleProfiles[role].home }); }}>
+                <form className="space-y-5" onSubmit={(event) => { event.preventDefault(); const role = login(email); navigate({ to: roleProfiles[role].home }); }}>
                   <AuthField label="E-mail" icon={<Mail />} type="email" autoComplete="email" placeholder="voce@exemplo.com" value={email} onChange={(event) => setEmail(event.target.value)} />
                   <PasswordField label="Senha" show={showPassword} onToggle={() => setShowPassword((visible) => !visible)} autoComplete="current-password" placeholder="Digite sua senha" />
                   <Button type="submit" size="lg" className="h-12 w-full rounded-xl text-sm font-semibold hover:bg-primary hover:text-primary-foreground">Entrar <ArrowRight /></Button>
