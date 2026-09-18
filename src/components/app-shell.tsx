@@ -43,7 +43,7 @@ export function AppShell({ children }: { children: ReactNode }) {
              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-sidebar-primary text-xs font-bold text-sidebar-primary-foreground">{profile.initials}</span>
              {!collapsed && <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{profile.name}</p><p className="truncate text-xs text-sidebar-muted">{profile.title}</p></div>}
           </div>
-           {!collapsed && <Button variant="ghost" className="mt-2 w-full justify-start text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground" asChild><Link to="/"><LogOut />Sair</Link></Button>}
+           {!collapsed && <Button variant="ghost" className="mt-2 w-full justify-start text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground" asChild><Link to="/" onClick={logout}><LogOut />Sair</Link></Button>}
           <Button variant="ghost" size="icon" className="mt-2 hidden w-full lg:inline-flex" onClick={() => setCollapsed((value) => !value)} aria-label={collapsed ? "Expandir menu" : "Recolher menu"}><ChevronLeft className={`transition-transform ${collapsed ? "rotate-180" : ""}`} /></Button>
         </div>
       </aside>
@@ -52,7 +52,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Abrir menu"><Menu /></Button>
           <div className="relative hidden max-w-sm sm:block"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><input className="h-10 w-full rounded-md border border-input bg-muted/60 pl-9 pr-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20" placeholder={profile.search} /></div>
           <span className="sm:hidden" />
-          <div className="flex items-center justify-end gap-2"><span className="hidden text-right md:block"><span className="block text-xs text-muted-foreground">Terça-feira</span><span className="block text-sm font-semibold">15 de setembro</span></span><Button variant="ghost" size="icon" className="relative" aria-label="Notificações"><Bell /><span className="absolute right-2 top-2 size-2 rounded-full bg-warning ring-2 ring-card" /></Button></div>
+          <div className="flex items-center justify-end gap-2"><span className="hidden text-right md:block"><span className="block text-xs capitalize text-muted-foreground">{formatLongDate(isoDate(0)).split(",")[0]}</span><span className="block text-sm font-semibold">{formatDate(isoDate(0))}</span></span><Button variant="ghost" size="icon" className="relative" aria-label="Notificações"><Bell />{unread > 0 && <span className="absolute right-2 top-2 size-2 rounded-full bg-warning ring-2 ring-card" />}</Button></div>
         </header>
         <main className="mx-auto w-full max-w-[1500px] p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
