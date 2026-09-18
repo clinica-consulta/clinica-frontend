@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail, UserRound } from "lucide-react";
+import { ArrowRight, CalendarDays, Eye, EyeOff, IdCard, LockKeyhole, Mail, Phone, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/gestao-consultas-logo-transparent.png";
@@ -29,11 +29,11 @@ function LoginPage() {
           <span className={`font-display text-xl uppercase transition-colors duration-700 sm:text-2xl ${isSignup ? "text-primary-foreground" : "text-primary"}`}>Gestão de Consultas</span>
         </div>
 
-        <div className={`rounded-2xl border p-3 transition-colors duration-700 sm:p-4 ${isSignup ? "border-border/75 bg-auth-panel" : "border-border bg-muted/55"}`}>
-          <div className={`relative grid h-11 grid-cols-2 rounded-xl border-border p-1 transition-colors duration-700 ${isSignup ? "border bg-auth-input" : "border-2 bg-card"}`} role="tablist" aria-label="Acesso">
-            <span className={`absolute bottom-1 left-1 top-1 w-[calc(50%-4px)] rounded-lg transition-transform duration-500 ease-out ${isSignup ? "translate-x-full bg-secondary" : "translate-x-0 bg-primary"}`} aria-hidden="true" />
-            <Button type="button" variant="ghost" role="tab" aria-selected={!isSignup} onClick={() => setMode("login")} className="relative z-10 h-full rounded-lg text-sm font-semibold text-primary-foreground hover:bg-transparent">Login</Button>
-            <Button type="button" variant="ghost" role="tab" aria-selected={isSignup} onClick={() => setMode("signup")} className={`relative z-10 h-full rounded-lg text-sm font-semibold hover:bg-transparent ${isSignup ? "text-primary" : "text-muted-foreground"}`}>Cadastre-se</Button>
+        <div className={`border p-3 transition-colors duration-700 sm:p-4 ${isSignup ? "rounded-xl border-border/75 bg-auth-panel" : "rounded-2xl border-border bg-muted/55"}`}>
+          <div className={`relative grid h-11 grid-cols-2 border-border p-1 transition-colors duration-700 ${isSignup ? "rounded-lg border bg-auth-input" : "rounded-xl border-2 bg-card"}`} role="tablist" aria-label="Acesso">
+            <span className={`absolute bottom-1 left-1 top-1 w-[calc(50%-4px)] transition-transform duration-500 ease-out ${isSignup ? "translate-x-full rounded-md bg-secondary" : "translate-x-0 rounded-lg bg-primary"}`} aria-hidden="true" />
+            <Button type="button" variant="ghost" role="tab" aria-selected={!isSignup} onClick={() => setMode("login")} className={`relative z-10 h-full text-sm font-semibold hover:bg-transparent ${isSignup ? "rounded-md text-primary hover:text-primary" : "rounded-lg text-primary-foreground hover:text-primary-foreground"}`}>Login</Button>
+            <Button type="button" variant="ghost" role="tab" aria-selected={isSignup} onClick={() => setMode("signup")} className={`relative z-10 h-full text-sm font-semibold hover:bg-transparent ${isSignup ? "rounded-md text-primary hover:text-primary" : "rounded-lg text-muted-foreground hover:text-muted-foreground"}`}>Cadastre-se</Button>
           </div>
 
           <div className="mt-7 overflow-hidden px-2 pb-2">
@@ -43,11 +43,14 @@ function LoginPage() {
                   <h2 className="text-xl font-bold text-primary-foreground sm:text-2xl">Crie sua conta</h2>
                   <p className="mt-3 text-sm text-accent">Preencha seus dados para criar uma nova conta.</p>
                 </div>
-                <form className="space-y-5 [&_label]:text-primary-foreground [&_input]:border [&_input]:border-border [&_input]:bg-auth-input [&_input]:text-primary-foreground [&_input]:placeholder:text-accent [&_.field-icon]:text-accent" onSubmit={submitSignup}>
-                  <AuthField label="Nome Completo" icon={<UserRound />} type="text" autoComplete="name" placeholder="Digite seu nome" />
+                <form className="space-y-5 [&_label]:text-primary-foreground [&_input]:rounded-lg [&_input]:border [&_input]:border-border [&_input]:bg-auth-input [&_input]:text-primary-foreground [&_input]:placeholder:text-accent [&_.field-icon]:text-accent" onSubmit={submitSignup}>
+                  <AuthField label="Nome" icon={<UserRound />} type="text" autoComplete="name" placeholder="Digite seu nome" />
+                  <AuthField label="CPF" icon={<IdCard />} type="text" inputMode="numeric" autoComplete="off" placeholder="000.000.000-00" />
+                  <AuthField label="Telefone" icon={<Phone />} type="tel" inputMode="tel" autoComplete="tel" placeholder="(00) 00000-0000" />
                   <AuthField label="E-mail" icon={<Mail />} type="email" autoComplete="email" placeholder="voce@exemplo.com" />
                   <PasswordField label="Senha" show={showPassword} onToggle={() => setShowPassword((visible) => !visible)} autoComplete="new-password" placeholder="Crie uma senha" />
-                  <Button type="submit" size="lg" className="h-12 w-full rounded-xl bg-secondary text-sm font-semibold text-secondary-foreground hover:bg-secondary/90">Criar conta <ArrowRight /></Button>
+                  <AuthField label="Data de nascimento" icon={<CalendarDays />} type="date" autoComplete="bday" />
+                  <Button type="submit" size="lg" className="h-12 w-full rounded-lg bg-secondary text-sm font-semibold text-secondary-foreground hover:bg-secondary hover:text-secondary-foreground">Criar conta <ArrowRight /></Button>
                 </form>
               </div>
             ) : (
@@ -59,7 +62,7 @@ function LoginPage() {
                 <form className="space-y-5" onSubmit={(event) => { event.preventDefault(); navigate({ to: "/dashboard" }); }}>
                   <AuthField label="E-mail" icon={<Mail />} type="email" autoComplete="email" placeholder="voce@exemplo.com" />
                   <PasswordField label="Senha" show={showPassword} onToggle={() => setShowPassword((visible) => !visible)} autoComplete="current-password" placeholder="Digite sua senha" />
-                  <Button type="submit" size="lg" className="h-12 w-full rounded-xl text-sm font-semibold">Entrar <ArrowRight /></Button>
+                  <Button type="submit" size="lg" className="h-12 w-full rounded-xl text-sm font-semibold hover:bg-primary hover:text-primary-foreground">Entrar <ArrowRight /></Button>
                 </form>
               </div>
             )}
