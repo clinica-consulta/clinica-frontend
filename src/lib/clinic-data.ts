@@ -196,14 +196,16 @@ export const seedSettings: ClinicSettings = {
   autoConfirm: true,
 };
 
+function minutesOf(value: string) {
+  const [hour = 0, minute = 0] = value.split(":").map(Number);
+  return hour * 60 + minute;
+}
+
 export function slotRange(start: string, end: string) {
   const slots: string[] = [];
-  let [hour, minute] = start.split(":").map(Number);
-  const [endHour, endMinute] = end.split(":").map(Number);
-  while (hour * 60 + minute < endHour * 60 + endMinute) {
-    slots.push(`${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`);
-    minute += 30;
-    if (minute >= 60) { minute -= 60; hour += 1; }
+  const limit = minutesOf(end);
+  for (let current = minutesOf(start); current < limit; current += 30) {
+    slots.push(`${String(Math.floor(current / 60)).padStart(2, "0")}:${String(current % 60).padStart(2, "0")}`);
   }
   return slots;
 }
