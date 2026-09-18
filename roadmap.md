@@ -24,3 +24,5 @@
 
 - [x] Funcionalidades reais de cada perfil (estado compartilhado + agendar/confirmar/check-in/atendimentos/disponibilidade/gestão)
 - [x] Corrigir rotas internas das áreas Paciente, Profissional e Administrador
+- [x] Remover Relatórios da recepção e manter o relatório apenas na área administrativa
+- [x] Reduzir a escala visual e aprimorar a responsividade de todas as áreas internas
