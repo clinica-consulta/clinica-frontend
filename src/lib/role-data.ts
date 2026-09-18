@@ -7,7 +7,6 @@ import {
   ChartNoAxesCombined,
   ClipboardCheck,
   Clock3,
-  FileText,
   LayoutDashboard,
   Settings,
   Stethoscope,
@@ -47,7 +46,6 @@ const receptionistNav: AppNavItem[] = [
   { to: "/fila-espera", label: "Fila de espera", icon: ClipboardCheck },
   { to: "/check-in", label: "Check-in", icon: UserRound },
   { to: "/profissionais", label: "Profissionais", icon: Stethoscope },
-  { to: "/relatorios", label: "Relatórios", icon: ChartNoAxesCombined },
   { to: "/perfil", label: "Configurações", icon: Settings },
 ];
 
@@ -107,7 +105,6 @@ export const roleProfiles: Record<UserRole, RoleProfile> = {
       { to: "/administrador/profissionais", label: "Profissionais", icon: Stethoscope },
       { to: "/administrador/relatorios", label: "Relatórios", icon: ChartNoAxesCombined },
       { to: "/administrador/configuracoes", label: "Configurações", icon: Settings },
-      { to: "/relatorios", label: "Relatório operacional", icon: FileText },
     ],
   },
 };

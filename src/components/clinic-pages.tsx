@@ -86,11 +86,11 @@ export function DashboardPage() {
       <StatCard label="Check-ins realizados" value={String(waiting.length)} detail={`${today.filter((item) => item.status === "Em atendimento").length} em atendimento`} icon={<UserCheck />} tone="success" />
       <StatCard label="Taxa de presença" value={`${reports.attendance}%`} detail="Histórico da clínica" icon={<Activity />} tone="info" />
     </div>
-    <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(300px,0.8fr)]">
+    <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(280px,0.8fr)]">
       <Section title="Próximas consultas">
         {next.length ? <div className="divide-y divide-border">{next.slice(0, 5).map((item) => <div key={item.id} className="grid grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3 py-3"><span className="text-sm font-bold text-primary">{item.time}</span><div className="min-w-0"><p className="truncate text-sm font-semibold">{patientById(item.patientId)?.name}</p><p className="truncate text-xs text-muted-foreground">{professionalById(item.professionalId)?.name} · {item.specialty}</p></div><StatusBadge status={item.status} /></div>)}</div> : <EmptyHint>Nenhuma consulta para hoje.</EmptyHint>}
       </Section>
-      <div className="space-y-6">
+      <div className="space-y-4">
         <Section title="Atenção necessária">
           <div className="space-y-3">
             <div className="flex gap-3 rounded-md bg-muted/60 p-3"><span className="metric-icon metric-warning size-9"><CircleAlert /></span><div className="min-w-0"><p className="text-sm font-semibold">{pending.length} confirmações pendentes</p><p className="text-xs text-muted-foreground">Consultas sem resposta do paciente</p>{pending.length > 0 && <Button size="sm" variant="outline" className="mt-2" onClick={() => { const sent = sendAllReminders(); toast[sent ? "success" : "info"](sent ? `${sent} lembrete(s) enviado(s)` : "Todos os lembretes já foram enviados"); }}><Send />Enviar lembretes</Button>}</div></div>
@@ -138,7 +138,7 @@ export function AgendaPage() {
         <Button variant="outline" onClick={() => setDate(isoDate(0))}>Hoje</Button>
       </div>
       {hours.length ? (
-        <div className="overflow-x-auto"><div className="grid min-w-[760px]" style={{ gridTemplateColumns: `72px repeat(${active.length}, minmax(200px,1fr))` }}>
+        <div className="overflow-x-auto"><div className="grid min-w-[660px]" style={{ gridTemplateColumns: `64px repeat(${active.length}, minmax(170px,1fr))` }}>
           <div className="agenda-head" />
           {active.map((professional) => <div className="agenda-head" key={professional.id}><p className="text-sm font-semibold">{professional.name}</p><p className="text-xs text-muted-foreground">{professional.specialty}</p></div>)}
           {hours.flatMap((hour) => [
@@ -212,7 +212,7 @@ export function PacientesPage() {
     {list.length ? <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{list.map((item) => {
       const history = appointments.filter((appointment) => appointment.patientId === item.id);
       const last = history.filter((appointment) => appointment.date <= isoDate(0)).sort((a, b) => b.date.localeCompare(a.date))[0];
-      return <article key={item.id} className="surface p-5">
+      return <article key={item.id} className="surface p-4">
         <div className="flex items-start justify-between"><span className="avatar">{item.initials}</span><StatusBadge status={item.status} /></div>
         <h2 className="mt-4 text-base font-semibold">{item.name}</h2>
         <p className="mt-1 text-sm text-muted-foreground">{item.email}</p>
@@ -254,7 +254,7 @@ export function WaitlistPage() {
 
   return <>
     <PageHeader eyebrow="Otimização da agenda" title="Fila de espera" description="Preencha horários liberados com rapidez e reduza a ociosidade." action="Adicionar à fila" onAction={() => setOpen(true)} />
-    <div className="mb-6 grid gap-4 sm:grid-cols-3">
+    <div className="mb-5 grid gap-3 sm:grid-cols-3">
       <StatCard label="Na fila" value={String(queue.filter((item) => item.status === "Aguardando").length)} detail="Aguardando horário" icon={<UsersRound />} />
       <StatCard label="Convites enviados" value={String(queue.filter((item) => item.status === "Convidado").length)} detail="Esperando resposta" icon={<CalendarClock />} tone="warning" />
       <StatCard label="Total na lista" value={String(queue.length)} detail="Pacientes registrados" icon={<CheckCircle2 />} tone="success" />
@@ -287,7 +287,7 @@ export function CheckInPage() {
 
   return <>
     <PageHeader eyebrow="Recepção" title="Check-in digital" description="Registre a chegada e acompanhe quem está aguardando atendimento." />
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_340px]">
+    <div className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_300px]">
       <Section title="Chegadas de hoje">
         {today.length ? <div className="space-y-3">{today.map((item) => {
           const arrived = ["Aguardando", "Em atendimento", "Concluída"].includes(item.status);
@@ -300,9 +300,9 @@ export function CheckInPage() {
       </Section>
       <Section title="Resumo">
         <div className="space-y-5">
-          <div><p className="font-display text-4xl text-primary">{today.filter((item) => ["Aguardando", "Em atendimento", "Concluída"].includes(item.status)).length}</p><p className="text-sm text-muted-foreground">check-ins realizados</p></div>
-          <div className="border-t border-border pt-4"><p className="font-display text-4xl text-warning">{waiting.length}</p><p className="text-sm text-muted-foreground">pacientes aguardando</p></div>
-          <div className="border-t border-border pt-4"><p className="font-display text-4xl text-info">{inService.length}</p><p className="text-sm text-muted-foreground">em atendimento agora</p></div>
+          <div><p className="font-display text-3xl text-primary">{today.filter((item) => ["Aguardando", "Em atendimento", "Concluída"].includes(item.status)).length}</p><p className="text-xs text-muted-foreground">check-ins realizados</p></div>
+          <div className="border-t border-border pt-3"><p className="font-display text-3xl text-warning">{waiting.length}</p><p className="text-xs text-muted-foreground">pacientes aguardando</p></div>
+          <div className="border-t border-border pt-3"><p className="font-display text-3xl text-info">{inService.length}</p><p className="text-xs text-muted-foreground">em atendimento agora</p></div>
         </div>
       </Section>
     </div>
@@ -334,7 +334,7 @@ export function ProfessionalsPage() {
       const next = todayItems.filter((item) => !["Concluída", "Falta"].includes(item.status)).sort((a, b) => a.time.localeCompare(b.time))[0];
       return <article key={professional.id} className="surface overflow-hidden">
         <div className={`h-1.5 ${professional.color}`} />
-        <div className="p-5">
+        <div className="p-4">
           <div className="flex gap-3"><span className="avatar">{professional.initials}</span><div><h2 className="font-semibold">{professional.name}</h2><p className="text-sm text-muted-foreground">{professional.specialty}</p><p className="mt-1 text-xs text-muted-foreground">{professional.crm}</p></div></div>
           <div className="mt-5 grid grid-cols-2 border-y border-border py-4 text-center"><div><b className="block text-xl">{todayItems.length}</b><span className="text-xs text-muted-foreground">Hoje</span></div><div className="border-l border-border"><b className="block text-xl">{next?.time ?? "—"}</b><span className="text-xs text-muted-foreground">Próximo</span></div></div>
           <div className="mt-4 flex items-center justify-between"><StatusBadge status={professional.active ? "Ativo" : "Inativo"} /><Button variant="outline" size="sm" onClick={() => { toggleProfessional(professional.id); toast.success(professional.active ? "Profissional inativado" : "Profissional ativado"); }}>{professional.active ? "Inativar" : "Ativar"}</Button></div>
@@ -370,13 +370,13 @@ export function ReportsPage() {
       <StatCard label="Faltas" value={String(reports.noShow)} detail={`${reports.total ? Math.round((reports.noShow / reports.total) * 100) : 0}% do total`} icon={<CircleAlert />} tone="warning" />
       <StatCard label="Cancelamentos" value={String(reports.canceled)} detail="Consultas canceladas" icon={<CalendarClock />} tone="info" />
     </div>
-    <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,0.7fr)]">
+    <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(260px,0.7fr)]">
       <Section title="Consultas por dia">
-        <div className="flex h-64 items-end gap-3">{reports.perDay.map((day) => <div key={day.date} className="flex flex-1 flex-col items-center gap-2"><span className="text-[10px] text-muted-foreground">{day.total}</span><div className="w-full max-w-12 rounded-t-sm bg-primary/80" style={{ height: `${(day.total / max) * 180 + 4}px` }} /><span className="text-xs text-muted-foreground">{formatDate(day.date).slice(0, 5)}</span></div>)}</div>
+        <div className="flex h-52 items-end gap-2 sm:gap-3">{reports.perDay.map((day) => <div key={day.date} className="flex min-w-0 flex-1 flex-col items-center gap-2"><span className="text-[10px] text-muted-foreground">{day.total}</span><div className="w-full max-w-10 rounded-t-sm bg-primary/80" style={{ height: `${(day.total / max) * 140 + 4}px` }} /><span className="text-[10px] text-muted-foreground sm:text-xs">{formatDate(day.date).slice(0, 5)}</span></div>)}</div>
       </Section>
       <Section title="Presença">
         <div className="grid place-items-center py-5">
-          <div className="report-ring grid size-40 place-items-center rounded-full"><div className="grid size-28 place-items-center rounded-full bg-card text-center"><span><b className="block font-display text-3xl">{reports.attendance}%</b><small className="text-muted-foreground">presença</small></span></div></div>
+          <div className="report-ring grid size-32 place-items-center rounded-full"><div className="grid size-22 place-items-center rounded-full bg-card text-center"><span><b className="block font-display text-2xl">{reports.attendance}%</b><small className="text-muted-foreground">presença</small></span></div></div>
           <div className="mt-6 grid w-full grid-cols-2 gap-3 text-center text-xs"><div className="rounded-md bg-success-soft p-3"><b className="block text-lg text-success">{reports.done}</b>Compareceram</div><div className="rounded-md bg-warning-soft p-3"><b className="block text-lg text-warning-strong">{reports.noShow}</b>Faltaram</div></div>
         </div>
       </Section>
@@ -391,7 +391,7 @@ export function ProfilePage() {
 
   return <>
     <PageHeader eyebrow="Preferências" title="Perfil e configurações" description="Atualize seus dados e preferências de comunicação." />
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
       <Section title="Dados do perfil">
         <form className="grid gap-4 sm:grid-cols-2" onSubmit={(event) => { event.preventDefault(); toast.success("Perfil atualizado", { description: "Suas alterações foram salvas." }); }}>
           <Field label="Nome completo" defaultValue="Rafaela Costa" />

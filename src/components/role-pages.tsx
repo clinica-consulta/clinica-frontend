@@ -26,7 +26,7 @@ function useProfessionalScope() {
 
 function AppointmentRow({ item, right }: { item: Appointment; right?: React.ReactNode }) {
   const { patientById, professionalById } = useClinic();
-  return <div className="grid gap-3 py-4 sm:grid-cols-[80px_minmax(0,1fr)_auto] sm:items-center">
+  return <div className="grid gap-2.5 py-3 sm:grid-cols-[72px_minmax(0,1fr)_auto] sm:items-center">
     <b className="text-primary">{item.time}</b>
     <div className="min-w-0"><p className="font-semibold">{patientById(item.patientId)?.name}</p><p className="text-xs text-muted-foreground">{professionalById(item.professionalId)?.name} · {item.specialty} · {relativeDay(item.date)}</p></div>
     <div className="flex flex-wrap items-center gap-2"><StatusBadge status={item.status} />{right}</div>
@@ -34,17 +34,17 @@ function AppointmentRow({ item, right }: { item: Appointment; right?: React.Reac
 }
 
 function Notice({ icon, title, text, action }: { icon: React.ReactNode; title: string; text: string; action?: React.ReactNode }) {
-  return <article className="flex gap-3 rounded-md border border-border p-4"><span className="metric-icon metric-info size-10">{icon}</span><div className="min-w-0"><p className="text-sm font-semibold">{title}</p><p className="mt-1 text-xs text-muted-foreground">{text}</p>{action && <div className="mt-2">{action}</div>}</div></article>;
+  return <article className="grid grid-cols-[auto_minmax(0,1fr)] gap-2.5 rounded-md border border-border p-3"><span className="metric-icon metric-info">{icon}</span><div className="min-w-0"><p className="text-sm font-semibold">{title}</p><p className="mt-1 text-xs text-muted-foreground">{text}</p>{action && <div className="mt-2">{action}</div>}</div></article>;
 }
 
 function NotificationList({ role }: { role: "patient" | "professional" | "admin" | "receptionist" }) {
   const { notificationsFor, markNotificationRead, markAllNotificationsRead } = useClinic();
   const items = notificationsFor(role);
   return <Section title={`Recentes (${items.filter((item) => !item.read).length} não lidas)`} action={<Button variant="ghost" size="sm" onClick={() => { markAllNotificationsRead(role); toast.success("Notificações marcadas como lidas"); }}>Marcar todas</Button>}>
-    {items.length ? <div className="space-y-3">{items.map((item) => <article key={item.id} className={`flex gap-3 rounded-md border p-4 ${item.read ? "border-border" : "border-primary/40 bg-muted/55"}`}>
+    {items.length ? <div className="space-y-3">{items.map((item) => <article key={item.id} className={`grid grid-cols-[auto_minmax(0,1fr)] gap-2.5 rounded-md border p-3 sm:grid-cols-[auto_minmax(0,1fr)_auto] ${item.read ? "border-border" : "border-primary/40 bg-muted/55"}`}>
       <span className="metric-icon metric-info size-10"><Bell /></span>
       <div className="min-w-0 flex-1"><p className="text-sm font-semibold">{item.title}</p><p className="mt-1 text-xs text-muted-foreground">{item.text}</p><p className="mt-1 text-[11px] text-muted-foreground">{formatDate(item.createdAt)}</p></div>
-      {!item.read && <Button variant="ghost" size="sm" onClick={() => markNotificationRead(item.id)}>Marcar lida</Button>}
+      {!item.read && <Button className="col-start-2 justify-self-start sm:col-start-3 sm:row-start-1 sm:self-center" variant="ghost" size="sm" onClick={() => markNotificationRead(item.id)}>Marcar lida</Button>}
     </article>)}</div> : <EmptyHint>Nenhuma notificação por aqui.</EmptyHint>}
   </Section>;
 }
@@ -66,11 +66,11 @@ export function PatientDashboardPage() {
       <StatCard label="Notificações" value={String(unread)} detail="Não lidas" icon={<Bell />} tone="warning" />
       <StatCard label="Agendadas" value={String(upcoming.length)} detail="Próximos atendimentos" icon={<Clock3 />} tone="info" />
     </div>
-    <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_360px]">
+    <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_320px]">
       <Section title="Próxima consulta">
-        {next ? <div className="rounded-md bg-muted/55 p-5">
+        {next ? <div className="rounded-md bg-muted/55 p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div><p className="font-display text-xl uppercase">{clinic.professionalById(next.professionalId)?.name}</p><p className="text-sm text-muted-foreground">{next.specialty} · {relativeDay(next.date)} às {next.time}</p></div>
+            <div className="min-w-0"><p className="font-display text-lg uppercase">{clinic.professionalById(next.professionalId)?.name}</p><p className="text-xs text-muted-foreground sm:text-sm">{next.specialty} · {relativeDay(next.date)} às {next.time}</p></div>
             <StatusBadge status={next.status} />
           </div>
           <div className="mt-5 flex flex-wrap gap-2">
@@ -130,10 +130,10 @@ export function PatientCheckInPage() {
 
   return <>
     <PageHeader eyebrow="Atendimento de hoje" title="Check-in digital" description="Confirme sua chegada e preencha os dados antes da consulta." />
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
       <Section title="Sua consulta">
         {todayItem ? <div className="space-y-4">
-          <div><p className="font-display text-2xl uppercase">{todayItem.specialty}</p><p className="text-sm text-muted-foreground">{clinic.professionalById(todayItem.professionalId)?.name} · hoje às {todayItem.time}</p></div>
+          <div><p className="font-display text-xl uppercase">{todayItem.specialty}</p><p className="text-xs text-muted-foreground sm:text-sm">{clinic.professionalById(todayItem.professionalId)?.name} · hoje às {todayItem.time}</p></div>
           <StatusBadge status={todayItem.status} />
           <Button disabled={todayItem.status === "Aguardando" || todayItem.status === "Em atendimento"} onClick={() => { clinic.setAppointmentStatus(todayItem.id, "Aguardando"); toast.success("Check-in realizado", { description: "A equipe já sabe que você chegou." }); }}>
             {todayItem.status === "Aguardando" || todayItem.status === "Em atendimento" ? <><Check />Presença confirmada</> : "Fazer check-in"}
@@ -207,7 +207,7 @@ export function ProfessionalDashboardPage() {
       <StatCard label="Concluídas" value={String(done.length)} detail="Até o momento" icon={<CheckCircle2 />} tone="success" />
       <StatCard label="Total de pacientes" value={String(new Set(mine.map((item) => item.patientId)).size)} detail="Vinculados a você" icon={<Activity />} tone="info" />
     </div>
-    <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_360px]">
+    <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_320px]">
       <Section title="Próximos atendimentos">
         {next.length ? <div className="divide-y divide-border">{next.map((item) => <AppointmentRow key={item.id} item={item} right={item.status === "Aguardando" ? <Button size="sm" onClick={() => { clinic.setAppointmentStatus(item.id, "Em atendimento"); toast.success("Atendimento iniciado"); }}>Atender</Button> : undefined} />)}</div> : <EmptyHint>Sem atendimentos para hoje.</EmptyHint>}
       </Section>
@@ -277,7 +277,7 @@ export function ProfessionalPatientsPage() {
     {list.length ? <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{list.map((patient) => {
       const history = mine.filter((item) => item.patientId === patient!.id);
       const last = history.filter((item) => item.status === "Concluída").sort((a, b) => b.date.localeCompare(a.date))[0];
-      return <article key={patient!.id} className="surface p-5">
+      return <article key={patient!.id} className="surface p-4">
         <span className="avatar">{patient!.initials}</span>
         <h2 className="mt-4 font-semibold">{patient!.name}</h2>
         <p className="mt-1 text-sm text-muted-foreground">{patient!.email}</p>
@@ -296,7 +296,7 @@ export function ProfessionalAvailabilityPage() {
     <Section title="Horários da semana">
       <div className="space-y-3">{weekdays.map((day) => {
         const value = professional.availability[day.value] ?? { active: false, start: "08:00", end: "17:00" };
-        return <div key={day.value} className="grid gap-3 rounded-md border border-border p-4 sm:grid-cols-[180px_1fr_1fr_auto] sm:items-end">
+        return <div key={day.value} className="grid gap-3 rounded-md border border-border p-3 md:grid-cols-[140px_1fr_1fr_auto] md:items-end">
           <b className="self-center">{day.label}</b>
           <Field label="Início" type="time" value={value.start} onChange={(event) => clinic.setAvailability(professional.id, day.value, { ...value, start: event.target.value })} />
           <Field label="Fim" type="time" value={value.end} onChange={(event) => clinic.setAvailability(professional.id, day.value, { ...value, end: event.target.value })} />
@@ -360,7 +360,7 @@ export function AdminDashboardPage() {
       <StatCard label="Consultas no mês" value={String(monthly)} detail={`${reports.attendance}% de presença`} icon={<CalendarDays />} tone="success" />
       <StatCard label="Pendências" value={String(pendingUsers + waitlist.filter((item) => item.status === "Aguardando").length)} detail="Requerem revisão" icon={<ShieldCheck />} tone="warning" />
     </div>
-    <div className="mt-6 grid gap-6 lg:grid-cols-2">
+    <div className="mt-5 grid gap-4 lg:grid-cols-2">
       <Section title="Desempenho da clínica">
         <div className="space-y-4">
           {[["Consultas registradas", String(reports.total)], ["Taxa de presença", `${reports.attendance}%`], ["Faltas", String(reports.noShow)], ["Cancelamentos", String(reports.canceled)]].map(([label, value]) => <div key={label} className="flex items-center justify-between border-b border-border pb-3 text-sm"><span className="text-muted-foreground">{label}</span><b>{value}</b></div>)}
@@ -390,7 +390,7 @@ export function AdminUsersPage() {
     <PageHeader eyebrow="Controle de acesso" title="Usuários" description="Gerencie contas e níveis de acesso da plataforma." action="Novo usuário" onAction={() => setOpen(true)} />
     <Toolbar placeholder="Buscar nome ou perfil..." value={search} onChange={setSearch} />
     <Section title={`Usuários cadastrados (${rows.length})`}>
-      {rows.length ? <div className="space-y-3">{rows.map((item) => <div key={`${item.role}-${item.id}`} className="grid gap-3 rounded-md border border-border p-4 sm:grid-cols-[minmax(0,1fr)_160px_120px_auto] sm:items-center">
+      {rows.length ? <div className="space-y-3">{rows.map((item) => <div key={`${item.role}-${item.id}`} className="grid gap-2.5 rounded-md border border-border p-3 md:grid-cols-[minmax(0,1fr)_140px_105px_auto] md:items-center">
         <div className="min-w-0"><b className="block truncate">{item.name}</b><span className="text-xs text-muted-foreground">{item.email}</span></div>
         <span className="text-sm text-muted-foreground">{item.role}</span>
         <StatusBadge status={item.status} />
@@ -436,7 +436,7 @@ export function AdminProfessionalsPage() {
 
   return <>
     <PageHeader eyebrow="Equipe clínica" title="Gestão de profissionais" description="Gerencie profissionais, especialidades e disponibilidade." action="Novo profissional" onAction={() => setOpen(true)} />
-    <div className="grid gap-4 lg:grid-cols-3">{professionals.map((professional) => <article key={professional.id} className="surface p-5">
+    <div className="grid gap-4 lg:grid-cols-3">{professionals.map((professional) => <article key={professional.id} className="surface p-4">
       <div className="flex items-start justify-between"><span className="avatar">{professional.initials}</span><StatusBadge status={professional.active ? "Ativo" : "Inativo"} /></div>
       <h2 className="mt-4 font-semibold">{professional.name}</h2>
       <p className="text-sm text-muted-foreground">{professional.specialty} · {professional.crm}</p>
@@ -470,11 +470,11 @@ export function AdminReportsPage() {
       <StatCard label="Faltas" value={String(reports.noShow)} detail={`${reports.total ? Math.round((reports.noShow / reports.total) * 100) : 0}% do total`} icon={<CircleAlert />} tone="warning" />
       <StatCard label="Presença" value={`${reports.attendance}%`} detail="Média histórica" icon={<Activity />} tone="success" />
     </div>
-    <Section title="Consultas por dia" className="mt-6">
-      <div className="flex h-56 items-end gap-3">{reports.perDay.map((day) => <div key={day.date} className="flex flex-1 flex-col items-center gap-2"><span className="text-[10px] text-muted-foreground">{day.total}</span><div className="w-full max-w-12 rounded-t-sm bg-primary/80" style={{ height: `${(day.total / max) * 150 + 4}px` }} /><span className="text-xs text-muted-foreground">{formatDate(day.date).slice(0, 5)}</span></div>)}</div>
+    <Section title="Consultas por dia" className="mt-5">
+      <div className="flex h-48 items-end gap-2 sm:gap-3">{reports.perDay.map((day) => <div key={day.date} className="flex min-w-0 flex-1 flex-col items-center gap-2"><span className="text-[10px] text-muted-foreground">{day.total}</span><div className="w-full max-w-10 rounded-t-sm bg-primary/80" style={{ height: `${(day.total / max) * 125 + 4}px` }} /><span className="text-[10px] text-muted-foreground sm:text-xs">{formatDate(day.date).slice(0, 5)}</span></div>)}</div>
     </Section>
-    <Section title="Ocupação por profissional" className="mt-6">
-      <div className="space-y-4">{reports.bySpecialty.map((item) => <div key={item.professional} className="grid grid-cols-[minmax(0,140px)_1fr_44px] items-center gap-3 text-sm"><span className="truncate">{item.professional}</span><div className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full bg-primary" style={{ width: `${item.occupancy}%` }} /></div><b>{item.occupancy}%</b></div>)}</div>
+    <Section title="Ocupação por profissional" className="mt-5">
+      <div className="space-y-3">{reports.bySpecialty.map((item) => <div key={item.professional} className="grid grid-cols-[minmax(0,100px)_minmax(60px,1fr)_38px] items-center gap-2 text-xs sm:grid-cols-[minmax(0,140px)_1fr_44px] sm:gap-3 sm:text-sm"><span className="truncate">{item.professional}</span><div className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full bg-primary" style={{ width: `${item.occupancy}%` }} /></div><b>{item.occupancy}%</b></div>)}</div>
     </Section>
   </>;
 }
@@ -483,7 +483,7 @@ export function AdminSettingsPage() {
   const { settings, updateSettings, staff } = useClinic();
   return <>
     <PageHeader eyebrow="Administração" title="Configurações" description="Atualize os dados institucionais e preferências gerais." />
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
       <Section title="Dados da clínica">
         <form className="grid gap-4 sm:grid-cols-2" onSubmit={(event) => {
           event.preventDefault();
