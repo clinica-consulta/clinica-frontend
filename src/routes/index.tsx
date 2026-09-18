@@ -57,12 +57,12 @@ function LoginPage() {
                   <p className="mt-3 text-sm text-accent">Preencha seus dados para criar uma nova conta.</p>
                 </div>
                 <form className="space-y-5 [&_label]:text-primary-foreground [&_input]:rounded-md [&_input]:border [&_input]:border-border [&_input]:bg-auth-input [&_input]:text-primary-foreground [&_input]:placeholder:text-accent [&_.field-icon]:text-accent" onSubmit={submitSignup}>
-                  <AuthField label="Nome" icon={<UserRound />} type="text" autoComplete="name" placeholder="Digite seu nome" />
-                  <AuthField label="CPF" icon={<IdCard />} type="text" inputMode="numeric" autoComplete="off" placeholder="000.000.000-00" />
-                  <AuthField label="Telefone" icon={<Phone />} type="tel" inputMode="tel" autoComplete="tel" placeholder="(00) 00000-0000" />
-                  <AuthField label="E-mail" icon={<Mail />} type="email" autoComplete="email" placeholder="voce@exemplo.com" />
+                  <AuthField label="Nome" name="name" icon={<UserRound />} type="text" autoComplete="name" placeholder="Digite seu nome" />
+                  <AuthField label="CPF" name="cpf" icon={<IdCard />} type="text" inputMode="numeric" autoComplete="off" placeholder="000.000.000-00" />
+                  <AuthField label="Telefone" name="phone" icon={<Phone />} type="tel" inputMode="tel" autoComplete="tel" placeholder="(00) 00000-0000" />
+                  <AuthField label="E-mail" name="email" icon={<Mail />} type="email" autoComplete="email" placeholder="voce@exemplo.com" />
                   <PasswordField label="Senha" show={showPassword} onToggle={() => setShowPassword((visible) => !visible)} autoComplete="new-password" placeholder="Crie uma senha" />
-                  <AuthField label="Data de nascimento" icon={<CalendarDays />} type="date" autoComplete="bday" />
+                  <AuthField label="Data de nascimento" name="birthDate" icon={<CalendarDays />} type="date" autoComplete="bday" />
                   <Button type="submit" size="lg" className="h-12 w-full rounded-md bg-secondary text-sm font-semibold text-secondary-foreground hover:bg-secondary hover:text-secondary-foreground">Criar conta <ArrowRight /></Button>
                 </form>
               </div>
