@@ -17,8 +17,14 @@ import {
 
 export type UserRole = "receptionist" | "patient" | "professional" | "admin";
 
+export type AppPath =
+  | "/dashboard" | "/agenda" | "/consultas" | "/pacientes" | "/fila-espera" | "/check-in" | "/profissionais" | "/relatorios" | "/perfil"
+  | "/paciente" | "/paciente/consultas" | "/paciente/agendar" | "/paciente/check-in" | "/paciente/notificacoes" | "/paciente/perfil"
+  | "/profissional" | "/profissional/agenda" | "/profissional/atendimentos" | "/profissional/pacientes" | "/profissional/disponibilidade" | "/profissional/notificacoes" | "/profissional/perfil"
+  | "/administrador" | "/administrador/usuarios" | "/administrador/profissionais" | "/administrador/relatorios" | "/administrador/configuracoes";
+
 export type AppNavItem = {
-  to: string;
+  to: AppPath;
   label: string;
   icon: LucideIcon;
 };
@@ -28,7 +34,7 @@ export type RoleProfile = {
   name: string;
   title: string;
   initials: string;
-  home: string;
+  home: AppPath;
   search: string;
   nav: AppNavItem[];
 };
