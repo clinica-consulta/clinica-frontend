@@ -18,3 +18,4 @@
 - [x] Reforçar a borda externa do Login e suavizar discretamente as bordas do Cadastro
 - [x] Destacar a borda externa e reduzir as bordas internas apenas no Cadastro
 - [x] Reduzir discretamente a borda externa do Login e Cadastro
+- [x] Remover mudanças de cor no hover e ajustar campos e arredondamento do Cadastro
