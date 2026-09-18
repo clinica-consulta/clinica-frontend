@@ -7,7 +7,6 @@ import {
   ChartNoAxesCombined,
   ClipboardCheck,
   Clock3,
-  FileText,
   LayoutDashboard,
   Settings,
   Stethoscope,
