@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AppShell } from "@/components/app-shell";
 import { Toaster } from "@/components/ui/sonner";
+import { ClinicProvider } from "@/lib/clinic-store";
 
 function NotFoundComponent() {
   return (
@@ -121,7 +122,9 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AppShell><Outlet /></AppShell>
+      <ClinicProvider>
+        <AppShell><Outlet /></AppShell>
+      </ClinicProvider>
       <Toaster position="top-right" richColors closeButton />
     </QueryClientProvider>
   );
