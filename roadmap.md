@@ -19,5 +19,5 @@
 - [x] Destacar a borda externa e reduzir as bordas internas apenas no Cadastro
 - [x] Reduzir discretamente a borda externa do Login e Cadastro
 - [x] Remover mudanças de cor no hover e ajustar campos e arredondamento do Cadastro
-- [ ] Criar experiências específicas para Paciente, Profissional de Saúde e Administrador usando e-mails demonstrativos
-- [ ] Remover mudança de cor no hover do Login e Cadastro e reduzir discretamente os cantos apenas do Cadastro
+- [x] Criar experiências específicas para Paciente, Profissional de Saúde e Administrador usando e-mails demonstrativos
+- [x] Remover mudança de cor no hover do Login e Cadastro e reduzir discretamente os cantos apenas do Cadastro
