@@ -4,7 +4,8 @@ import { ArrowRight, CalendarDays, Eye, EyeOff, IdCard, LockKeyhole, Mail, Phone
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/gestao-consultas-logo-transparent.png";
-import { roleFromEmail, roleProfiles } from "@/lib/role-data";
+import { roleProfiles } from "@/lib/role-data";
+import { useClinic } from "@/lib/clinic-store";
 
 export const Route = createFileRoute("/")({
   head: () => ({ meta: [{ title: "Acesso — Gestão de Consultas" }, { name: "description", content: "Entre ou crie seu acesso à plataforma de gestão de consultas da clínica." }, { property: "og:title", content: "Acesso — Gestão de Consultas" }, { property: "og:description", content: "Entre ou crie seu acesso à plataforma de gestão de consultas da clínica." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
