@@ -36,7 +36,7 @@ function LoginPage() {
 
   return (
     <main className={`relative flex min-h-screen flex-col overflow-hidden px-4 transition-colors duration-700 ${isSignup ? "bg-primary" : "bg-background"}`}>
-      <section className="mx-auto flex w-full max-w-[410px] flex-1 flex-col justify-center overflow-hidden py-6 font-display">
+      <section className="mx-auto flex w-full max-w-[370px] flex-1 flex-col justify-center overflow-hidden py-6 font-display">
         <div className="mb-4 flex items-center justify-center gap-2" aria-label="Gestão de Consultas">
           <img src={logo} alt="" className="size-10 object-contain sm:size-12" />
           <span className={`font-display text-lg uppercase transition-colors duration-700 sm:text-xl ${isSignup ? "text-primary-foreground" : "text-primary"}`}>Gestão de Consultas</span>
@@ -52,7 +52,7 @@ function LoginPage() {
           <div className="mt-5 overflow-hidden px-1.5 pb-1.5">
             {isSignup ? (
               <div key="signup" className="auth-slide-right">
-                <div className="mb-4">
+                <div className="mb-4 text-center">
                   <h2 className="text-lg font-bold text-primary-foreground sm:text-xl">Crie sua conta</h2>
                   <p className="mt-2 text-xs text-accent sm:text-sm">Preencha seus dados para criar uma nova conta.</p>
                 </div>
@@ -68,7 +68,7 @@ function LoginPage() {
               </div>
             ) : (
               <div key="login" className="auth-slide-left">
-                <div className="mb-4">
+                <div className="mb-4 text-center">
                   <h1 className="text-lg font-bold text-foreground sm:text-xl">Bem-vindo de volta</h1>
                   <p className="mt-2 text-xs text-muted-foreground sm:text-sm">Digite suas credenciais para acessar sua conta.</p>
                 </div>
