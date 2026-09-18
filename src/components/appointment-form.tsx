@@ -9,7 +9,15 @@ export function AppointmentForm({ fixedPatientId, onDone }: { fixedPatientId?: s
   const { patients, professionals, createAppointment, availableSlots } = useClinic();
   const [patientId, setPatientId] = useState(fixedPatientId ?? patients[0]?.id ?? "");
   const [specialty, setSpecialty] = useState(specialties[0] ?? "");
-  const [date, setDate] = useState(isoDate(1));
+  const firstOpenDate = useMemo(() => {
+    for (let offset = 1; offset <= 14; offset += 1) {
+      const candidate = isoDate(offset);
+      const weekday = new Date(`${candidate}T12:00:00`).getDay();
+      if (professionals.some((item) => item.active && item.availability[weekday]?.active)) return candidate;
+    }
+    return isoDate(1);
+  }, [professionals]);
+  const [date, setDate] = useState(firstOpenDate);
   const [notes, setNotes] = useState("");
 
   const eligible = useMemo(() => professionals.filter((item) => item.active && item.specialty === specialty), [professionals, specialty]);
