@@ -27,3 +27,4 @@
 - [x] Remover Relatórios da recepção e manter o relatório apenas na área administrativa
 - [x] Reduzir a escala visual e aprimorar a responsividade de todas as áreas internas
 - [x] Reduzir a escala visual do Login e Cadastro mantendo o design atual
+- [x] Centralizar os nomes das seções e ajustar Login e Cadastro ao tamanho das referências
