@@ -23,7 +23,13 @@ import {
 } from "@/lib/clinic-data";
 import { roleFromEmail, type UserRole } from "@/lib/role-data";
 
-type Session = { role: UserRole; email: string; patientId?: string; professionalId?: string; staffId?: string };
+type Session = {
+  role: UserRole;
+  email: string;
+  patientId?: string | undefined;
+  professionalId?: string | undefined;
+  staffId?: string | undefined;
+};
 
 type ClinicState = {
   patients: Patient[];
