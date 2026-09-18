@@ -22,15 +22,18 @@ import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as ProfissionaisRouteImport } from './routes/profissionais'
 import { Route as ProfissionalRouteImport } from './routes/profissional'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
+import { Route as AdministradorIndexRouteImport } from './routes/administrador.index'
 import { Route as AdministradorConfiguracoesRouteImport } from './routes/administrador.configuracoes'
 import { Route as AdministradorProfissionaisRouteImport } from './routes/administrador.profissionais'
 import { Route as AdministradorRelatoriosRouteImport } from './routes/administrador.relatorios'
 import { Route as AdministradorUsuariosRouteImport } from './routes/administrador.usuarios'
+import { Route as PacienteIndexRouteImport } from './routes/paciente.index'
 import { Route as PacienteAgendarRouteImport } from './routes/paciente.agendar'
 import { Route as PacienteCheckInRouteImport } from './routes/paciente.check-in'
 import { Route as PacienteConsultasRouteImport } from './routes/paciente.consultas'
 import { Route as PacienteNotificacoesRouteImport } from './routes/paciente.notificacoes'
 import { Route as PacientePerfilRouteImport } from './routes/paciente.perfil'
+import { Route as ProfissionalIndexRouteImport } from './routes/profissional.index'
 import { Route as ProfissionalAgendaRouteImport } from './routes/profissional.agenda'
 import { Route as ProfissionalAtendimentosRouteImport } from './routes/profissional.atendimentos'
 import { Route as ProfissionalDisponibilidadeRouteImport } from './routes/profissional.disponibilidade'
@@ -103,6 +106,11 @@ const RelatoriosRoute = RelatoriosRouteImport.update({
   path: '/relatorios',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdministradorIndexRoute = AdministradorIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdministradorRoute,
+} as any)
 const AdministradorConfiguracoesRoute =
   AdministradorConfiguracoesRouteImport.update({
     id: '/configuracoes',
@@ -124,6 +132,11 @@ const AdministradorUsuariosRoute = AdministradorUsuariosRouteImport.update({
   id: '/usuarios',
   path: '/usuarios',
   getParentRoute: () => AdministradorRoute,
+} as any)
+const PacienteIndexRoute = PacienteIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PacienteRoute,
 } as any)
 const PacienteAgendarRoute = PacienteAgendarRouteImport.update({
   id: '/agendar',
@@ -149,6 +162,11 @@ const PacientePerfilRoute = PacientePerfilRouteImport.update({
   id: '/perfil',
   path: '/perfil',
   getParentRoute: () => PacienteRoute,
+} as any)
+const ProfissionalIndexRoute = ProfissionalIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ProfissionalRoute,
 } as any)
 const ProfissionalAgendaRoute = ProfissionalAgendaRouteImport.update({
   id: '/agenda',
@@ -213,20 +231,20 @@ export interface FileRoutesByFullPath {
   '/profissional/notificacoes': typeof ProfissionalNotificacoesRoute
   '/profissional/pacientes': typeof ProfissionalPacientesRoute
   '/profissional/perfil': typeof ProfissionalPerfilRoute
+  '/administrador/': typeof AdministradorIndexRoute
+  '/paciente/': typeof PacienteIndexRoute
+  '/profissional/': typeof ProfissionalIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/administrador': typeof AdministradorRouteWithChildren
   '/agenda': typeof AgendaRoute
   '/check-in': typeof CheckInRoute
   '/consultas': typeof ConsultasRoute
   '/dashboard': typeof DashboardRoute
   '/fila-espera': typeof FilaEsperaRoute
-  '/paciente': typeof PacienteRouteWithChildren
   '/pacientes': typeof PacientesRoute
   '/perfil': typeof PerfilRoute
   '/profissionais': typeof ProfissionaisRoute
-  '/profissional': typeof ProfissionalRouteWithChildren
   '/relatorios': typeof RelatoriosRoute
   '/administrador/configuracoes': typeof AdministradorConfiguracoesRoute
   '/administrador/profissionais': typeof AdministradorProfissionaisRoute
@@ -243,6 +261,9 @@ export interface FileRoutesByTo {
   '/profissional/notificacoes': typeof ProfissionalNotificacoesRoute
   '/profissional/pacientes': typeof ProfissionalPacientesRoute
   '/profissional/perfil': typeof ProfissionalPerfilRoute
+  '/administrador': typeof AdministradorIndexRoute
+  '/paciente': typeof PacienteIndexRoute
+  '/profissional': typeof ProfissionalIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -274,6 +295,9 @@ export interface FileRoutesById {
   '/profissional/notificacoes': typeof ProfissionalNotificacoesRoute
   '/profissional/pacientes': typeof ProfissionalPacientesRoute
   '/profissional/perfil': typeof ProfissionalPerfilRoute
+  '/administrador/': typeof AdministradorIndexRoute
+  '/paciente/': typeof PacienteIndexRoute
+  '/profissional/': typeof ProfissionalIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -306,20 +330,20 @@ export interface FileRouteTypes {
     | '/profissional/notificacoes'
     | '/profissional/pacientes'
     | '/profissional/perfil'
+    | '/administrador/'
+    | '/paciente/'
+    | '/profissional/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/administrador'
     | '/agenda'
     | '/check-in'
     | '/consultas'
     | '/dashboard'
     | '/fila-espera'
-    | '/paciente'
     | '/pacientes'
     | '/perfil'
     | '/profissionais'
-    | '/profissional'
     | '/relatorios'
     | '/administrador/configuracoes'
     | '/administrador/profissionais'
@@ -336,6 +360,9 @@ export interface FileRouteTypes {
     | '/profissional/notificacoes'
     | '/profissional/pacientes'
     | '/profissional/perfil'
+    | '/administrador'
+    | '/paciente'
+    | '/profissional'
   id:
     | '__root__'
     | '/'
@@ -366,6 +393,9 @@ export interface FileRouteTypes {
     | '/profissional/notificacoes'
     | '/profissional/pacientes'
     | '/profissional/perfil'
+    | '/administrador/'
+    | '/paciente/'
+    | '/profissional/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -477,6 +507,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RelatoriosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/administrador/': {
+      id: '/administrador/'
+      path: '/'
+      fullPath: '/administrador/'
+      preLoaderRoute: typeof AdministradorIndexRouteImport
+      parentRoute: typeof AdministradorRoute
+    }
     '/administrador/configuracoes': {
       id: '/administrador/configuracoes'
       path: '/configuracoes'
@@ -504,6 +541,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/administrador/usuarios'
       preLoaderRoute: typeof AdministradorUsuariosRouteImport
       parentRoute: typeof AdministradorRoute
+    }
+    '/paciente/': {
+      id: '/paciente/'
+      path: '/'
+      fullPath: '/paciente/'
+      preLoaderRoute: typeof PacienteIndexRouteImport
+      parentRoute: typeof PacienteRoute
     }
     '/paciente/agendar': {
       id: '/paciente/agendar'
@@ -539,6 +583,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/paciente/perfil'
       preLoaderRoute: typeof PacientePerfilRouteImport
       parentRoute: typeof PacienteRoute
+    }
+    '/profissional/': {
+      id: '/profissional/'
+      path: '/'
+      fullPath: '/profissional/'
+      preLoaderRoute: typeof ProfissionalIndexRouteImport
+      parentRoute: typeof ProfissionalRoute
     }
     '/profissional/agenda': {
       id: '/profissional/agenda'
@@ -590,6 +641,7 @@ interface AdministradorRouteChildren {
   AdministradorProfissionaisRoute: typeof AdministradorProfissionaisRoute
   AdministradorRelatoriosRoute: typeof AdministradorRelatoriosRoute
   AdministradorUsuariosRoute: typeof AdministradorUsuariosRoute
+  AdministradorIndexRoute: typeof AdministradorIndexRoute
 }
 
 const AdministradorRouteChildren: AdministradorRouteChildren = {
@@ -597,6 +649,7 @@ const AdministradorRouteChildren: AdministradorRouteChildren = {
   AdministradorProfissionaisRoute: AdministradorProfissionaisRoute,
   AdministradorRelatoriosRoute: AdministradorRelatoriosRoute,
   AdministradorUsuariosRoute: AdministradorUsuariosRoute,
+  AdministradorIndexRoute: AdministradorIndexRoute,
 }
 
 const AdministradorRouteWithChildren = AdministradorRoute._addFileChildren(
@@ -609,6 +662,7 @@ interface PacienteRouteChildren {
   PacienteConsultasRoute: typeof PacienteConsultasRoute
   PacienteNotificacoesRoute: typeof PacienteNotificacoesRoute
   PacientePerfilRoute: typeof PacientePerfilRoute
+  PacienteIndexRoute: typeof PacienteIndexRoute
 }
 
 const PacienteRouteChildren: PacienteRouteChildren = {
@@ -617,6 +671,7 @@ const PacienteRouteChildren: PacienteRouteChildren = {
   PacienteConsultasRoute: PacienteConsultasRoute,
   PacienteNotificacoesRoute: PacienteNotificacoesRoute,
   PacientePerfilRoute: PacientePerfilRoute,
+  PacienteIndexRoute: PacienteIndexRoute,
 }
 
 const PacienteRouteWithChildren = PacienteRoute._addFileChildren(
@@ -630,6 +685,7 @@ interface ProfissionalRouteChildren {
   ProfissionalNotificacoesRoute: typeof ProfissionalNotificacoesRoute
   ProfissionalPacientesRoute: typeof ProfissionalPacientesRoute
   ProfissionalPerfilRoute: typeof ProfissionalPerfilRoute
+  ProfissionalIndexRoute: typeof ProfissionalIndexRoute
 }
 
 const ProfissionalRouteChildren: ProfissionalRouteChildren = {
@@ -639,6 +695,7 @@ const ProfissionalRouteChildren: ProfissionalRouteChildren = {
   ProfissionalNotificacoesRoute: ProfissionalNotificacoesRoute,
   ProfissionalPacientesRoute: ProfissionalPacientesRoute,
   ProfissionalPerfilRoute: ProfissionalPerfilRoute,
+  ProfissionalIndexRoute: ProfissionalIndexRoute,
 }
 
 const ProfissionalRouteWithChildren = ProfissionalRoute._addFileChildren(
