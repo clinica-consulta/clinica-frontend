@@ -21,3 +21,6 @@
 - [x] Remover mudanças de cor no hover e ajustar campos e arredondamento do Cadastro
 - [x] Criar experiências específicas para Paciente, Profissional de Saúde e Administrador usando e-mails demonstrativos
 - [x] Remover mudança de cor no hover do Login e Cadastro e reduzir discretamente os cantos apenas do Cadastro
+
+- [x] Funcionalidades reais de cada perfil (estado compartilhado + agendar/confirmar/check-in/atendimentos/disponibilidade/gestão)
+- [x] Corrigir rotas internas das áreas Paciente, Profissional e Administrador
