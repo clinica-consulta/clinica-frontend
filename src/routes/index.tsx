@@ -12,6 +12,7 @@ export const Route = createFileRoute("/")({
 });
 function LoginPage() {
   const navigate = useNavigate();
+  const { login, addPatient } = useClinic();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
@@ -19,6 +20,15 @@ function LoginPage() {
 
   function submitSignup(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    addPatient({
+      name: String(data.get("name") ?? ""),
+      cpf: String(data.get("cpf") ?? ""),
+      phone: String(data.get("phone") ?? ""),
+      email: String(data.get("email") ?? ""),
+      birthDate: String(data.get("birthDate") ?? ""),
+    });
+    setEmail(String(data.get("email") ?? ""));
     toast.success("Cadastro realizado! Agora você já pode entrar.");
     setMode("login");
   }
