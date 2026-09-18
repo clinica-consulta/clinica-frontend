@@ -5,13 +5,18 @@ import { Button } from "@/components/ui/button";
 import { LoadingScreen } from "@/components/loading-screen";
 import logo from "@/assets/gestao-consultas-logo-transparent.png";
 import { roleFromPath, roleProfiles } from "@/lib/role-data";
+import { formatDate, formatLongDate, isoDate } from "@/lib/clinic-data";
+import { useClinic } from "@/lib/clinic-store";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [loading, setLoading] = useState(false);
-  const profile = roleProfiles[roleFromPath(pathname)];
+  const role = roleFromPath(pathname);
+  const profile = roleProfiles[role];
+  const { logout, notificationsFor } = useClinic();
+  const unread = notificationsFor(role).filter((item) => !item.read).length;
 
   useEffect(() => {
     setMobileOpen(false);
