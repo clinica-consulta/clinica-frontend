@@ -4,6 +4,7 @@ import { ArrowRight, CalendarDays, Eye, EyeOff, IdCard, LockKeyhole, Mail, Phone
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/gestao-consultas-logo-transparent.png";
+import { roleFromEmail, roleProfiles } from "@/lib/role-data";
 
 export const Route = createFileRoute("/")({
   head: () => ({ meta: [{ title: "Acesso — Gestão de Consultas" }, { name: "description", content: "Entre ou crie seu acesso à plataforma de gestão de consultas da clínica." }, { property: "og:title", content: "Acesso — Gestão de Consultas" }, { property: "og:description", content: "Entre ou crie seu acesso à plataforma de gestão de consultas da clínica." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
@@ -13,6 +14,7 @@ function LoginPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
   const isSignup = mode === "signup";
 
   function submitSignup(event: React.FormEvent<HTMLFormElement>) {
@@ -32,8 +34,8 @@ function LoginPage() {
         <div className={`border p-3 transition-colors duration-700 sm:p-4 ${isSignup ? "rounded-xl border-border/75 bg-auth-panel" : "rounded-2xl border-border bg-muted/55"}`}>
           <div className={`relative grid h-11 grid-cols-2 border-border p-1 transition-colors duration-700 ${isSignup ? "rounded-lg border bg-auth-input" : "rounded-xl border-2 bg-card"}`} role="tablist" aria-label="Acesso">
             <span className={`absolute bottom-1 left-1 top-1 w-[calc(50%-4px)] transition-transform duration-500 ease-out ${isSignup ? "translate-x-full rounded-md bg-secondary" : "translate-x-0 rounded-lg bg-primary"}`} aria-hidden="true" />
-            <Button type="button" variant="ghost" role="tab" aria-selected={!isSignup} onClick={() => setMode("login")} className={`relative z-10 h-full text-sm font-semibold hover:bg-transparent ${isSignup ? "rounded-md text-primary hover:text-primary" : "rounded-lg text-primary-foreground hover:text-primary-foreground"}`}>Login</Button>
-            <Button type="button" variant="ghost" role="tab" aria-selected={isSignup} onClick={() => setMode("signup")} className={`relative z-10 h-full text-sm font-semibold hover:bg-transparent ${isSignup ? "rounded-md text-primary hover:text-primary" : "rounded-lg text-muted-foreground hover:text-muted-foreground"}`}>Cadastre-se</Button>
+            <Button type="button" variant="ghost" role="tab" aria-selected={!isSignup} onClick={() => setMode("login")} className={`relative z-10 h-full text-sm font-semibold hover:bg-transparent ${isSignup ? "rounded-sm text-primary hover:text-primary" : "rounded-lg text-primary-foreground hover:text-primary-foreground"}`}>Login</Button>
+            <Button type="button" variant="ghost" role="tab" aria-selected={isSignup} onClick={() => setMode("signup")} className={`relative z-10 h-full text-sm font-semibold hover:bg-transparent ${isSignup ? "rounded-sm text-primary hover:text-primary" : "rounded-lg text-muted-foreground hover:text-muted-foreground"}`}>Cadastre-se</Button>
           </div>
 
           <div className="mt-7 overflow-hidden px-2 pb-2">
@@ -43,14 +45,14 @@ function LoginPage() {
                   <h2 className="text-xl font-bold text-primary-foreground sm:text-2xl">Crie sua conta</h2>
                   <p className="mt-3 text-sm text-accent">Preencha seus dados para criar uma nova conta.</p>
                 </div>
-                <form className="space-y-5 [&_label]:text-primary-foreground [&_input]:rounded-lg [&_input]:border [&_input]:border-border [&_input]:bg-auth-input [&_input]:text-primary-foreground [&_input]:placeholder:text-accent [&_.field-icon]:text-accent" onSubmit={submitSignup}>
+                <form className="space-y-5 [&_label]:text-primary-foreground [&_input]:rounded-md [&_input]:border [&_input]:border-border [&_input]:bg-auth-input [&_input]:text-primary-foreground [&_input]:placeholder:text-accent [&_.field-icon]:text-accent" onSubmit={submitSignup}>
                   <AuthField label="Nome" icon={<UserRound />} type="text" autoComplete="name" placeholder="Digite seu nome" />
                   <AuthField label="CPF" icon={<IdCard />} type="text" inputMode="numeric" autoComplete="off" placeholder="000.000.000-00" />
                   <AuthField label="Telefone" icon={<Phone />} type="tel" inputMode="tel" autoComplete="tel" placeholder="(00) 00000-0000" />
                   <AuthField label="E-mail" icon={<Mail />} type="email" autoComplete="email" placeholder="voce@exemplo.com" />
                   <PasswordField label="Senha" show={showPassword} onToggle={() => setShowPassword((visible) => !visible)} autoComplete="new-password" placeholder="Crie uma senha" />
                   <AuthField label="Data de nascimento" icon={<CalendarDays />} type="date" autoComplete="bday" />
-                  <Button type="submit" size="lg" className="h-12 w-full rounded-lg bg-secondary text-sm font-semibold text-secondary-foreground hover:bg-secondary hover:text-secondary-foreground">Criar conta <ArrowRight /></Button>
+                  <Button type="submit" size="lg" className="h-12 w-full rounded-md bg-secondary text-sm font-semibold text-secondary-foreground hover:bg-secondary hover:text-secondary-foreground">Criar conta <ArrowRight /></Button>
                 </form>
               </div>
             ) : (
@@ -59,8 +61,8 @@ function LoginPage() {
                   <h1 className="text-xl font-bold text-foreground sm:text-2xl">Bem-vindo de volta</h1>
                   <p className="mt-3 text-sm text-muted-foreground">Digite suas credenciais para acessar sua conta.</p>
                 </div>
-                <form className="space-y-5" onSubmit={(event) => { event.preventDefault(); navigate({ to: "/dashboard" }); }}>
-                  <AuthField label="E-mail" icon={<Mail />} type="email" autoComplete="email" placeholder="voce@exemplo.com" />
+                <form className="space-y-5" onSubmit={(event) => { event.preventDefault(); const role = roleFromEmail(email); navigate({ to: roleProfiles[role].home }); }}>
+                  <AuthField label="E-mail" icon={<Mail />} type="email" autoComplete="email" placeholder="voce@exemplo.com" value={email} onChange={(event) => setEmail(event.target.value)} />
                   <PasswordField label="Senha" show={showPassword} onToggle={() => setShowPassword((visible) => !visible)} autoComplete="current-password" placeholder="Digite sua senha" />
                   <Button type="submit" size="lg" className="h-12 w-full rounded-xl text-sm font-semibold hover:bg-primary hover:text-primary-foreground">Entrar <ArrowRight /></Button>
                 </form>
