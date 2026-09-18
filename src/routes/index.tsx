@@ -61,7 +61,7 @@ function LoginPage() {
                   <h1 className="text-xl font-bold text-foreground sm:text-2xl">Bem-vindo de volta</h1>
                   <p className="mt-3 text-sm text-muted-foreground">Digite suas credenciais para acessar sua conta.</p>
                 </div>
-                <form className="space-y-5" onSubmit={(event) => { event.preventDefault(); const role = roleFromEmail(email); navigate({ to: roleProfiles[role].home }); }}>
+                <form className="space-y-5" onSubmit={(event) => { event.preventDefault(); const role = login(email); navigate({ to: roleProfiles[role].home }); }}>
                   <AuthField label="E-mail" icon={<Mail />} type="email" autoComplete="email" placeholder="voce@exemplo.com" value={email} onChange={(event) => setEmail(event.target.value)} />
                   <PasswordField label="Senha" show={showPassword} onToggle={() => setShowPassword((visible) => !visible)} autoComplete="current-password" placeholder="Digite sua senha" />
                   <Button type="submit" size="lg" className="h-12 w-full rounded-xl text-sm font-semibold hover:bg-primary hover:text-primary-foreground">Entrar <ArrowRight /></Button>
