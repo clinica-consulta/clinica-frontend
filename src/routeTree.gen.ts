@@ -20,9 +20,10 @@ import { Route as PacientesRouteImport } from './routes/pacientes'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as ProfissionaisRouteImport } from './routes/profissionais'
 import { Route as ProfissionalRouteImport } from './routes/profissional'
-import { Route as RelatoriosRouteImport } from './routes/relatorios'
 import { Route as AdministradorIndexRouteImport } from './routes/administrador.index'
+import { Route as AdministradorAgendasRouteImport } from './routes/administrador.agendas'
 import { Route as AdministradorConfiguracoesRouteImport } from './routes/administrador.configuracoes'
+import { Route as AdministradorEspecialidadesRouteImport } from './routes/administrador.especialidades'
 import { Route as AdministradorProfissionaisRouteImport } from './routes/administrador.profissionais'
 import { Route as AdministradorRelatoriosRouteImport } from './routes/administrador.relatorios'
 import { Route as AdministradorUsuariosRouteImport } from './routes/administrador.usuarios'
@@ -94,20 +95,26 @@ const ProfissionalRoute = ProfissionalRouteImport.update({
   path: '/profissional',
   getParentRoute: () => rootRouteImport,
 } as any)
-const RelatoriosRoute = RelatoriosRouteImport.update({
-  id: '/relatorios',
-  path: '/relatorios',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AdministradorIndexRoute = AdministradorIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AdministradorRoute,
+} as any)
+const AdministradorAgendasRoute = AdministradorAgendasRouteImport.update({
+  id: '/agendas',
+  path: '/agendas',
   getParentRoute: () => AdministradorRoute,
 } as any)
 const AdministradorConfiguracoesRoute =
   AdministradorConfiguracoesRouteImport.update({
     id: '/configuracoes',
     path: '/configuracoes',
+    getParentRoute: () => AdministradorRoute,
+  } as any)
+const AdministradorEspecialidadesRoute =
+  AdministradorEspecialidadesRouteImport.update({
+    id: '/especialidades',
+    path: '/especialidades',
     getParentRoute: () => AdministradorRoute,
   } as any)
 const AdministradorProfissionaisRoute =
@@ -202,8 +209,9 @@ export interface FileRoutesByFullPath {
   '/perfil': typeof PerfilRoute
   '/profissionais': typeof ProfissionaisRoute
   '/profissional': typeof ProfissionalRouteWithChildren
-  '/relatorios': typeof RelatoriosRoute
+  '/administrador/agendas': typeof AdministradorAgendasRoute
   '/administrador/configuracoes': typeof AdministradorConfiguracoesRoute
+  '/administrador/especialidades': typeof AdministradorEspecialidadesRoute
   '/administrador/profissionais': typeof AdministradorProfissionaisRoute
   '/administrador/relatorios': typeof AdministradorRelatoriosRoute
   '/administrador/usuarios': typeof AdministradorUsuariosRoute
@@ -230,8 +238,9 @@ export interface FileRoutesByTo {
   '/pacientes': typeof PacientesRoute
   '/perfil': typeof PerfilRoute
   '/profissionais': typeof ProfissionaisRoute
-  '/relatorios': typeof RelatoriosRoute
+  '/administrador/agendas': typeof AdministradorAgendasRoute
   '/administrador/configuracoes': typeof AdministradorConfiguracoesRoute
+  '/administrador/especialidades': typeof AdministradorEspecialidadesRoute
   '/administrador/profissionais': typeof AdministradorProfissionaisRoute
   '/administrador/relatorios': typeof AdministradorRelatoriosRoute
   '/administrador/usuarios': typeof AdministradorUsuariosRoute
@@ -262,8 +271,9 @@ export interface FileRoutesById {
   '/perfil': typeof PerfilRoute
   '/profissionais': typeof ProfissionaisRoute
   '/profissional': typeof ProfissionalRouteWithChildren
-  '/relatorios': typeof RelatoriosRoute
+  '/administrador/agendas': typeof AdministradorAgendasRoute
   '/administrador/configuracoes': typeof AdministradorConfiguracoesRoute
+  '/administrador/especialidades': typeof AdministradorEspecialidadesRoute
   '/administrador/profissionais': typeof AdministradorProfissionaisRoute
   '/administrador/relatorios': typeof AdministradorRelatoriosRoute
   '/administrador/usuarios': typeof AdministradorUsuariosRoute
@@ -295,8 +305,9 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/profissionais'
     | '/profissional'
-    | '/relatorios'
+    | '/administrador/agendas'
     | '/administrador/configuracoes'
+    | '/administrador/especialidades'
     | '/administrador/profissionais'
     | '/administrador/relatorios'
     | '/administrador/usuarios'
@@ -323,8 +334,9 @@ export interface FileRouteTypes {
     | '/pacientes'
     | '/perfil'
     | '/profissionais'
-    | '/relatorios'
+    | '/administrador/agendas'
     | '/administrador/configuracoes'
+    | '/administrador/especialidades'
     | '/administrador/profissionais'
     | '/administrador/relatorios'
     | '/administrador/usuarios'
@@ -354,8 +366,9 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/profissionais'
     | '/profissional'
-    | '/relatorios'
+    | '/administrador/agendas'
     | '/administrador/configuracoes'
+    | '/administrador/especialidades'
     | '/administrador/profissionais'
     | '/administrador/relatorios'
     | '/administrador/usuarios'
@@ -386,7 +399,6 @@ export interface RootRouteChildren {
   PerfilRoute: typeof PerfilRoute
   ProfissionaisRoute: typeof ProfissionaisRoute
   ProfissionalRoute: typeof ProfissionalRouteWithChildren
-  RelatoriosRoute: typeof RelatoriosRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -468,13 +480,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfissionalRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/relatorios': {
-      id: '/relatorios'
-      path: '/relatorios'
-      fullPath: '/relatorios'
-      preLoaderRoute: typeof RelatoriosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/administrador/': {
       id: '/administrador/'
       path: '/'
@@ -482,11 +487,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdministradorIndexRouteImport
       parentRoute: typeof AdministradorRoute
     }
+    '/administrador/agendas': {
+      id: '/administrador/agendas'
+      path: '/agendas'
+      fullPath: '/administrador/agendas'
+      preLoaderRoute: typeof AdministradorAgendasRouteImport
+      parentRoute: typeof AdministradorRoute
+    }
     '/administrador/configuracoes': {
       id: '/administrador/configuracoes'
       path: '/configuracoes'
       fullPath: '/administrador/configuracoes'
       preLoaderRoute: typeof AdministradorConfiguracoesRouteImport
+      parentRoute: typeof AdministradorRoute
+    }
+    '/administrador/especialidades': {
+      id: '/administrador/especialidades'
+      path: '/especialidades'
+      fullPath: '/administrador/especialidades'
+      preLoaderRoute: typeof AdministradorEspecialidadesRouteImport
       parentRoute: typeof AdministradorRoute
     }
     '/administrador/profissionais': {
@@ -598,7 +617,9 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdministradorRouteChildren {
+  AdministradorAgendasRoute: typeof AdministradorAgendasRoute
   AdministradorConfiguracoesRoute: typeof AdministradorConfiguracoesRoute
+  AdministradorEspecialidadesRoute: typeof AdministradorEspecialidadesRoute
   AdministradorProfissionaisRoute: typeof AdministradorProfissionaisRoute
   AdministradorRelatoriosRoute: typeof AdministradorRelatoriosRoute
   AdministradorUsuariosRoute: typeof AdministradorUsuariosRoute
@@ -606,7 +627,9 @@ interface AdministradorRouteChildren {
 }
 
 const AdministradorRouteChildren: AdministradorRouteChildren = {
+  AdministradorAgendasRoute: AdministradorAgendasRoute,
   AdministradorConfiguracoesRoute: AdministradorConfiguracoesRoute,
+  AdministradorEspecialidadesRoute: AdministradorEspecialidadesRoute,
   AdministradorProfissionaisRoute: AdministradorProfissionaisRoute,
   AdministradorRelatoriosRoute: AdministradorRelatoriosRoute,
   AdministradorUsuariosRoute: AdministradorUsuariosRoute,
@@ -673,7 +696,6 @@ const rootRouteChildren: RootRouteChildren = {
   PerfilRoute: PerfilRoute,
   ProfissionaisRoute: ProfissionaisRoute,
   ProfissionalRoute: ProfissionalRouteWithChildren,
-  RelatoriosRoute: RelatoriosRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
