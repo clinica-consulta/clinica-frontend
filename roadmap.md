@@ -1,30 +1,21 @@
 # Roadmap
-- [x] Aplicar identidade visual, logo e fontes
-- [x] Criar login demonstrativo e estrutura responsiva
-- [x] Criar dashboard e todas as telas solicitadas
-- [x] Adicionar interações, loading e notificações
-- [x] Validar computador, celular e navegador
-- [x] Refazer login conforme a referência, sem seleção de perfil
-- [x] Simplificar o loading com logo transparente e círculo animado
-- [x] Adicionar login e cadastro com transição lateral e cores alternadas
-- [x] Reduzir a tela de acesso, remover o contêiner externo e aplicar a paleta enviada
-- [x] Alinhar login e cadastro às referências, com campos de cadastro em #4D6277 e rodapé fixado ao fim da tela
-- [x] Destacar o acesso com uma caixa compacta e manter os direitos autorais no final centralizado
-- [x] Ajustar cada modo de acesso à própria altura e impedir vazamento entre Login e Cadastro
-- [x] Aplicar Montserrat em todos os títulos e textos principais do acesso
-- [x] Aplicar Montserrat em todos os textos e campos de Login e Cadastro
-- [x] Reforçar as bordas cinzas dos campos no Login e Cadastro
-- [x] Igualar o espaçamento do seletor de acesso e reforçar sua borda cinza
-- [x] Reforçar a borda externa do Login e suavizar discretamente as bordas do Cadastro
-- [x] Destacar a borda externa e reduzir as bordas internas apenas no Cadastro
-- [x] Reduzir discretamente a borda externa do Login e Cadastro
-- [x] Remover mudanças de cor no hover e ajustar campos e arredondamento do Cadastro
-- [x] Criar experiências específicas para Paciente, Profissional de Saúde e Administrador usando e-mails demonstrativos
-- [x] Remover mudança de cor no hover do Login e Cadastro e reduzir discretamente os cantos apenas do Cadastro
+- [x] Identidade visual, logo, fontes e tela de carregamento
+- [x] Login e cadastro conforme as referências enviadas
+- [x] Áreas de Recepção, Paciente, Médico e Administrador com a mesma estética
+- [x] Estado compartilhado entre perfis (agendar, confirmar, cancelar, remarcar, registrar resultado)
+- [x] Escala visual reduzida e responsividade em todas as telas
 
-- [x] Funcionalidades reais de cada perfil (estado compartilhado + agendar/confirmar/check-in/atendimentos/disponibilidade/gestão)
-- [x] Corrigir rotas internas das áreas Paciente, Profissional e Administrador
-- [x] Remover Relatórios da recepção e manter o relatório apenas na área administrativa
-- [x] Reduzir a escala visual e aprimorar a responsividade de todas as áreas internas
-- [x] Reduzir a escala visual do Login e Cadastro mantendo o design atual
-- [x] Centralizar os nomes das seções e ajustar Login e Cadastro ao tamanho das referências
+## Auditoria do documento (concluída)
+- [x] Status do documento: Agendada, Confirmada, Remarcada, Realizada, Cancelada, Não compareceu
+- [x] Recuperação de senha na tela de acesso
+- [x] Convênio no cadastro do paciente, com verificação de elegibilidade e bloqueio do agendamento sem cobertura
+- [x] Especialidades gerenciáveis pelo administrador (cadastrar, editar, desativar)
+- [x] Agendas e horários pelo administrador, com bloqueio de horários e períodos e agenda centralizada
+- [x] Filtros de consultas por data, médico, especialidade e status
+- [x] Histórico por paciente e registro de alterações de cada consulta
+- [x] Registro de consulta realizada e de ausência (recepção e médico)
+- [x] Médico sem permissões administrativas (horários somente leitura)
+- [x] Cancelamento libera o horário na agenda
+- [x] Desativar paciente, médico ou especialidade preserva o histórico
+- [x] Removidos check-in digital, formulário de pré-atendimento e relatórios da recepção (fora do escopo)
+- [x] Fila de espera mantida por decisão do usuário
