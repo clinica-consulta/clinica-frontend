@@ -119,9 +119,13 @@ export function roleFromEmail(email: string): UserRole {
   return "receptionist";
 }
 
+function inArea(pathname: string, area: string) {
+  return pathname === area || pathname.startsWith(`${area}/`);
+}
+
 export function roleFromPath(pathname: string): UserRole {
-  if (pathname.startsWith("/paciente")) return "patient";
-  if (pathname.startsWith("/profissional")) return "professional";
-  if (pathname.startsWith("/administrador")) return "admin";
+  if (inArea(pathname, "/paciente")) return "patient";
+  if (inArea(pathname, "/profissional")) return "professional";
+  if (inArea(pathname, "/administrador")) return "admin";
   return "receptionist";
 }
