@@ -1,3 +1,0 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { CheckInPage } from "@/components/clinic-pages";
-export const Route = createFileRoute("/check-in")({ head: () => ({ meta: [{ title: "Check-in — Gestão de Consultas" }, { name: "description", content: "Registre a chegada dos pacientes à clínica." }, { property: "og:title", content: "Check-in — Gestão de Consultas" }, { property: "og:description", content: "Registre a chegada dos pacientes à clínica." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }), component: CheckInPage });
