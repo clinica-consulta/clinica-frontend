@@ -2,11 +2,16 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import {
   initialsOf,
   isoDate,
+  minutesOf,
+  openStatuses,
   seedAppointments,
+  seedBlocks,
+  seedInsurances,
   seedNotifications,
   seedPatients,
   seedProfessionals,
   seedSettings,
+  seedSpecialties,
   seedStaff,
   seedWaitlist,
   slotRange,
@@ -15,9 +20,11 @@ import {
   type AppointmentStatus,
   type Availability,
   type ClinicSettings,
+  type InsurancePlan,
   type Patient,
-  type PreForm,
   type Professional,
+  type ScheduleBlock,
+  type Specialty,
   type StaffUser,
   type WaitlistEntry,
 } from "@/lib/clinic-data";
@@ -34,7 +41,10 @@ type Session = {
 type ClinicState = {
   patients: Patient[];
   professionals: Professional[];
+  specialties: Specialty[];
+  insurances: InsurancePlan[];
   appointments: Appointment[];
+  blocks: ScheduleBlock[];
   waitlist: WaitlistEntry[];
   notifications: AppNotification[];
   staff: StaffUser[];
@@ -42,12 +52,15 @@ type ClinicState = {
   session: Session | null;
 };
 
-const STORAGE_KEY = "gestao-consultas-state-v1";
+const STORAGE_KEY = "gestao-consultas-state-v2";
 
 const initialState: ClinicState = {
   patients: seedPatients,
   professionals: seedProfessionals,
+  specialties: seedSpecialties,
+  insurances: seedInsurances,
   appointments: seedAppointments,
+  blocks: seedBlocks,
   waitlist: seedWaitlist,
   notifications: seedNotifications,
   staff: seedStaff,
@@ -61,20 +74,24 @@ type NewAppointment = {
   date: string;
   time: string;
   notes?: string;
+  channel?: Appointment["channel"];
 };
+
+export type Eligibility = { ok: boolean; reason: string };
 
 type ClinicContextValue = ClinicState & {
   currentPatient: Patient | null;
   currentProfessional: Professional | null;
+  activeSpecialties: string[];
   login: (email: string) => UserRole;
   logout: () => void;
   patientById: (id: string) => Patient | undefined;
   professionalById: (id: string) => Professional | undefined;
+  checkEligibility: (patientId: string, specialty: string) => Eligibility;
   availableSlots: (professionalId: string, date: string, ignoreAppointmentId?: string) => string[];
   createAppointment: (input: NewAppointment) => Appointment | null;
-  setAppointmentStatus: (id: string, status: AppointmentStatus) => void;
+  setAppointmentStatus: (id: string, status: AppointmentStatus, note?: string) => void;
   rescheduleAppointment: (id: string, date: string, time: string) => boolean;
-  savePreForm: (id: string, form: PreForm) => void;
   sendReminder: (id: string) => void;
   sendAllReminders: () => number;
   addPatient: (input: Omit<Patient, "id" | "initials" | "status"> & { status?: Patient["status"] }) => Patient;
@@ -84,6 +101,11 @@ type ClinicContextValue = ClinicState & {
   updateProfessional: (id: string, changes: Partial<Professional>) => void;
   toggleProfessional: (id: string) => void;
   setAvailability: (id: string, weekday: number, day: Availability[number]) => void;
+  addSpecialty: (name: string) => void;
+  updateSpecialty: (id: string, name: string) => void;
+  toggleSpecialty: (id: string) => void;
+  addBlock: (input: Omit<ScheduleBlock, "id">) => void;
+  removeBlock: (id: string) => void;
   addToWaitlist: (input: Omit<WaitlistEntry, "id" | "createdAt" | "status">) => void;
   inviteFromWaitlist: (id: string) => void;
   removeFromWaitlist: (id: string) => void;
@@ -132,6 +154,23 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const checkEligibility = useCallback(
+    (patientId: string, specialty: string): Eligibility => {
+      const patient = state.patients.find((item) => item.id === patientId);
+      if (!patient) return { ok: false, reason: "Paciente sem cadastro na clínica." };
+      if (patient.status !== "Ativo") return { ok: false, reason: "Cadastro do paciente está inativo." };
+      const list = state.specialties.find((item) => item.name === specialty);
+      if (!list || !list.active) return { ok: false, reason: "Especialidade indisponível no momento." };
+      const plan = state.insurances.find((item) => item.name === patient.insurance);
+      if (!plan || !plan.active) return { ok: true, reason: `Atendimento particular para ${specialty}.` };
+      if (plan.covered.length && !plan.covered.includes(specialty)) {
+        return { ok: false, reason: `O convênio ${plan.name} não cobre ${specialty}.` };
+      }
+      return { ok: true, reason: plan.covered.length ? `${plan.name} cobre ${specialty}.` : `Atendimento particular para ${specialty}.` };
+    },
+    [state.patients, state.specialties, state.insurances],
+  );
+
   const availableSlots = useCallback(
     (professionalId: string, date: string, ignoreAppointmentId?: string) => {
       const professional = state.professionals.find((item) => item.id === professionalId);
@@ -141,11 +180,14 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       if (!day || !day.active) return [];
       const taken = state.appointments
         .filter((item) => item.professionalId === professionalId && item.date === date && item.id !== ignoreAppointmentId)
-        .filter((item) => item.status !== "Cancelada" && item.status !== "Falta")
+        .filter((item) => item.status !== "Cancelada")
         .map((item) => item.time);
-      return slotRange(day.start, day.end).filter((slot) => !taken.includes(slot));
+      const blocks = state.blocks.filter((item) => item.professionalId === professionalId && item.startDate <= date && item.endDate >= date);
+      return slotRange(day.start, day.end)
+        .filter((slot) => !taken.includes(slot))
+        .filter((slot) => !blocks.some((block) => minutesOf(slot) >= minutesOf(block.startTime) && minutesOf(slot) < minutesOf(block.endTime)));
     },
-    [state.appointments, state.professionals],
+    [state.appointments, state.professionals, state.blocks],
   );
 
   const value = useMemo<ClinicContextValue>(() => {
@@ -154,12 +196,19 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       ? state.professionals.find((item) => item.id === state.session?.professionalId) ?? null
       : null;
 
+    const withLog = (item: Appointment, text: string): Appointment => ({
+      ...item,
+      history: [...item.history, { at: isoDate(0), text }],
+    });
+
     return {
       ...state,
       currentPatient,
       currentProfessional,
+      activeSpecialties: state.specialties.filter((item) => item.active).map((item) => item.name),
       patientById,
       professionalById,
+      checkEligibility,
       availableSlots,
 
       login: (email) => {
@@ -182,11 +231,13 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
 
       logout: () => setState((current) => ({ ...current, session: null })),
 
-      createAppointment: ({ patientId, professionalId, date, time, notes }) => {
+      createAppointment: ({ patientId, professionalId, date, time, notes, channel }) => {
         const professional = state.professionals.find((item) => item.id === professionalId);
         if (!professional) return null;
+        if (!checkEligibility(patientId, professional.specialty).ok) return null;
         const free = availableSlots(professionalId, date);
         if (!free.includes(time)) return null;
+        const origin = channel ?? "Recepção";
         const appointment: Appointment = {
           id: makeId("").slice(0, 4).toUpperCase(),
           date,
@@ -194,20 +245,38 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           patientId,
           professionalId,
           specialty: professional.specialty,
-          status: state.settings.autoConfirm ? "Confirmada" : "Pendente",
+          status: state.settings.autoConfirm ? "Confirmada" : "Agendada",
           notes: notes ?? "",
-          preForm: null,
+          channel: origin,
           reminderSentAt: null,
+          confirmationReply: state.settings.autoConfirm ? "Confirmou" : "Sem resposta",
+          history: [{ at: isoDate(0), text: `Consulta criada (${origin.toLowerCase()})` }],
         };
         setState((current) => ({ ...current, appointments: [...current.appointments, appointment] }));
-        pushNotification("Nova consulta agendada", `${patientById(patientId)?.name ?? "Paciente"} · ${professional.name} · ${date} às ${time}.`, ["receptionist", "professional", "patient"]);
+        pushNotification(
+          "Informações da consulta",
+          `${patientById(patientId)?.name ?? "Paciente"} · ${professional.name} · ${date} às ${time}.`,
+          ["receptionist", "professional", "patient"],
+        );
         return appointment;
       },
 
-      setAppointmentStatus: (id, status) => {
+      setAppointmentStatus: (id, status, note) => {
         setState((current) => ({
           ...current,
-          appointments: current.appointments.map((item) => (item.id === id ? { ...item, status } : item)),
+          appointments: current.appointments.map((item) =>
+            item.id === id
+              ? withLog(
+                  {
+                    ...item,
+                    status,
+                    confirmationReply:
+                      status === "Confirmada" ? "Confirmou" : status === "Cancelada" ? "Cancelou" : item.confirmationReply,
+                  },
+                  note ?? `Status alterado para ${status}`,
+                )
+              : item,
+          ),
         }));
       },
 
@@ -217,33 +286,36 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         if (!availableSlots(appointment.professionalId, date, id).includes(time)) return false;
         setState((current) => ({
           ...current,
-          appointments: current.appointments.map((item) => (item.id === id ? { ...item, date, time, status: "Pendente", reminderSentAt: null } : item)),
+          appointments: current.appointments.map((item) =>
+            item.id === id
+              ? withLog(
+                  { ...item, date, time, status: "Remarcada", reminderSentAt: null, confirmationReply: "Sem resposta" },
+                  `Remarcada de ${appointment.date} ${appointment.time} para ${date} ${time}`,
+                )
+              : item,
+          ),
         }));
-        pushNotification("Consulta reagendada", `${patientById(appointment.patientId)?.name ?? "Paciente"} foi movido para ${date} às ${time}.`, ["receptionist", "professional", "patient"]);
+        pushNotification("Consulta remarcada", `${patientById(appointment.patientId)?.name ?? "Paciente"} foi movido para ${date} às ${time}.`, ["receptionist", "professional", "patient"]);
         return true;
-      },
-
-      savePreForm: (id, form) => {
-        setState((current) => ({
-          ...current,
-          appointments: current.appointments.map((item) => (item.id === id ? { ...item, preForm: form } : item)),
-        }));
-        pushNotification("Pré-atendimento recebido", "Um paciente enviou o formulário de pré-atendimento.", ["professional", "receptionist"]);
       },
 
       sendReminder: (id) => {
         setState((current) => ({
           ...current,
-          appointments: current.appointments.map((item) => (item.id === id ? { ...item, reminderSentAt: isoDate(0) } : item)),
+          appointments: current.appointments.map((item) => (item.id === id ? withLog({ ...item, reminderSentAt: isoDate(0) }, "Lembrete de confirmação enviado") : item)),
         }));
       },
 
       sendAllReminders: () => {
-        const pending = state.appointments.filter((item) => item.status === "Pendente" && item.date >= isoDate(0) && !item.reminderSentAt);
+        const pending = state.appointments.filter(
+          (item) => openStatuses.includes(item.status) && item.confirmationReply === "Sem resposta" && item.date >= isoDate(0) && !item.reminderSentAt,
+        );
         if (pending.length) {
           setState((current) => ({
             ...current,
-            appointments: current.appointments.map((item) => (pending.some((p) => p.id === item.id) ? { ...item, reminderSentAt: isoDate(0) } : item)),
+            appointments: current.appointments.map((item) =>
+              pending.some((p) => p.id === item.id) ? withLog({ ...item, reminderSentAt: isoDate(0) }, "Lembrete de confirmação enviado") : item,
+            ),
           }));
           pushNotification("Lembretes enviados", `${pending.length} paciente(s) receberam o lembrete de confirmação.`, ["patient", "receptionist"]);
         }
@@ -311,6 +383,25 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         }));
       },
 
+      addSpecialty: (name) => {
+        setState((current) => ({ ...current, specialties: [...current.specialties, { id: makeId("s"), name, active: true }] }));
+      },
+
+      updateSpecialty: (id, name) => {
+        setState((current) => ({ ...current, specialties: current.specialties.map((item) => (item.id === id ? { ...item, name } : item)) }));
+      },
+
+      toggleSpecialty: (id) => {
+        setState((current) => ({ ...current, specialties: current.specialties.map((item) => (item.id === id ? { ...item, active: !item.active } : item)) }));
+      },
+
+      addBlock: (input) => {
+        setState((current) => ({ ...current, blocks: [...current.blocks, { ...input, id: makeId("b") }] }));
+        pushNotification("Agenda bloqueada", "Um período foi bloqueado na agenda médica.", ["receptionist", "professional", "admin"]);
+      },
+
+      removeBlock: (id) => setState((current) => ({ ...current, blocks: current.blocks.filter((item) => item.id !== id) })),
+
       addToWaitlist: (input) => {
         setState((current) => ({
           ...current,
@@ -355,7 +446,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
 
       updateSettings: (changes) => setState((current) => ({ ...current, settings: { ...current.settings, ...changes } })),
     };
-  }, [state, availableSlots, patientById, professionalById, pushNotification]);
+  }, [state, availableSlots, checkEligibility, patientById, professionalById, pushNotification]);
 
   return <ClinicContext.Provider value={value}>{children}</ClinicContext.Provider>;
 }
@@ -369,8 +460,8 @@ export function useClinic() {
 export function useReports() {
   const { appointments, professionals } = useClinic();
   return useMemo(() => {
-    const done = appointments.filter((item) => item.status === "Concluída").length;
-    const noShow = appointments.filter((item) => item.status === "Falta").length;
+    const done = appointments.filter((item) => item.status === "Realizada").length;
+    const noShow = appointments.filter((item) => item.status === "Não compareceu").length;
     const canceled = appointments.filter((item) => item.status === "Cancelada").length;
     const total = appointments.length;
     const attendance = done + noShow ? Math.round((done / (done + noShow)) * 100) : 0;

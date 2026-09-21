@@ -20,8 +20,8 @@ export function Section({ title, action, children, className = "" }: { title: st
 
 export function StatusBadge({ status }: { status: string }) {
   const type =
-    status === "Confirmada" || status === "Concluída" || status === "Ativo" ? "success"
-    : status === "Pendente" || status === "Alta" || status === "Aguardando" || status === "Falta" ? "warning"
+    status === "Confirmada" || status === "Realizada" || status === "Ativo" ? "success"
+    : status === "Agendada" || status === "Alta" || status === "Aguardando" || status === "Pendente" || status === "Não compareceu" ? "warning"
     : status === "Cancelada" || status === "Inativo" ? "muted"
     : "info";
   return <span className={`status status-${type}`}><span className="size-1.5 rounded-full bg-current" />{status}</span>;
