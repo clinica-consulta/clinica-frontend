@@ -127,6 +127,7 @@ function makeId(prefix: string) {
 
 export function ClinicProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<ClinicState>(initialState);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     try {
@@ -135,15 +136,17 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     } catch {
       /* estado local indisponível */
     }
+    setHydrated(true);
   }, []);
 
   useEffect(() => {
+    if (!hydrated) return;
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch {
       /* estado local indisponível */
     }
-  }, [state]);
+  }, [state, hydrated]);
 
   const patientById = useCallback((id: string) => state.patients.find((item) => item.id === id), [state.patients]);
   const professionalById = useCallback((id: string) => state.professionals.find((item) => item.id === id), [state.professionals]);
