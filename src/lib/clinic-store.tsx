@@ -464,7 +464,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
 
       updateSettings: (changes) => setState((current) => ({ ...current, settings: { ...current.settings, ...changes } })),
     };
-  }, [state, availableSlots, checkEligibility, patientById, professionalById, pushNotification]);
+  }, [state, hydrated, availableSlots, checkEligibility, patientById, professionalById, pushNotification]);
 
   return <ClinicContext.Provider value={value}>{children}</ClinicContext.Provider>;
 }

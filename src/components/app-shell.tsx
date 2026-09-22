@@ -14,14 +14,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [loading, setLoading] = useState(false);
   const pathRole = roleFromPath(pathname);
-  const { logout, notificationsFor, session } = useClinic();
+  const { logout, notificationsFor, session, hydrated } = useClinic();
   const navigate = useNavigate();
-  const [ready, setReady] = useState(false);
+  const ready = hydrated;
   const role = session?.role ?? pathRole;
   const profile = roleProfiles[role];
   const unread = notificationsFor(role).filter((item) => !item.read).length;
 
-  useEffect(() => setReady(true), []);
 
   useEffect(() => {
     setMobileOpen(false);
