@@ -80,6 +80,7 @@ type NewAppointment = {
 export type Eligibility = { ok: boolean; reason: string };
 
 type ClinicContextValue = ClinicState & {
+  hydrated: boolean;
   currentPatient: Patient | null;
   currentProfessional: Professional | null;
   activeSpecialties: string[];
