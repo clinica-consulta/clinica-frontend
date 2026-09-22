@@ -262,6 +262,19 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       },
 
       setAppointmentStatus: (id, status, note) => {
+        // RN09: após a confirmação o paciente recebe as informações da consulta.
+        const target = state.appointments.find((item) => item.id === id);
+        if (target && status === "Confirmada") {
+          const professional = state.professionals.find((item) => item.id === target.professionalId);
+          pushNotification(
+            "Consulta confirmada",
+            `${target.specialty}${professional ? ` com ${professional.name}` : ""} · ${target.date} às ${target.time}.`,
+            ["patient", "receptionist", "professional"],
+          );
+        }
+        if (target && status === "Cancelada") {
+          pushNotification("Horário liberado", `${target.date} às ${target.time} voltou a ficar disponível na agenda.`, ["receptionist", "admin"]);
+        }
         setState((current) => ({
           ...current,
           appointments: current.appointments.map((item) =>
