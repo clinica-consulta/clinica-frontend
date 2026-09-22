@@ -80,6 +80,7 @@ type NewAppointment = {
 export type Eligibility = { ok: boolean; reason: string };
 
 type ClinicContextValue = ClinicState & {
+  hydrated: boolean;
   currentPatient: Patient | null;
   currentProfessional: Professional | null;
   activeSpecialties: string[];
@@ -126,6 +127,7 @@ function makeId(prefix: string) {
 
 export function ClinicProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<ClinicState>(initialState);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     try {
@@ -134,15 +136,17 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     } catch {
       /* estado local indisponível */
     }
+    setHydrated(true);
   }, []);
 
   useEffect(() => {
+    if (!hydrated) return;
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch {
       /* estado local indisponível */
     }
-  }, [state]);
+  }, [state, hydrated]);
 
   const patientById = useCallback((id: string) => state.patients.find((item) => item.id === id), [state.patients]);
   const professionalById = useCallback((id: string) => state.professionals.find((item) => item.id === id), [state.professionals]);
@@ -203,6 +207,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
 
     return {
       ...state,
+      hydrated,
       currentPatient,
       currentProfessional,
       activeSpecialties: state.specialties.filter((item) => item.active).map((item) => item.name),
@@ -262,6 +267,19 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       },
 
       setAppointmentStatus: (id, status, note) => {
+        // RN09: após a confirmação o paciente recebe as informações da consulta.
+        const target = state.appointments.find((item) => item.id === id);
+        if (target && status === "Confirmada") {
+          const professional = state.professionals.find((item) => item.id === target.professionalId);
+          pushNotification(
+            "Consulta confirmada",
+            `${target.specialty}${professional ? ` com ${professional.name}` : ""} · ${target.date} às ${target.time}.`,
+            ["patient", "receptionist", "professional"],
+          );
+        }
+        if (target && status === "Cancelada") {
+          pushNotification("Horário liberado", `${target.date} às ${target.time} voltou a ficar disponível na agenda.`, ["receptionist", "admin"]);
+        }
         setState((current) => ({
           ...current,
           appointments: current.appointments.map((item) =>
@@ -446,7 +464,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
 
       updateSettings: (changes) => setState((current) => ({ ...current, settings: { ...current.settings, ...changes } })),
     };
-  }, [state, availableSlots, checkEligibility, patientById, professionalById, pushNotification]);
+  }, [state, hydrated, availableSlots, checkEligibility, patientById, professionalById, pushNotification]);
 
   return <ClinicContext.Provider value={value}>{children}</ClinicContext.Provider>;
 }
