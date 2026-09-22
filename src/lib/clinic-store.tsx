@@ -207,6 +207,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
 
     return {
       ...state,
+      hydrated,
       currentPatient,
       currentProfessional,
       activeSpecialties: state.specialties.filter((item) => item.active).map((item) => item.name),
