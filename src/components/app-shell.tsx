@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { Bell, ChevronLeft, LogOut, Menu, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,10 +13,15 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [loading, setLoading] = useState(false);
-  const role = roleFromPath(pathname);
+  const pathRole = roleFromPath(pathname);
+  const { logout, notificationsFor, session } = useClinic();
+  const navigate = useNavigate();
+  const [ready, setReady] = useState(false);
+  const role = session?.role ?? pathRole;
   const profile = roleProfiles[role];
-  const { logout, notificationsFor } = useClinic();
   const unread = notificationsFor(role).filter((item) => !item.read).length;
+
+  useEffect(() => setReady(true), []);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -25,7 +30,18 @@ export function AppShell({ children }: { children: ReactNode }) {
     return () => window.clearTimeout(timer);
   }, [pathname]);
 
+  // RN01/RN08 + RNF05: cada perfil só acessa a própria área.
+  useEffect(() => {
+    if (!ready || pathname === "/") return;
+    if (!session) {
+      navigate({ to: "/" });
+      return;
+    }
+    if (session.role !== pathRole) navigate({ to: roleProfiles[session.role].home });
+  }, [ready, pathname, pathRole, session, navigate]);
+
   if (pathname === "/") return <>{children}{loading && <LoadingScreen />}</>;
+  if (ready && (!session || session.role !== pathRole)) return <LoadingScreen />;
 
   return (
     <div className="app-interface min-h-screen bg-background lg:grid" style={{ gridTemplateColumns: collapsed ? "68px minmax(0,1fr)" : "236px minmax(0,1fr)" }}>
