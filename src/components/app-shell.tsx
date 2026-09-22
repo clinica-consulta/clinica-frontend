@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { Bell, ChevronLeft, LogOut, Menu, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,10 +13,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [loading, setLoading] = useState(false);
-  const role = roleFromPath(pathname);
+  const pathRole = roleFromPath(pathname);
+  const { logout, notificationsFor, session, hydrated } = useClinic();
+  const navigate = useNavigate();
+  const ready = hydrated;
+  const role = session?.role ?? pathRole;
   const profile = roleProfiles[role];
-  const { logout, notificationsFor } = useClinic();
   const unread = notificationsFor(role).filter((item) => !item.read).length;
+
 
   useEffect(() => {
     setMobileOpen(false);
@@ -25,7 +29,18 @@ export function AppShell({ children }: { children: ReactNode }) {
     return () => window.clearTimeout(timer);
   }, [pathname]);
 
+  // RN01/RN08 + RNF05: cada perfil só acessa a própria área.
+  useEffect(() => {
+    if (!ready || pathname === "/") return;
+    if (!session) {
+      navigate({ to: "/" });
+      return;
+    }
+    if (session.role !== pathRole) navigate({ to: roleProfiles[session.role].home });
+  }, [ready, pathname, pathRole, session, navigate]);
+
   if (pathname === "/") return <>{children}{loading && <LoadingScreen />}</>;
+  if (ready && (!session || session.role !== pathRole)) return <LoadingScreen />;
 
   return (
     <div className="app-interface min-h-screen bg-background lg:grid" style={{ gridTemplateColumns: collapsed ? "68px minmax(0,1fr)" : "236px minmax(0,1fr)" }}>
@@ -57,7 +72,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Abrir menu"><Menu /></Button>
           <div className="relative hidden max-w-sm sm:block"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><input className="h-10 w-full rounded-md border border-input bg-muted/60 pl-9 pr-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20" placeholder={profile.search} /></div>
           <span className="sm:hidden" />
-          <div className="flex items-center justify-end gap-2"><span className="hidden text-right md:block"><span className="block text-xs capitalize text-muted-foreground">{formatLongDate(isoDate(0)).split(",")[0]}</span><span className="block text-sm font-semibold">{formatDate(isoDate(0))}</span></span><Button variant="ghost" size="icon" className="relative" aria-label="Notificações"><Bell />{unread > 0 && <span className="absolute right-2 top-2 size-2 rounded-full bg-warning ring-2 ring-card" />}</Button></div>
+          <div className="flex items-center justify-end gap-2"><span className="hidden text-right md:block"><span className="block text-xs capitalize text-muted-foreground">{ready ? formatLongDate(isoDate(0)).split(",")[0] : ""}</span><span className="block text-sm font-semibold">{ready ? formatDate(isoDate(0)) : ""}</span></span><Button variant="ghost" size="icon" className="relative" aria-label="Notificações"><Bell />{unread > 0 && <span className="absolute right-2 top-2 size-2 rounded-full bg-warning ring-2 ring-card" />}</Button></div>
         </header>
         <main className="mx-auto w-full max-w-[1440px] p-3 sm:p-5 lg:p-6">{children}</main>
       </div>
