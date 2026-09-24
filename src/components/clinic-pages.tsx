@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Activity, CalendarCheck, CalendarClock, Check, CheckCircle2, ChevronLeft, ChevronRight, CircleAlert, History, MessageSquareText, MoreHorizontal, Phone, Send, ShieldCheck, Users, UsersRound, X } from "lucide-react";
+import { Activity, CalendarCheck, CalendarClock, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, History, MessageSquareText, MoreHorizontal, Phone, Send, ShieldCheck, SlidersHorizontal, Users, UsersRound, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { EmptyHint, Field, Modal, PageHeader, Section, SelectField, StatCard, StatusBadge, TextareaField, Toggle, Toolbar } from "@/components/page-kit";
@@ -169,6 +169,7 @@ export function ConsultasPage() {
   const [professional, setProfessional] = useState("Todos");
   const [specialty, setSpecialty] = useState("Todas");
   const [date, setDate] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [manage, setManage] = useState<Appointment | null>(null);
   const [newOpen, setNewOpen] = useState(false);
   const list = appointments
@@ -184,16 +185,19 @@ export function ConsultasPage() {
 
   return <>
     <PageHeader eyebrow="Atendimentos" title="Consultas" description="Acompanhe, confirme, remarque ou cancele os agendamentos." action="Nova consulta" onAction={() => setNewOpen(true)} />
-    <Toolbar placeholder="Buscar por paciente, CPF ou médico..." value={search} onChange={setSearch} />
-    <div className="mb-4 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="mb-4 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Filtrar consultas por situação">
+      {["Todos", "Agendada", "Confirmada", "Remarcada", "Realizada", "Cancelada", "Não compareceu"].map((item) => <Button key={item} role="tab" aria-selected={status === item} variant={status === item ? "default" : "outline"} size="sm" className="shrink-0" onClick={() => setStatus(item)}>{item}<span className="rounded-full bg-background/70 px-1.5 py-0.5 text-[10px] text-foreground">{item === "Todos" ? appointments.length : appointments.filter((appointment) => appointment.status === item).length}</span></Button>)}
+    </div>
+    <Toolbar placeholder="Buscar por paciente, CPF ou médico..." value={search} onChange={setSearch} filter={<Button variant="outline" onClick={() => setFiltersOpen((value) => !value)} aria-expanded={filtersOpen}><SlidersHorizontal />Filtros<ChevronDown className={`transition-transform ${filtersOpen ? "rotate-180" : ""}`} /></Button>} />
+    {filtersOpen && <div className="filter-panel mb-4 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
       <Field label="Data" type="date" value={date} onChange={(event) => setDate(event.target.value)} />
       <SelectField label="Médico" value={professional} onChange={(event) => setProfessional(event.target.value)} options={[{ value: "Todos", label: "Todos" }, ...professionals.map((item) => ({ value: item.id, label: item.name }))]} />
       <SelectField label="Especialidade" value={specialty} onChange={(event) => setSpecialty(event.target.value)} options={[{ value: "Todas", label: "Todas" }, ...activeSpecialties.map((item) => ({ value: item, label: item }))]} />
       <SelectField label="Status" value={status} onChange={(event) => setStatus(event.target.value)} options={[{ value: "Todos", label: "Todos" }, ...appointmentStatuses.map((item) => ({ value: item, label: item }))]} />
-    </div>
+    </div>}
     <Section title={`Consultas (${list.length})`} action={date || status !== "Todos" || professional !== "Todos" || specialty !== "Todas" ? <Button variant="ghost" size="sm" onClick={() => { setDate(""); setStatus("Todos"); setProfessional("Todos"); setSpecialty("Todas"); }}>Limpar filtros</Button> : undefined}>
       {list.length ? <>
-        <div className="hidden overflow-x-auto md:block"><table className="data-table"><thead><tr><th>Horário</th><th>Paciente</th><th>Médico</th><th>Status</th><th><span className="sr-only">Ações</span></th></tr></thead><tbody>{list.map((item) => <tr key={item.id}><td><b>{item.time}</b><small>{formatDate(item.date)}</small></td><td>{patientById(item.patientId)?.name}<small>#{item.id} · {item.channel}</small></td><td>{professionalById(item.professionalId)?.name}<small>{item.specialty}</small></td><td><StatusBadge status={item.status} /></td><td><Button variant="ghost" size="icon" onClick={() => setManage(item)} aria-label="Gerenciar"><MoreHorizontal /></Button></td></tr>)}</tbody></table></div>
+        <div className="hidden overflow-x-auto md:block"><table className="data-table"><thead><tr><th>Horário</th><th>Paciente</th><th>Médico</th><th>Status</th><th><span className="sr-only">Ações</span></th></tr></thead><tbody>{list.map((item) => <tr key={item.id} className="group cursor-pointer" onClick={() => setManage(item)}><td><b>{item.time}</b><small>{formatDate(item.date)}</small></td><td>{patientById(item.patientId)?.name}<small>#{item.id} · {item.channel}</small></td><td>{professionalById(item.professionalId)?.name}<small>{item.specialty}</small></td><td><StatusBadge status={item.status} /></td><td><Button variant="ghost" size="icon" className="opacity-70 transition-opacity group-hover:opacity-100" onClick={(event) => { event.stopPropagation(); setManage(item); }} aria-label="Gerenciar"><MoreHorizontal /></Button></td></tr>)}</tbody></table></div>
         <div className="space-y-3 md:hidden">{list.map((item) => <article key={item.id} className="rounded-md border border-border p-4"><div className="flex justify-between gap-2"><b>{item.time} · {patientById(item.patientId)?.name}</b><StatusBadge status={item.status} /></div><p className="mt-2 text-xs text-muted-foreground">{professionalById(item.professionalId)?.name} · {formatDate(item.date)}</p><Button variant="outline" size="sm" className="mt-3 w-full" onClick={() => setManage(item)}>Gerenciar</Button></article>)}</div>
       </> : <EmptyHint>Nenhuma consulta encontrada com esses filtros.</EmptyHint>}
     </Section>
