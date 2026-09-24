@@ -185,8 +185,8 @@ export function ConsultasPage() {
 
   return <>
     <PageHeader eyebrow="Atendimentos" title="Consultas" description="Acompanhe, confirme, remarque ou cancele os agendamentos." action="Nova consulta" onAction={() => setNewOpen(true)} />
-    <div className="mb-4 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Filtrar consultas por situação">
-      {["Todos", "Agendada", "Confirmada", "Remarcada", "Realizada", "Cancelada", "Não compareceu"].map((item) => <Button key={item} role="tab" aria-selected={status === item} variant={status === item ? "default" : "outline"} size="sm" className="shrink-0" onClick={() => setStatus(item)}>{item}<span className="rounded-full bg-background/70 px-1.5 py-0.5 text-[10px] text-foreground">{item === "Todos" ? appointments.length : appointments.filter((appointment) => appointment.status === item).length}</span></Button>)}
+    <div className="mb-4 flex gap-2 overflow-x-auto pb-1" aria-label="Filtrar consultas por situação">
+      {["Todos", "Agendada", "Confirmada", "Remarcada", "Realizada", "Cancelada", "Não compareceu"].map((item) => <Button key={item} aria-pressed={status === item} variant={status === item ? "default" : "outline"} size="sm" className="shrink-0" onClick={() => setStatus(item)}>{item}<span className="rounded-full bg-background/70 px-1.5 py-0.5 text-[10px] text-foreground">{item === "Todos" ? appointments.length : appointments.filter((appointment) => appointment.status === item).length}</span></Button>)}
     </div>
     <Toolbar placeholder="Buscar por paciente, CPF ou médico..." value={search} onChange={setSearch} filter={<Button variant="outline" onClick={() => setFiltersOpen((value) => !value)} aria-expanded={filtersOpen}><SlidersHorizontal />Filtros<ChevronDown className={`transition-transform ${filtersOpen ? "rotate-180" : ""}`} /></Button>} />
     {filtersOpen && <div className="filter-panel mb-4 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
