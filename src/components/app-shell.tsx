@@ -20,6 +20,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   const role = session?.role ?? pathRole;
   const profile = roleProfiles[role];
   const unread = notificationsFor(role).filter((item) => !item.read).length;
+  const navGroups = profile.nav.reduce<Array<{ label: string; items: typeof profile.nav }>>((groups, item) => {
+    const current = groups.find((group) => group.label === item.group);
+    if (current) current.items.push(item);
+    else groups.push({ label: item.group, items: [item] });
+    return groups;
+  }, []);
 
 
   useEffect(() => {
@@ -54,12 +60,24 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen(false)} aria-label="Fechar menu"><X /></Button>
         </div>
-        <nav className="flex-1 space-y-1 overflow-y-auto p-2" aria-label="Navegação principal">
-          {!collapsed && <p className="px-3 pb-2 pt-3 text-[10px] font-semibold uppercase tracking-widest text-sidebar-muted">Menu principal</p>}
-          {profile.nav.map((item) => <Link key={item.to} to={item.to} activeOptions={{ exact: true }} activeProps={{ className: "nav-active" }} className="nav-link" title={collapsed ? item.label : undefined}><item.icon className="size-5 shrink-0" /><span className={collapsed ? "sr-only" : "truncate"}>{item.label}</span></Link>)}
+        <nav className="flex-1 overflow-y-auto px-2 py-3" aria-label="Navegação principal">
+          {navGroups.map((group, groupIndex) => (
+            <section key={group.label} className={groupIndex === 0 ? "pb-3" : "border-t border-sidebar-border py-3"} aria-labelledby={`nav-group-${groupIndex}`}>
+              <h2 id={`nav-group-${groupIndex}`} className={collapsed ? "sr-only" : "px-2.5 pb-1.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-sidebar-muted"}>{group.label}</h2>
+              <div className="space-y-1">
+                {group.items.map((item) => (
+                  <Link key={item.to} to={item.to} activeOptions={{ exact: true }} activeProps={{ className: "nav-active" }} className="nav-link group/nav" title={collapsed ? item.label : undefined}>
+                    <span className="nav-icon"><item.icon className="size-4" /></span>
+                    <span className={collapsed ? "sr-only" : "min-w-0 flex-1 truncate"}>{item.label}</span>
+                    {!collapsed && <span className="nav-indicator" aria-hidden="true" />}
+                  </Link>
+                ))}
+              </div>
+            </section>
+          ))}
         </nav>
         <div className="border-t border-sidebar-border p-2.5">
-          <div className="flex items-center gap-3 rounded-md bg-sidebar-accent p-2.5">
+          <div className="flex items-center gap-3 rounded-md border border-sidebar-border bg-sidebar-accent p-2.5">
              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-sidebar-primary text-xs font-bold text-sidebar-primary-foreground">{profile.initials}</span>
              {!collapsed && <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{profile.name}</p><p className="truncate text-xs text-sidebar-muted">{profile.title}</p></div>}
           </div>
