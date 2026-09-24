@@ -43,10 +43,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   if (ready && (!session || session.role !== pathRole)) return <LoadingScreen />;
 
   return (
-    <div className="app-interface min-h-screen bg-background lg:grid" style={{ gridTemplateColumns: collapsed ? "68px minmax(0,1fr)" : "236px minmax(0,1fr)" }}>
+    <div className="app-interface min-h-screen bg-background lg:grid" style={{ gridTemplateColumns: collapsed ? "68px minmax(0,1fr)" : "224px minmax(0,1fr)" }}>
       {loading && <LoadingScreen />}
       {mobileOpen && <button aria-label="Fechar menu" className="fixed inset-0 z-40 bg-overlay lg:hidden" onClick={() => setMobileOpen(false)} />}
-      <aside className={`fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col bg-sidebar text-sidebar-foreground transition-transform duration-300 lg:sticky lg:top-0 lg:h-screen lg:w-auto ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
+      <aside className={`fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col bg-sidebar text-sidebar-foreground shadow-lg transition-[transform,width] duration-300 lg:sticky lg:top-0 lg:h-screen lg:w-auto lg:shadow-none ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
         <div className="grid h-16 grid-cols-[minmax(0,1fr)_auto] items-center border-b border-sidebar-border px-3">
           <Link to={profile.home} className="flex min-w-0 items-center gap-3" aria-label="Gestão de Consultas">
              <span className="grid size-9 shrink-0 place-items-center"><img src={logo} alt="" className="size-8 object-contain" /></span>
@@ -54,7 +54,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen(false)} aria-label="Fechar menu"><X /></Button>
         </div>
-        <nav className="flex-1 space-y-1 overflow-y-auto p-2.5" aria-label="Navegação principal">
+        <nav className="flex-1 space-y-1 overflow-y-auto p-2" aria-label="Navegação principal">
           {!collapsed && <p className="px-3 pb-2 pt-3 text-[10px] font-semibold uppercase tracking-widest text-sidebar-muted">Menu principal</p>}
           {profile.nav.map((item) => <Link key={item.to} to={item.to} activeOptions={{ exact: true }} activeProps={{ className: "nav-active" }} className="nav-link" title={collapsed ? item.label : undefined}><item.icon className="size-5 shrink-0" /><span className={collapsed ? "sr-only" : "truncate"}>{item.label}</span></Link>)}
         </nav>
@@ -68,13 +68,13 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </aside>
       <div className="min-w-0">
-        <header className="sticky top-0 z-30 grid h-14 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-b border-border bg-card/95 px-3 backdrop-blur-md sm:px-5">
+        <header className="sticky top-0 z-30 grid h-14 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-b border-border bg-background/90 px-3 backdrop-blur-md sm:px-5">
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Abrir menu"><Menu /></Button>
-          <div className="relative hidden max-w-sm sm:block"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><input className="h-10 w-full rounded-md border border-input bg-muted/60 pl-9 pr-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20" placeholder={profile.search} /></div>
+           <label className="relative hidden max-w-sm sm:block"><span className="sr-only">Busca geral</span><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><input className="h-9 w-full rounded-md border border-input bg-card pl-9 pr-3 text-sm outline-hidden transition-[border-color,box-shadow] focus:border-ring focus:ring-2 focus:ring-ring/20" placeholder={profile.search} /></label>
           <span className="sm:hidden" />
-          <div className="flex items-center justify-end gap-2"><span className="hidden text-right md:block"><span className="block text-xs capitalize text-muted-foreground">{ready ? formatLongDate(isoDate(0)).split(",")[0] : ""}</span><span className="block text-sm font-semibold">{ready ? formatDate(isoDate(0)) : ""}</span></span><Button variant="ghost" size="icon" className="relative" aria-label="Notificações"><Bell />{unread > 0 && <span className="absolute right-2 top-2 size-2 rounded-full bg-warning ring-2 ring-card" />}</Button></div>
+           <div className="flex items-center justify-end gap-2"><span className="hidden text-right md:block"><span className="block text-xs capitalize text-muted-foreground">{ready ? formatLongDate(isoDate(0)).split(",")[0] : ""}</span><span className="block text-sm font-semibold">{ready ? formatDate(isoDate(0)) : ""}</span></span><Button variant="ghost" size="icon" className="relative" aria-label={unread ? `Notificações, ${unread} não lida(s)` : "Notificações"}><Bell />{unread > 0 && <span className="absolute right-2 top-2 size-2 rounded-full bg-warning ring-2 ring-card" />}</Button></div>
         </header>
-        <main className="mx-auto w-full max-w-[1440px] p-3 sm:p-5 lg:p-6">{children}</main>
+         <main className="mx-auto w-full max-w-[1380px] p-3 sm:p-5 lg:p-6">{children}</main>
       </div>
     </div>
   );
