@@ -4,8 +4,6 @@
 - [x] Áreas de Recepção, Paciente, Médico e Administrador com a mesma estética
 - [x] Estado compartilhado entre perfis (agendar, confirmar, cancelar, remarcar, registrar resultado)
 - [x] Escala visual reduzida e responsividade em todas as telas
-- [x] Reorganização visual por prioridades, navegação simplificada e interações mais claras
-- [x] Barra lateral agrupada, com ícones consistentes e destaque claro da página ativa
 
 ## Auditoria do documento (concluída)
 - [x] Status do documento: Agendada, Confirmada, Remarcada, Realizada, Cancelada, Não compareceu
