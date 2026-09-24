@@ -176,8 +176,9 @@
 }
 
 @utility surface { border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); box-shadow: 0 1px 3px color-mix(in oklab, var(--foreground) 7%, transparent); }
-@utility nav-link { display:flex; align-items:center; gap:.65rem; min-height:2.4rem; border-radius:.375rem; padding:.5rem .65rem; color:var(--sidebar-muted); font-size:.8rem; font-weight:500; transition:background-color .2s,color .2s; &:hover { background:var(--sidebar-accent); color:var(--sidebar-foreground); } }
-@utility nav-active { background:var(--sidebar-accent); color:var(--sidebar-foreground); box-shadow:inset 3px 0 var(--sidebar-primary); }
+@utility nav-link { display:flex; flex-shrink:0; align-items:center; justify-content:center; gap:.45rem; min-height:2.75rem; border-bottom:3px solid transparent; padding:.45rem .7rem; color:var(--sidebar-muted); font-size:.75rem; font-weight:500; white-space:nowrap; transition:background-color .2s,color .2s,border-color .2s; &:hover { background:var(--sidebar-accent); color:var(--sidebar-foreground); } }
+@utility nav-active { background:var(--sidebar-accent); color:var(--sidebar-foreground); border-bottom-color:var(--sidebar-primary); }
+.horizontal-nav { scrollbar-width:thin; scrollbar-color:var(--sidebar-accent) transparent; }
 @utility metric-card { display:flex; min-width:0; gap:.75rem; align-items:center; border:1px solid var(--border); border-radius:var(--radius); background:var(--card); padding:.9rem; box-shadow:0 1px 3px color-mix(in oklab,var(--foreground) 6%,transparent); }
 @utility metric-icon { display:grid; width:2.35rem; height:2.35rem; flex-shrink:0; place-items:center; border-radius:.375rem; & svg { width:1.05rem; height:1.05rem; } }
 @utility metric-primary { background:color-mix(in oklab,var(--primary) 12%,transparent); color:var(--primary); }
