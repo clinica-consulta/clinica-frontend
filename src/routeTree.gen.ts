@@ -18,23 +18,19 @@ import { Route as FilaEsperaRouteImport } from './routes/fila-espera'
 import { Route as PacienteRouteImport } from './routes/paciente'
 import { Route as PacientesRouteImport } from './routes/pacientes'
 import { Route as PerfilRouteImport } from './routes/perfil'
-import { Route as ProfissionaisRouteImport } from './routes/profissionais'
 import { Route as ProfissionalRouteImport } from './routes/profissional'
 import { Route as AdministradorIndexRouteImport } from './routes/administrador.index'
 import { Route as AdministradorAgendasRouteImport } from './routes/administrador.agendas'
 import { Route as AdministradorConfiguracoesRouteImport } from './routes/administrador.configuracoes'
 import { Route as AdministradorEspecialidadesRouteImport } from './routes/administrador.especialidades'
 import { Route as AdministradorProfissionaisRouteImport } from './routes/administrador.profissionais'
-import { Route as AdministradorRelatoriosRouteImport } from './routes/administrador.relatorios'
 import { Route as AdministradorUsuariosRouteImport } from './routes/administrador.usuarios'
 import { Route as PacienteIndexRouteImport } from './routes/paciente.index'
 import { Route as PacienteAgendarRouteImport } from './routes/paciente.agendar'
-import { Route as PacienteConsultasRouteImport } from './routes/paciente.consultas'
 import { Route as PacienteNotificacoesRouteImport } from './routes/paciente.notificacoes'
 import { Route as PacientePerfilRouteImport } from './routes/paciente.perfil'
 import { Route as ProfissionalIndexRouteImport } from './routes/profissional.index'
 import { Route as ProfissionalAgendaRouteImport } from './routes/profissional.agenda'
-import { Route as ProfissionalAtendimentosRouteImport } from './routes/profissional.atendimentos'
 import { Route as ProfissionalDisponibilidadeRouteImport } from './routes/profissional.disponibilidade'
 import { Route as ProfissionalNotificacoesRouteImport } from './routes/profissional.notificacoes'
 import { Route as ProfissionalPacientesRouteImport } from './routes/profissional.pacientes'
@@ -85,11 +81,6 @@ const PerfilRoute = PerfilRouteImport.update({
   path: '/perfil',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProfissionaisRoute = ProfissionaisRouteImport.update({
-  id: '/profissionais',
-  path: '/profissionais',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ProfissionalRoute = ProfissionalRouteImport.update({
   id: '/profissional',
   path: '/profissional',
@@ -123,11 +114,6 @@ const AdministradorProfissionaisRoute =
     path: '/profissionais',
     getParentRoute: () => AdministradorRoute,
   } as any)
-const AdministradorRelatoriosRoute = AdministradorRelatoriosRouteImport.update({
-  id: '/relatorios',
-  path: '/relatorios',
-  getParentRoute: () => AdministradorRoute,
-} as any)
 const AdministradorUsuariosRoute = AdministradorUsuariosRouteImport.update({
   id: '/usuarios',
   path: '/usuarios',
@@ -141,11 +127,6 @@ const PacienteIndexRoute = PacienteIndexRouteImport.update({
 const PacienteAgendarRoute = PacienteAgendarRouteImport.update({
   id: '/agendar',
   path: '/agendar',
-  getParentRoute: () => PacienteRoute,
-} as any)
-const PacienteConsultasRoute = PacienteConsultasRouteImport.update({
-  id: '/consultas',
-  path: '/consultas',
   getParentRoute: () => PacienteRoute,
 } as any)
 const PacienteNotificacoesRoute = PacienteNotificacoesRouteImport.update({
@@ -168,12 +149,6 @@ const ProfissionalAgendaRoute = ProfissionalAgendaRouteImport.update({
   path: '/agenda',
   getParentRoute: () => ProfissionalRoute,
 } as any)
-const ProfissionalAtendimentosRoute =
-  ProfissionalAtendimentosRouteImport.update({
-    id: '/atendimentos',
-    path: '/atendimentos',
-    getParentRoute: () => ProfissionalRoute,
-  } as any)
 const ProfissionalDisponibilidadeRoute =
   ProfissionalDisponibilidadeRouteImport.update({
     id: '/disponibilidade',
@@ -207,20 +182,16 @@ export interface FileRoutesByFullPath {
   '/paciente': typeof PacienteRouteWithChildren
   '/pacientes': typeof PacientesRoute
   '/perfil': typeof PerfilRoute
-  '/profissionais': typeof ProfissionaisRoute
   '/profissional': typeof ProfissionalRouteWithChildren
   '/administrador/agendas': typeof AdministradorAgendasRoute
   '/administrador/configuracoes': typeof AdministradorConfiguracoesRoute
   '/administrador/especialidades': typeof AdministradorEspecialidadesRoute
   '/administrador/profissionais': typeof AdministradorProfissionaisRoute
-  '/administrador/relatorios': typeof AdministradorRelatoriosRoute
   '/administrador/usuarios': typeof AdministradorUsuariosRoute
   '/paciente/agendar': typeof PacienteAgendarRoute
-  '/paciente/consultas': typeof PacienteConsultasRoute
   '/paciente/notificacoes': typeof PacienteNotificacoesRoute
   '/paciente/perfil': typeof PacientePerfilRoute
   '/profissional/agenda': typeof ProfissionalAgendaRoute
-  '/profissional/atendimentos': typeof ProfissionalAtendimentosRoute
   '/profissional/disponibilidade': typeof ProfissionalDisponibilidadeRoute
   '/profissional/notificacoes': typeof ProfissionalNotificacoesRoute
   '/profissional/pacientes': typeof ProfissionalPacientesRoute
@@ -237,19 +208,15 @@ export interface FileRoutesByTo {
   '/fila-espera': typeof FilaEsperaRoute
   '/pacientes': typeof PacientesRoute
   '/perfil': typeof PerfilRoute
-  '/profissionais': typeof ProfissionaisRoute
   '/administrador/agendas': typeof AdministradorAgendasRoute
   '/administrador/configuracoes': typeof AdministradorConfiguracoesRoute
   '/administrador/especialidades': typeof AdministradorEspecialidadesRoute
   '/administrador/profissionais': typeof AdministradorProfissionaisRoute
-  '/administrador/relatorios': typeof AdministradorRelatoriosRoute
   '/administrador/usuarios': typeof AdministradorUsuariosRoute
   '/paciente/agendar': typeof PacienteAgendarRoute
-  '/paciente/consultas': typeof PacienteConsultasRoute
   '/paciente/notificacoes': typeof PacienteNotificacoesRoute
   '/paciente/perfil': typeof PacientePerfilRoute
   '/profissional/agenda': typeof ProfissionalAgendaRoute
-  '/profissional/atendimentos': typeof ProfissionalAtendimentosRoute
   '/profissional/disponibilidade': typeof ProfissionalDisponibilidadeRoute
   '/profissional/notificacoes': typeof ProfissionalNotificacoesRoute
   '/profissional/pacientes': typeof ProfissionalPacientesRoute
@@ -269,20 +236,16 @@ export interface FileRoutesById {
   '/paciente': typeof PacienteRouteWithChildren
   '/pacientes': typeof PacientesRoute
   '/perfil': typeof PerfilRoute
-  '/profissionais': typeof ProfissionaisRoute
   '/profissional': typeof ProfissionalRouteWithChildren
   '/administrador/agendas': typeof AdministradorAgendasRoute
   '/administrador/configuracoes': typeof AdministradorConfiguracoesRoute
   '/administrador/especialidades': typeof AdministradorEspecialidadesRoute
   '/administrador/profissionais': typeof AdministradorProfissionaisRoute
-  '/administrador/relatorios': typeof AdministradorRelatoriosRoute
   '/administrador/usuarios': typeof AdministradorUsuariosRoute
   '/paciente/agendar': typeof PacienteAgendarRoute
-  '/paciente/consultas': typeof PacienteConsultasRoute
   '/paciente/notificacoes': typeof PacienteNotificacoesRoute
   '/paciente/perfil': typeof PacientePerfilRoute
   '/profissional/agenda': typeof ProfissionalAgendaRoute
-  '/profissional/atendimentos': typeof ProfissionalAtendimentosRoute
   '/profissional/disponibilidade': typeof ProfissionalDisponibilidadeRoute
   '/profissional/notificacoes': typeof ProfissionalNotificacoesRoute
   '/profissional/pacientes': typeof ProfissionalPacientesRoute
@@ -303,20 +266,16 @@ export interface FileRouteTypes {
     | '/paciente'
     | '/pacientes'
     | '/perfil'
-    | '/profissionais'
     | '/profissional'
     | '/administrador/agendas'
     | '/administrador/configuracoes'
     | '/administrador/especialidades'
     | '/administrador/profissionais'
-    | '/administrador/relatorios'
     | '/administrador/usuarios'
     | '/paciente/agendar'
-    | '/paciente/consultas'
     | '/paciente/notificacoes'
     | '/paciente/perfil'
     | '/profissional/agenda'
-    | '/profissional/atendimentos'
     | '/profissional/disponibilidade'
     | '/profissional/notificacoes'
     | '/profissional/pacientes'
@@ -333,19 +292,15 @@ export interface FileRouteTypes {
     | '/fila-espera'
     | '/pacientes'
     | '/perfil'
-    | '/profissionais'
     | '/administrador/agendas'
     | '/administrador/configuracoes'
     | '/administrador/especialidades'
     | '/administrador/profissionais'
-    | '/administrador/relatorios'
     | '/administrador/usuarios'
     | '/paciente/agendar'
-    | '/paciente/consultas'
     | '/paciente/notificacoes'
     | '/paciente/perfil'
     | '/profissional/agenda'
-    | '/profissional/atendimentos'
     | '/profissional/disponibilidade'
     | '/profissional/notificacoes'
     | '/profissional/pacientes'
@@ -364,20 +319,16 @@ export interface FileRouteTypes {
     | '/paciente'
     | '/pacientes'
     | '/perfil'
-    | '/profissionais'
     | '/profissional'
     | '/administrador/agendas'
     | '/administrador/configuracoes'
     | '/administrador/especialidades'
     | '/administrador/profissionais'
-    | '/administrador/relatorios'
     | '/administrador/usuarios'
     | '/paciente/agendar'
-    | '/paciente/consultas'
     | '/paciente/notificacoes'
     | '/paciente/perfil'
     | '/profissional/agenda'
-    | '/profissional/atendimentos'
     | '/profissional/disponibilidade'
     | '/profissional/notificacoes'
     | '/profissional/pacientes'
@@ -397,7 +348,6 @@ export interface RootRouteChildren {
   PacienteRoute: typeof PacienteRouteWithChildren
   PacientesRoute: typeof PacientesRoute
   PerfilRoute: typeof PerfilRoute
-  ProfissionaisRoute: typeof ProfissionaisRoute
   ProfissionalRoute: typeof ProfissionalRouteWithChildren
 }
 
@@ -466,13 +416,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PerfilRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/profissionais': {
-      id: '/profissionais'
-      path: '/profissionais'
-      fullPath: '/profissionais'
-      preLoaderRoute: typeof ProfissionaisRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/profissional': {
       id: '/profissional'
       path: '/profissional'
@@ -515,13 +458,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdministradorProfissionaisRouteImport
       parentRoute: typeof AdministradorRoute
     }
-    '/administrador/relatorios': {
-      id: '/administrador/relatorios'
-      path: '/relatorios'
-      fullPath: '/administrador/relatorios'
-      preLoaderRoute: typeof AdministradorRelatoriosRouteImport
-      parentRoute: typeof AdministradorRoute
-    }
     '/administrador/usuarios': {
       id: '/administrador/usuarios'
       path: '/usuarios'
@@ -541,13 +477,6 @@ declare module '@tanstack/react-router' {
       path: '/agendar'
       fullPath: '/paciente/agendar'
       preLoaderRoute: typeof PacienteAgendarRouteImport
-      parentRoute: typeof PacienteRoute
-    }
-    '/paciente/consultas': {
-      id: '/paciente/consultas'
-      path: '/consultas'
-      fullPath: '/paciente/consultas'
-      preLoaderRoute: typeof PacienteConsultasRouteImport
       parentRoute: typeof PacienteRoute
     }
     '/paciente/notificacoes': {
@@ -576,13 +505,6 @@ declare module '@tanstack/react-router' {
       path: '/agenda'
       fullPath: '/profissional/agenda'
       preLoaderRoute: typeof ProfissionalAgendaRouteImport
-      parentRoute: typeof ProfissionalRoute
-    }
-    '/profissional/atendimentos': {
-      id: '/profissional/atendimentos'
-      path: '/atendimentos'
-      fullPath: '/profissional/atendimentos'
-      preLoaderRoute: typeof ProfissionalAtendimentosRouteImport
       parentRoute: typeof ProfissionalRoute
     }
     '/profissional/disponibilidade': {
@@ -621,7 +543,6 @@ interface AdministradorRouteChildren {
   AdministradorConfiguracoesRoute: typeof AdministradorConfiguracoesRoute
   AdministradorEspecialidadesRoute: typeof AdministradorEspecialidadesRoute
   AdministradorProfissionaisRoute: typeof AdministradorProfissionaisRoute
-  AdministradorRelatoriosRoute: typeof AdministradorRelatoriosRoute
   AdministradorUsuariosRoute: typeof AdministradorUsuariosRoute
   AdministradorIndexRoute: typeof AdministradorIndexRoute
 }
@@ -631,7 +552,6 @@ const AdministradorRouteChildren: AdministradorRouteChildren = {
   AdministradorConfiguracoesRoute: AdministradorConfiguracoesRoute,
   AdministradorEspecialidadesRoute: AdministradorEspecialidadesRoute,
   AdministradorProfissionaisRoute: AdministradorProfissionaisRoute,
-  AdministradorRelatoriosRoute: AdministradorRelatoriosRoute,
   AdministradorUsuariosRoute: AdministradorUsuariosRoute,
   AdministradorIndexRoute: AdministradorIndexRoute,
 }
@@ -642,7 +562,6 @@ const AdministradorRouteWithChildren = AdministradorRoute._addFileChildren(
 
 interface PacienteRouteChildren {
   PacienteAgendarRoute: typeof PacienteAgendarRoute
-  PacienteConsultasRoute: typeof PacienteConsultasRoute
   PacienteNotificacoesRoute: typeof PacienteNotificacoesRoute
   PacientePerfilRoute: typeof PacientePerfilRoute
   PacienteIndexRoute: typeof PacienteIndexRoute
@@ -650,7 +569,6 @@ interface PacienteRouteChildren {
 
 const PacienteRouteChildren: PacienteRouteChildren = {
   PacienteAgendarRoute: PacienteAgendarRoute,
-  PacienteConsultasRoute: PacienteConsultasRoute,
   PacienteNotificacoesRoute: PacienteNotificacoesRoute,
   PacientePerfilRoute: PacientePerfilRoute,
   PacienteIndexRoute: PacienteIndexRoute,
@@ -662,7 +580,6 @@ const PacienteRouteWithChildren = PacienteRoute._addFileChildren(
 
 interface ProfissionalRouteChildren {
   ProfissionalAgendaRoute: typeof ProfissionalAgendaRoute
-  ProfissionalAtendimentosRoute: typeof ProfissionalAtendimentosRoute
   ProfissionalDisponibilidadeRoute: typeof ProfissionalDisponibilidadeRoute
   ProfissionalNotificacoesRoute: typeof ProfissionalNotificacoesRoute
   ProfissionalPacientesRoute: typeof ProfissionalPacientesRoute
@@ -672,7 +589,6 @@ interface ProfissionalRouteChildren {
 
 const ProfissionalRouteChildren: ProfissionalRouteChildren = {
   ProfissionalAgendaRoute: ProfissionalAgendaRoute,
-  ProfissionalAtendimentosRoute: ProfissionalAtendimentosRoute,
   ProfissionalDisponibilidadeRoute: ProfissionalDisponibilidadeRoute,
   ProfissionalNotificacoesRoute: ProfissionalNotificacoesRoute,
   ProfissionalPacientesRoute: ProfissionalPacientesRoute,
@@ -694,7 +610,6 @@ const rootRouteChildren: RootRouteChildren = {
   PacienteRoute: PacienteRouteWithChildren,
   PacientesRoute: PacientesRoute,
   PerfilRoute: PerfilRoute,
-  ProfissionaisRoute: ProfissionaisRoute,
   ProfissionalRoute: ProfissionalRouteWithChildren,
 }
 export const routeTree = rootRouteImport
