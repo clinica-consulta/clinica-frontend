@@ -38,28 +38,28 @@ function LoginPage() {
   }
 
   return (
-    <main className={`relative flex min-h-screen flex-col overflow-hidden px-4 transition-colors duration-700 ${isSignup ? "bg-primary" : "bg-background"}`}>
-      <section className={`mx-auto flex w-full max-w-[370px] flex-1 flex-col justify-center overflow-hidden font-display ${isSignup ? "py-2" : "py-6"}`}>
-        <div className="mb-4 flex items-center justify-center gap-2" aria-label="Gestão de Consultas">
-          <img src={logo} alt="" className="size-10 object-contain sm:size-12" />
+    <main className={`relative flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden px-4 transition-colors duration-700 ${isSignup ? "bg-primary" : "bg-background"}`}>
+      <section className={`mx-auto flex min-h-0 w-full max-w-[370px] flex-1 flex-col justify-center overflow-hidden font-display ${isSignup ? "py-1" : "py-6"}`}>
+        <div className={`${isSignup ? "mb-2" : "mb-4"} flex items-center justify-center gap-2`} aria-label="Gestão de Consultas">
+          <img src={logo} alt="" className={`${isSignup ? "size-9 sm:size-10" : "size-10 sm:size-12"} object-contain`} />
           <span className={`font-display text-lg uppercase transition-colors duration-700 sm:text-xl ${isSignup ? "text-primary-foreground" : "text-primary"}`}>Gestão de Consultas</span>
         </div>
 
         <div className={`border p-2.5 transition-colors duration-700 sm:p-3 ${isSignup ? "rounded-xl border-border/75 bg-auth-panel" : "rounded-2xl border-border bg-muted/55"}`}>
           <div className={`relative grid h-10 grid-cols-2 border-border p-1 transition-colors duration-700 ${isSignup ? "rounded-lg border bg-auth-input" : "rounded-xl border-2 bg-card"}`} role="tablist" aria-label="Acesso">
             <span className={`absolute bottom-1 left-1 top-1 w-[calc(50%-4px)] transition-transform duration-500 ease-out ${isSignup ? "translate-x-full rounded-md bg-secondary" : "translate-x-0 rounded-lg bg-primary"}`} aria-hidden="true" />
-            <Button type="button" variant="ghost" role="tab" aria-selected={!isSignup} onClick={() => setMode("login")} className={`relative z-10 h-full pt-[3px] text-sm font-semibold leading-none hover:bg-transparent ${isSignup ? "rounded-sm text-primary hover:text-primary" : "rounded-lg text-primary-foreground hover:text-primary-foreground"}`}>Login</Button>
-            <Button type="button" variant="ghost" role="tab" aria-selected={isSignup} onClick={() => setMode("signup")} className={`relative z-10 h-full pt-[3px] text-sm font-semibold leading-none hover:bg-transparent ${isSignup ? "rounded-sm text-primary hover:text-primary" : "rounded-lg text-muted-foreground hover:text-muted-foreground"}`}>Cadastre-se</Button>
+            <Button type="button" variant="ghost" role="tab" aria-selected={!isSignup} onClick={() => setMode("login")} className={`relative z-10 flex h-full items-center justify-center p-0 text-sm font-semibold leading-none hover:bg-transparent ${isSignup ? "rounded-sm text-primary hover:text-primary" : "rounded-lg text-primary-foreground hover:text-primary-foreground"}`}>Login</Button>
+            <Button type="button" variant="ghost" role="tab" aria-selected={isSignup} onClick={() => setMode("signup")} className={`relative z-10 flex h-full items-center justify-center p-0 text-sm font-semibold leading-none hover:bg-transparent ${isSignup ? "rounded-sm text-primary hover:text-primary" : "rounded-lg text-muted-foreground hover:text-muted-foreground"}`}>Cadastre-se</Button>
           </div>
 
-          <div className={`overflow-hidden px-1.5 pb-1.5 ${isSignup ? "mt-4" : "mt-5"}`}>
+          <div className={`overflow-hidden px-1.5 pb-1.5 ${isSignup ? "mt-2" : "mt-5"}`}>
             {isSignup ? (
               <div key="signup" className="auth-slide-right">
                 <div className="mb-2 text-center">
                   <h2 className="text-base font-bold text-primary-foreground sm:text-lg">Crie sua conta</h2>
                   <p className="mt-1 text-xs text-accent">Preencha seus dados para criar uma nova conta.</p>
                 </div>
-                <form className="space-y-2 [&_label]:text-xs [&_label]:text-primary-foreground [&_input]:h-9 [&_input]:rounded-md [&_input]:border [&_input]:border-border [&_input]:bg-auth-input [&_input]:text-primary-foreground [&_input]:placeholder:text-accent [&_select]:h-9 [&_select]:rounded-md [&_select]:border [&_select]:border-border [&_select]:bg-auth-input [&_select]:text-primary-foreground [&_.field-icon]:text-accent" onSubmit={submitSignup}>
+                <form className="space-y-1.5 [&_label]:gap-0.5 [&_label]:text-xs [&_label]:text-primary-foreground [&_input]:h-8 [&_input]:rounded-md [&_input]:border [&_input]:border-border [&_input]:bg-auth-input [&_input]:text-primary-foreground [&_input]:placeholder:text-accent [&_select]:h-8 [&_select]:rounded-md [&_select]:border [&_select]:border-border [&_select]:bg-auth-input [&_select]:text-primary-foreground [&_.field-icon]:text-accent" onSubmit={submitSignup}>
                   <AuthField label="Nome" name="name" icon={<UserRound />} type="text" autoComplete="name" placeholder="Digite seu nome" />
                   <AuthField label="CPF" name="cpf" icon={<IdCard />} type="text" inputMode="numeric" autoComplete="off" placeholder="000.000.000-00" />
                   <AuthField label="Telefone" name="phone" icon={<Phone />} type="tel" inputMode="tel" autoComplete="tel" placeholder="(00) 00000-0000" />
@@ -67,7 +67,7 @@ function LoginPage() {
                   <PasswordField label="Senha" show={showPassword} onToggle={() => setShowPassword((visible) => !visible)} autoComplete="new-password" placeholder="Crie uma senha" />
                   <AuthField label="Data de nascimento" name="birthDate" icon={<CalendarDays />} type="date" autoComplete="bday" />
                   <AuthSelect label="Convênio" name="insurance" icon={<ShieldCheck />} options={insurances.filter((item) => item.active).map((item) => item.name)} />
-                  <Button type="submit" size="lg" className="h-9 w-full rounded-md bg-secondary text-sm font-semibold text-secondary-foreground hover:bg-secondary hover:text-secondary-foreground">Criar conta <ArrowRight /></Button>
+                  <Button type="submit" size="lg" className="h-8 w-full rounded-md bg-secondary text-sm font-semibold text-secondary-foreground hover:bg-secondary hover:text-secondary-foreground">Criar conta <ArrowRight /></Button>
                 </form>
               </div>
             ) : (
@@ -87,7 +87,7 @@ function LoginPage() {
           </div>
         </div>
       </section>
-      <footer className={`mt-auto w-full shrink-0 py-4 text-center text-[11px] transition-colors duration-700 ${isSignup ? "text-accent" : "text-muted-foreground"}`}>© 2026 Gestão de Consultas. Todos os direitos reservados.</footer>
+      <footer className={`mt-auto w-full shrink-0 text-center text-[11px] transition-colors duration-700 ${isSignup ? "py-2 text-accent" : "py-4 text-muted-foreground"}`}>© 2026 Gestão de Consultas. Todos os direitos reservados.</footer>
 
       <Modal open={recovery} title="Redefinir senha" description="Informe seu e-mail cadastrado para receber o link de redefinição." onClose={() => setRecovery(false)}>
         <form className="grid gap-4 font-display" onSubmit={(event) => {
