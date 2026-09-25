@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { EmptyHint, Field, Modal, PageHeader, Section, SelectField, StatCard, StatusBadge, TextareaField, Toggle, Toolbar } from "@/components/page-kit";
 import { AppointmentForm } from "@/components/appointment-form";
+import { MiniCalendar, SlotPicker } from "@/components/mini-calendar";
 import { appointmentStatuses, formatDate, isoDate, openStatuses, relativeDay, slotRange, type Appointment } from "@/lib/clinic-data";
 import { useClinic, useReports } from "@/lib/clinic-store";
 
@@ -77,48 +78,55 @@ export function ManageModal({ appointment, onClose }: { appointment: Appointment
 }
 
 export function DashboardPage() {
-  const { appointments, waitlist, sendAllReminders, patientById, professionalById } = useClinic();
+  const { appointments, professionals, sendAllReminders, availableSlots, patientById, professionalById } = useClinic();
   const reports = useReports();
   const [newOpen, setNewOpen] = useState(false);
-  const today = appointments.filter((item) => item.date === isoDate(0));
+  const active = professionals.filter((item) => item.active);
+  const [proId, setProId] = useState(active[0]?.id ?? "");
+  const [calDate, setCalDate] = useState(isoDate(0));
+  const today = appointments.filter((item) => item.date === isoDate(0) && item.status !== "Cancelada").sort((a, b) => a.time.localeCompare(b.time));
   const confirmed = today.filter((item) => item.status === "Confirmada").length;
-  const pending = appointments.filter((item) => item.confirmationReply === "Sem resposta" && openStatuses.includes(item.status) && item.date >= isoDate(0));
-  const next = today.filter((item) => openStatuses.includes(item.status)).sort((a, b) => a.time.localeCompare(b.time));
+  const pending = appointments.filter((item) => item.confirmationReply === "Sem resposta" && openStatuses.includes(item.status) && item.date >= isoDate(0)).sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`));
+  const slots = proId ? availableSlots(proId, calDate) : [];
 
   return <>
-    <PageHeader eyebrow="Visão geral" title="Bom dia, Rafaela" description="Acompanhe os agendamentos do dia e o que precisa da sua atenção." action="Nova consulta" onAction={() => setNewOpen(true)} />
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <StatCard label="Consultas hoje" value={String(today.length)} detail={`${confirmed} confirmadas`} icon={<CalendarCheck />} />
-      <StatCard label="Aguardando confirmação" value={String(pending.length)} detail="Enviar lembretes" icon={<MessageSquareText />} tone="warning" />
+    <PageHeader eyebrow="Visão geral" title="Bom dia, Rafaela" description="Acompanhe os agendamentos do dia e as confirmações pendentes." action="Nova consulta" onAction={() => setNewOpen(true)} />
+    <div className="grid gap-4 sm:grid-cols-2">
       <StatCard label="Realizadas hoje" value={String(today.filter((item) => item.status === "Realizada").length)} detail={`${today.filter((item) => item.status === "Não compareceu").length} ausências`} icon={<CheckCircle2 />} tone="success" />
       <StatCard label="Taxa de presença" value={`${reports.attendance}%`} detail="Histórico da clínica" icon={<Activity />} tone="info" />
     </div>
-    <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(280px,0.8fr)]">
-      <Section title="Próximas consultas">
-        {next.length ? <div className="divide-y divide-border">{next.slice(0, 6).map((item) => <div key={item.id} className="grid grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3 py-3"><span className="text-sm font-bold text-primary">{item.time}</span><div className="min-w-0"><p className="truncate text-sm font-semibold">{patientById(item.patientId)?.name}</p><p className="truncate text-xs text-muted-foreground">{professionalById(item.professionalId)?.name} · {item.specialty}</p></div><StatusBadge status={item.status} /></div>)}</div> : <EmptyHint>Nenhuma consulta para hoje.</EmptyHint>}
+    <div className="mt-5 grid gap-4 lg:grid-cols-2">
+      <Section title={`Consultas hoje (${today.length} · ${confirmed} confirmadas)`}>
+        {today.length ? <div className="divide-y divide-border">{today.map((item) => <div key={item.id} className="grid grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3 py-3"><span className="text-sm font-bold text-primary">{item.time}</span><div className="min-w-0"><p className="truncate text-sm font-semibold">{patientById(item.patientId)?.name}</p><p className="truncate text-xs text-muted-foreground">{professionalById(item.professionalId)?.name} · {item.specialty}</p></div><StatusBadge status={item.status} /></div>)}</div> : <EmptyHint>Nenhuma consulta para hoje.</EmptyHint>}
       </Section>
-      <div className="space-y-4">
-        <Section title="Atenção necessária">
-          <div className="space-y-3">
-            <div className="flex gap-3 rounded-md bg-muted/60 p-3"><span className="metric-icon metric-warning size-9"><CircleAlert /></span><div className="min-w-0"><p className="text-sm font-semibold">{pending.length} confirmações pendentes</p><p className="text-xs text-muted-foreground">Consultas sem resposta do paciente</p>{pending.length > 0 && <Button size="sm" variant="outline" className="mt-2" onClick={() => { const sent = sendAllReminders(); toast[sent ? "success" : "info"](sent ? `${sent} lembrete(s) enviado(s)` : "Todos os lembretes já foram enviados"); }}><Send />Enviar lembretes</Button>}</div></div>
-            <div className="flex gap-3 rounded-md bg-muted/60 p-3"><span className="metric-icon metric-info size-9"><Users /></span><div><p className="text-sm font-semibold">{waitlist.filter((item) => item.status === "Aguardando").length} pessoas na fila</p><p className="text-xs text-muted-foreground">Ofereça horários liberados</p></div></div>
-          </div>
-        </Section>
-        <Section title="Consultas por dia">
-          <div className="space-y-4">{reports.perDay.map((day) => <div key={day.date} className="grid grid-cols-[52px_1fr_28px] items-center gap-3 text-xs"><span className="font-medium">{formatDate(day.date).slice(0, 5)}</span><div className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, day.total * 25)}%` }} /></div><span className="text-right text-muted-foreground">{day.total}</span></div>)}</div>
-        </Section>
-      </div>
+      <Section title={`Aguardando confirmação (${pending.length})`} action={pending.length > 0 ? <Button size="sm" variant="outline" onClick={() => { const sent = sendAllReminders(); toast[sent ? "success" : "info"](sent ? `${sent} lembrete(s) enviado(s)` : "Todos os lembretes já foram enviados"); }}><Send />Enviar lembretes</Button> : undefined}>
+        {pending.length ? <div className="divide-y divide-border">{pending.map((item) => <div key={item.id} className="grid grid-cols-[72px_minmax(0,1fr)_auto] items-center gap-3 py-3"><span className="text-xs font-bold text-primary">{formatDate(item.date).slice(0, 5)} · {item.time}</span><div className="min-w-0"><p className="truncate text-sm font-semibold">{patientById(item.patientId)?.name}</p><p className="truncate text-xs text-muted-foreground">{professionalById(item.professionalId)?.name} · {item.reminderSentAt ? "Lembrete enviado" : "Sem lembrete"}</p></div><StatusBadge status={item.status} /></div>)}</div> : <EmptyHint>Todas as consultas estão confirmadas.</EmptyHint>}
+      </Section>
     </div>
-    <Modal open={newOpen} title="Nova consulta" description="Agende um atendimento em nome do paciente (presencial ou por telefone)." onClose={() => setNewOpen(false)}><AppointmentForm onDone={() => setNewOpen(false)} /></Modal>
+    <Section title="Horários disponíveis" className="mt-5">
+      <div className="grid gap-4 md:grid-cols-[300px_minmax(0,1fr)]">
+        <div className="grid gap-3">
+          <SelectField label="Médico" value={proId} onChange={(event) => setProId(event.target.value)} options={active.map((item) => ({ value: item.id, label: `${item.name} · ${item.specialty}` }))} />
+          <MiniCalendar value={calDate} onChange={setCalDate} slotsFor={(day) => (proId ? availableSlots(proId, day).length : 0)} />
+        </div>
+        <div className="grid content-start gap-2">
+          <p className="text-sm font-semibold">{formatDate(calDate)} · {relativeDay(calDate)}</p>
+          <p className="text-xs text-muted-foreground">{slots.length} horário(s) livre(s)</p>
+          {slots.length ? <SlotPicker slots={slots} /> : <EmptyHint>Nenhum horário disponível nesta data.</EmptyHint>}
+        </div>
+      </div>
+    </Section>
+    <Modal open={newOpen} title="Nova consulta" description="Busque o paciente pelo CPF e agende em nome dele (presencial ou por telefone)." onClose={() => setNewOpen(false)}><AppointmentForm onDone={() => setNewOpen(false)} /></Modal>
   </>;
 }
 
 export function AgendaPage() {
-  const { appointments, professionals, patientById } = useClinic();
+  const { appointments, professionals, patientById, availableSlots } = useClinic();
   const [date, setDate] = useState(isoDate(0));
   const [newOpen, setNewOpen] = useState(false);
   const [manage, setManage] = useState<Appointment | null>(null);
-  const active = professionals.filter((item) => item.active);
+  const [doctor, setDoctor] = useState("Todos");
+  const active = professionals.filter((item) => item.active && (doctor === "Todos" || item.id === doctor));
   const weekday = new Date(`${date}T12:00:00`).getDay();
   const hours = useMemo(() => {
     const all = new Set<string>();
@@ -137,6 +145,10 @@ export function AgendaPage() {
 
   return <>
     <PageHeader eyebrow="Organização diária" title="Agenda" description="Visualize a agenda diária dos médicos e a disponibilidade de horários." action="Agendar consulta" onAction={() => setNewOpen(true)} />
+    <div className="mb-4 flex flex-wrap gap-2" role="tablist" aria-label="Filtrar por médico">
+      {[{ id: "Todos", name: "Todos os médicos" }, ...professionals.filter((item) => item.active)].map((item) => <Button key={item.id} size="sm" variant={doctor === item.id ? "default" : "outline"} onClick={() => setDoctor(item.id)}>{item.name}</Button>)}
+    </div>
+    {doctor !== "Todos" && <div className="mb-4 grid gap-4 md:grid-cols-[300px_minmax(0,1fr)]"><MiniCalendar key={doctor} value={date} onChange={setDate} slotsFor={(day) => availableSlots(doctor, day).length} /><div className="surface p-4"><p className="text-sm font-semibold">Horários livres · {formatDate(date)}</p><div className="mt-3">{availableSlots(doctor, date).length ? <SlotPicker slots={availableSlots(doctor, date)} /> : <EmptyHint>Nenhum horário livre nesta data.</EmptyHint>}</div></div></div>}
     <div className="surface overflow-hidden">
       <div className="grid gap-3 border-b border-border p-4 sm:grid-cols-[auto_1fr_auto]">
         <div className="flex gap-1"><Button variant="outline" size="icon" onClick={() => shift(-1)} aria-label="Dia anterior"><ChevronLeft /></Button><Button variant="outline" size="icon" onClick={() => shift(1)} aria-label="Próximo dia"><ChevronRight /></Button></div>
@@ -144,7 +156,7 @@ export function AgendaPage() {
         <Button variant="outline" onClick={() => setDate(isoDate(0))}>Hoje</Button>
       </div>
       {hours.length ? (
-        <div className="overflow-x-auto"><div className="grid min-w-[660px]" style={{ gridTemplateColumns: `64px repeat(${active.length}, minmax(170px,1fr))` }}>
+        <div className="overflow-x-auto"><div className="grid" style={{ gridTemplateColumns: `64px repeat(${active.length}, minmax(170px,1fr))`, minWidth: active.length > 1 ? 660 : undefined }}>
           <div className="agenda-head" />
           {active.map((professional) => <div className="agenda-head" key={professional.id}><p className="text-sm font-semibold">{professional.name}</p><p className="text-xs text-muted-foreground">{professional.specialty}</p></div>)}
           {hours.flatMap((hour) => [
@@ -203,7 +215,7 @@ export function ConsultasPage() {
 }
 
 export function PacientesPage() {
-  const { patients, appointments, insurances, activeSpecialties, checkEligibility, professionalById, addPatient, updatePatient, togglePatientStatus } = useClinic();
+  const { patients, appointments, insurances, activeSpecialties, checkEligibility, professionalById, addPatient, updatePatient } = useClinic();
   const [search, setSearch] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
@@ -247,7 +259,6 @@ export function PacientesPage() {
           <Button variant="outline" onClick={() => setHistoryOf(item.id)}><History />Histórico ({items.length})</Button>
           <Button variant="outline" onClick={() => setEligibilityOf(item.id)}><ShieldCheck />Verificar elegibilidade</Button>
           <Button variant="outline" onClick={() => setEditing(item.id)}>Editar cadastro</Button>
-          <Button variant="ghost" onClick={() => { togglePatientStatus(item.id); toast.success(item.status === "Ativo" ? "Paciente inativado (histórico preservado)" : "Paciente reativado"); }}>{item.status === "Ativo" ? "Inativar" : "Reativar"}</Button>
         </div>
       </article>;
     })}</div> : <EmptyHint>Nenhum paciente encontrado.</EmptyHint>}
