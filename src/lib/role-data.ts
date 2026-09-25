@@ -5,7 +5,6 @@ import {
   CalendarCog,
   CalendarDays,
   CalendarPlus,
-  ChartNoAxesCombined,
   ClipboardCheck,
   Clock3,
   LayoutDashboard,
@@ -19,10 +18,10 @@ import {
 export type UserRole = "receptionist" | "patient" | "professional" | "admin";
 
 export type AppPath =
-  | "/dashboard" | "/agenda" | "/consultas" | "/pacientes" | "/fila-espera" | "/profissionais" | "/perfil"
-  | "/paciente" | "/paciente/consultas" | "/paciente/agendar" | "/paciente/notificacoes" | "/paciente/perfil"
-  | "/profissional" | "/profissional/agenda" | "/profissional/atendimentos" | "/profissional/pacientes" | "/profissional/disponibilidade" | "/profissional/notificacoes" | "/profissional/perfil"
-  | "/administrador" | "/administrador/usuarios" | "/administrador/profissionais" | "/administrador/especialidades" | "/administrador/agendas" | "/administrador/relatorios" | "/administrador/configuracoes";
+  | "/dashboard" | "/agenda" | "/consultas" | "/pacientes" | "/fila-espera" | "/perfil"
+  | "/paciente" | "/paciente/agendar" | "/paciente/notificacoes" | "/paciente/perfil"
+  | "/profissional" | "/profissional/agenda" | "/profissional/pacientes" | "/profissional/disponibilidade" | "/profissional/notificacoes" | "/profissional/perfil"
+  | "/administrador" | "/administrador/usuarios" | "/administrador/profissionais" | "/administrador/especialidades" | "/administrador/agendas" | "/administrador/configuracoes";
 
 export type AppNavItem = {
   to: AppPath;
@@ -46,7 +45,6 @@ const receptionistNav: AppNavItem[] = [
   { to: "/consultas", label: "Consultas", icon: CalendarCheck },
   { to: "/pacientes", label: "Pacientes", icon: UsersRound },
   { to: "/fila-espera", label: "Fila de espera", icon: ClipboardCheck },
-  { to: "/profissionais", label: "Médicos", icon: Stethoscope },
   { to: "/perfil", label: "Configurações", icon: Settings },
 ];
 
@@ -69,7 +67,6 @@ export const roleProfiles: Record<UserRole, RoleProfile> = {
     search: "Buscar consulta ou especialidade...",
     nav: [
       { to: "/paciente", label: "Início", icon: LayoutDashboard },
-      { to: "/paciente/consultas", label: "Minhas consultas", icon: CalendarCheck },
       { to: "/paciente/agendar", label: "Agendar consulta", icon: CalendarPlus },
       { to: "/paciente/notificacoes", label: "Notificações", icon: Bell },
       { to: "/paciente/perfil", label: "Meu perfil", icon: UserRound },
@@ -85,7 +82,6 @@ export const roleProfiles: Record<UserRole, RoleProfile> = {
     nav: [
       { to: "/profissional", label: "Início", icon: LayoutDashboard },
       { to: "/profissional/agenda", label: "Minha agenda", icon: CalendarDays },
-      { to: "/profissional/atendimentos", label: "Atendimentos", icon: Stethoscope },
       { to: "/profissional/pacientes", label: "Meus pacientes", icon: UsersRound },
       { to: "/profissional/disponibilidade", label: "Meus horários", icon: Clock3 },
       { to: "/profissional/notificacoes", label: "Notificações", icon: Bell },
@@ -105,7 +101,6 @@ export const roleProfiles: Record<UserRole, RoleProfile> = {
       { to: "/administrador/profissionais", label: "Médicos", icon: Stethoscope },
       { to: "/administrador/especialidades", label: "Especialidades", icon: Tags },
       { to: "/administrador/agendas", label: "Agendas e horários", icon: CalendarCog },
-      { to: "/administrador/relatorios", label: "Relatórios", icon: ChartNoAxesCombined },
       { to: "/administrador/configuracoes", label: "Configurações", icon: Settings },
     ],
   },
