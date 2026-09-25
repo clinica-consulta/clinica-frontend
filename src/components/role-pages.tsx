@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { Activity, Bell, CalendarCheck, CalendarClock, CalendarDays, Check, CheckCircle2, CircleAlert, Clock3, Lock, ShieldCheck, Stethoscope, Tags, UserCheck, UsersRound, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -36,13 +37,12 @@ function Notice({ icon, title, text, action }: { icon: React.ReactNode; title: s
 }
 
 function NotificationList({ role }: { role: "patient" | "professional" | "admin" | "receptionist" }) {
-  const { notificationsFor, markNotificationRead, markAllNotificationsRead } = useClinic();
+  const { notificationsFor } = useClinic();
   const items = notificationsFor(role);
-  return <Section title={`Recentes (${items.filter((item) => !item.read).length} não lidas)`} action={<Button variant="ghost" size="sm" onClick={() => { markAllNotificationsRead(role); toast.success("Notificações marcadas como lidas"); }}>Marcar todas</Button>}>
-    {items.length ? <div className="space-y-3">{items.map((item) => <article key={item.id} className={`grid grid-cols-[auto_minmax(0,1fr)] gap-2.5 rounded-md border p-3 sm:grid-cols-[auto_minmax(0,1fr)_auto] ${item.read ? "border-border" : "border-primary/40 bg-muted/55"}`}>
+  return <Section title={`Recentes (${items.length})`}>
+    {items.length ? <div className="space-y-3">{items.map((item) => <article key={item.id} className="grid grid-cols-[auto_minmax(0,1fr)] gap-2.5 rounded-md border border-border p-3">
       <span className="metric-icon metric-info size-10"><Bell /></span>
       <div className="min-w-0 flex-1"><p className="text-sm font-semibold">{item.title}</p><p className="mt-1 text-xs text-muted-foreground">{item.text}</p><p className="mt-1 text-[11px] text-muted-foreground">{formatDate(item.createdAt)}</p></div>
-      {!item.read && <Button className="col-start-2 justify-self-start sm:col-start-3 sm:row-start-1 sm:self-center" variant="ghost" size="sm" onClick={() => markNotificationRead(item.id)}>Marcar lida</Button>}
     </article>)}</div> : <EmptyHint>Nenhuma notificação por aqui.</EmptyHint>}
   </Section>;
 }
@@ -51,52 +51,14 @@ function NotificationList({ role }: { role: "patient" | "professional" | "admin"
 
 export function PatientDashboardPage() {
   const { clinic, patient, mine } = usePatientScope();
-  const upcoming = mine.filter((item) => openStatuses.includes(item.status) && item.date >= isoDate(0)).sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`));
-  const next = upcoming[0];
-  const done = mine.filter((item) => item.status === "Realizada").length;
-  const unread = clinic.notificationsFor("patient").filter((item) => !item.read).length;
-
-  return <>
-    <PageHeader eyebrow="Área do paciente" title={`Olá, ${patient?.name.split(" ")[0] ?? "paciente"}`} description="Acompanhe suas consultas, confirme presença e veja seu histórico." />
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <StatCard label="Próxima consulta" value={next ? relativeDay(next.date) : "—"} detail={next ? `${next.time} · ${next.specialty}` : "Nenhuma agendada"} icon={<CalendarCheck />} />
-      <StatCard label="Consultas realizadas" value={String(done)} detail="Histórico completo" icon={<CheckCircle2 />} tone="success" />
-      <StatCard label="Notificações" value={String(unread)} detail="Não lidas" icon={<Bell />} tone="warning" />
-      <StatCard label="Convênio" value={patient?.insurance ?? "—"} detail="Plano do cadastro" icon={<ShieldCheck />} tone="info" />
-    </div>
-    <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_320px]">
-      <Section title="Próxima consulta">
-        {next ? <div className="rounded-md bg-muted/55 p-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0"><p className="font-display text-lg uppercase">{clinic.professionalById(next.professionalId)?.name}</p><p className="text-xs text-muted-foreground sm:text-sm">{next.specialty} · {relativeDay(next.date)} às {next.time}</p></div>
-            <StatusBadge status={next.status} />
-          </div>
-          <div className="mt-5 flex flex-wrap gap-2">
-            {next.confirmationReply !== "Confirmou" && <Button onClick={() => { clinic.setAppointmentStatus(next.id, "Confirmada", "Paciente confirmou presença"); toast.success("Presença confirmada"); }}><Check />Confirmar presença</Button>}
-            <Button variant="outline" onClick={() => { clinic.setAppointmentStatus(next.id, "Cancelada", "Consulta cancelada pelo paciente"); toast.warning("Consulta cancelada", { description: "O horário foi liberado na agenda." }); }}><X />Cancelar</Button>
-          </div>
-        </div> : <EmptyHint>Você não tem consultas agendadas. Use "Agendar consulta" no menu.</EmptyHint>}
-      </Section>
-      <Section title="Lembretes">
-        <div className="space-y-3">
-          <Notice icon={<CalendarClock />} title="Chegue com antecedência" text="Recomendamos chegar 15 minutos antes do horário." />
-          {next && next.confirmationReply === "Sem resposta" && <Notice icon={<CircleAlert />} title="Confirmação pendente" text="Confirme sua presença para manter o horário reservado." />}
-          {unread > 0 && <Notice icon={<Bell />} title={`${unread} notificação(ões) nova(s)`} text="Veja as atualizações na página de notificações." />}
-        </div>
-      </Section>
-    </div>
-  </>;
-}
-
-export function PatientAppointmentsPage() {
-  const { clinic, mine } = usePatientScope();
+  const navigate = useNavigate();
   const [reschedule, setReschedule] = useState<Appointment | null>(null);
   const [detail, setDetail] = useState<Appointment | null>(null);
   const upcoming = mine.filter((item) => openStatuses.includes(item.status)).sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`));
   const history = mine.filter((item) => !openStatuses.includes(item.status)).sort((a, b) => b.date.localeCompare(a.date));
 
   return <>
-    <PageHeader eyebrow="Seus atendimentos" title="Minhas consultas" description="Confirme, cancele, remarque e acompanhe o status das suas consultas." />
+    <PageHeader eyebrow="Área do paciente" title={`Olá, ${patient?.name.split(" ")[0] ?? "paciente"}`} description="Bem-vindo(a)! Confirme, cancele, remarque e acompanhe o status das suas consultas." action="Agendar consulta" onAction={() => navigate({ to: "/paciente/agendar" })} />
     <div className="grid gap-6">
       <Section title={`Próximas consultas (${upcoming.length})`}>
         {upcoming.length ? <div className="divide-y divide-border">{upcoming.map((item) => <AppointmentRow key={item.id} item={item} right={<div className="flex flex-wrap gap-2">
@@ -203,38 +165,25 @@ export function ProfessionalDashboardPage() {
 
 export function ProfessionalAgendaPage() {
   const { clinic, professional, mine } = useProfessionalScope();
-  const [date, setDate] = useState(isoDate(0));
-  const items = mine.filter((item) => item.date === date && item.status !== "Cancelada").sort((a, b) => a.time.localeCompare(b.time));
-  const blocks = professional ? clinic.blocks.filter((item) => item.professionalId === professional.id && item.startDate <= date && item.endDate >= date) : [];
-
-  return <>
-    <PageHeader eyebrow="Organização diária" title="Minha agenda" description="Visualize sua agenda diária e os pacientes agendados." />
-    <div className="mb-5 grid gap-3 sm:max-w-xs"><Field label="Data" type="date" value={date} onChange={(event) => setDate(event.target.value)} /></div>
-    <Section title={`${formatDate(date)} · ${items.length} atendimento(s)`}>
-      {blocks.map((block) => <p key={block.id} className="mb-2 text-xs text-warning-strong">Período bloqueado: {block.startTime}–{block.endTime} · {block.reason}</p>)}
-      {items.length ? <div className="divide-y divide-border">{items.map((item) => <AppointmentRow key={item.id} item={item} />)}</div> : <EmptyHint>Nenhum atendimento nesta data.</EmptyHint>}
-    </Section>
-  </>;
-}
-
-export function ProfessionalAppointmentsPage() {
-  const { clinic, mine } = useProfessionalScope();
   const [search, setSearch] = useState("");
+  const [date, setDate] = useState(isoDate(0));
+  const blocks = professional ? clinic.blocks.filter((item) => item.professionalId === professional.id && item.startDate <= date && item.endDate >= date) : [];
   const [detail, setDetail] = useState<Appointment | null>(null);
   const today = mine
-    .filter((item) => item.date === isoDate(0) && item.status !== "Cancelada")
+    .filter((item) => item.date === date && item.status !== "Cancelada")
     .filter((item) => (clinic.patientById(item.patientId)?.name ?? "").toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => a.time.localeCompare(b.time));
 
   return <>
-    <PageHeader eyebrow="Fluxo clínico" title="Atendimentos" description="Registre consultas realizadas e ausências dos pacientes de hoje." />
-    <Toolbar placeholder="Buscar paciente..." value={search} onChange={setSearch} />
-    <Section title="Pacientes do dia">
+    <PageHeader eyebrow="Organização diária" title="Minha agenda" description="Visualize sua agenda e registre consultas realizadas e ausências." />
+    <div className="mb-4 grid gap-2.5 sm:grid-cols-[220px_minmax(0,1fr)] sm:items-end"><Field label="Data" type="date" value={date} onChange={(event) => setDate(event.target.value)} /><Toolbar placeholder="Buscar paciente..." value={search} onChange={setSearch} /></div>
+    <Section title={`${formatDate(date)} · ${today.length} atendimento(s)`}>
+      {blocks.map((block) => <p key={block.id} className="mb-2 text-xs text-warning-strong">Período bloqueado: {block.startTime}–{block.endTime} · {block.reason}</p>)}
       {today.length ? <div className="divide-y divide-border">{today.map((item) => <AppointmentRow key={item.id} item={item} right={<div className="flex flex-wrap gap-2">
         {openStatuses.includes(item.status) && <Button size="sm" onClick={() => { clinic.setAppointmentStatus(item.id, "Realizada", "Consulta realizada"); toast.success("Consulta registrada como realizada"); }}>Realizada</Button>}
         {openStatuses.includes(item.status) && <Button size="sm" variant="ghost" onClick={() => { clinic.setAppointmentStatus(item.id, "Não compareceu", "Ausência registrada pelo médico"); toast.warning("Ausência registrada"); }}>Não compareceu</Button>}
         <Button size="sm" variant="outline" onClick={() => setDetail(item)}>Ficha</Button>
-      </div>} />)}</div> : <EmptyHint>Nenhum atendimento para hoje.</EmptyHint>}
+      </div>} />)}</div> : <EmptyHint>Nenhum atendimento nesta data.</EmptyHint>}
     </Section>
     <Modal open={Boolean(detail)} title="Ficha do atendimento" description={detail ? `${clinic.patientById(detail.patientId)?.name} · ${detail.time}` : ""} onClose={() => setDetail(null)}>
       {detail && <div className="space-y-2 text-sm">
@@ -335,27 +284,19 @@ export function ProfessionalProfilePage() {
 export function AdminDashboardPage() {
   const { patients, professionals, appointments, staff, specialties } = useClinic();
   const reports = useReports();
-  const pendingUsers = staff.filter((item) => item.status === "Pendente").length;
   const monthly = appointments.filter((item) => item.date.slice(0, 7) === isoDate(0).slice(0, 7)).length;
 
   return <>
     <PageHeader eyebrow="Administração" title="Visão geral" description="Acompanhe usuários, médicos, especialidades e indicadores da clínica." />
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       <StatCard label="Usuários" value={String(patients.length + professionals.length + staff.length)} detail={`${patients.length} pacientes`} icon={<UsersRound />} />
       <StatCard label="Médicos ativos" value={String(professionals.filter((item) => item.active).length)} detail={`${specialties.filter((item) => item.active).length} especialidades ativas`} icon={<Stethoscope />} tone="info" />
       <StatCard label="Consultas no mês" value={String(monthly)} detail={`${reports.attendance}% de presença`} icon={<CalendarDays />} tone="success" />
-      <StatCard label="Cadastros pendentes" value={String(pendingUsers)} detail="Aguardando liberação" icon={<ShieldCheck />} tone="warning" />
     </div>
-    <div className="mt-5 grid gap-4 lg:grid-cols-2">
+    <div className="mt-5 grid gap-4">
       <Section title="Desempenho da clínica">
         <div className="space-y-4">
           {[["Consultas registradas", String(reports.total)], ["Taxa de presença", `${reports.attendance}%`], ["Não compareceu", String(reports.noShow)], ["Cancelamentos", String(reports.canceled)]].map(([label, value]) => <div key={label} className="flex items-center justify-between border-b border-border pb-3 text-sm"><span className="text-muted-foreground">{label}</span><b>{value}</b></div>)}
-        </div>
-      </Section>
-      <Section title="Atenção necessária">
-        <div className="space-y-3">
-          <Notice icon={<CircleAlert />} title={`${pendingUsers} cadastro(s) pendente(s)`} text="Usuários aguardando liberação de acesso." />
-          <Notice icon={<Tags />} title={`${specialties.filter((item) => !item.active).length} especialidade(s) desativada(s)`} text="Registros preservados, sem novos agendamentos." />
         </div>
       </Section>
     </div>
@@ -543,28 +484,6 @@ export function AdminSchedulesPage() {
         <div className="sm:col-span-2"><Button type="submit">Bloquear</Button></div>
       </form>
     </Modal>
-  </>;
-}
-
-export function AdminReportsPage() {
-  const reports = useReports();
-  const { appointments } = useClinic();
-  const max = Math.max(1, ...reports.perDay.map((day) => day.total));
-
-  return <>
-    <PageHeader eyebrow="Indicadores gerenciais" title="Relatórios" description="Analise consultas, ausências, cancelamentos e ocupação das agendas." />
-    <Toolbar placeholder="Buscar indicador..." exportAction={() => toast.success("Relatório exportado", { description: `${appointments.length} consultas incluídas no arquivo demonstrativo.` })} />
-    <div className="grid gap-4 sm:grid-cols-3">
-      <StatCard label="Consultas" value={String(reports.total)} detail={`${reports.done} realizadas`} icon={<CalendarCheck />} />
-      <StatCard label="Não compareceu" value={String(reports.noShow)} detail={`${reports.total ? Math.round((reports.noShow / reports.total) * 100) : 0}% do total`} icon={<CircleAlert />} tone="warning" />
-      <StatCard label="Presença" value={`${reports.attendance}%`} detail="Média histórica" icon={<Activity />} tone="success" />
-    </div>
-    <Section title="Consultas por dia" className="mt-5">
-      <div className="flex h-48 items-end gap-2 sm:gap-3">{reports.perDay.map((day) => <div key={day.date} className="flex min-w-0 flex-1 flex-col items-center gap-2"><span className="text-[10px] text-muted-foreground">{day.total}</span><div className="w-full max-w-10 rounded-t-sm bg-primary/80" style={{ height: `${(day.total / max) * 125 + 4}px` }} /><span className="text-[10px] text-muted-foreground sm:text-xs">{formatDate(day.date).slice(0, 5)}</span></div>)}</div>
-    </Section>
-    <Section title="Ocupação por médico" className="mt-5">
-      <div className="space-y-3">{reports.bySpecialty.map((item) => <div key={item.professional} className="grid grid-cols-[minmax(0,100px)_minmax(60px,1fr)_38px] items-center gap-2 text-xs sm:grid-cols-[minmax(0,140px)_1fr_44px] sm:gap-3 sm:text-sm"><span className="truncate">{item.professional}</span><div className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full bg-primary" style={{ width: `${item.occupancy}%` }} /></div><b>{item.occupancy}%</b></div>)}</div>
-    </Section>
   </>;
 }
 
