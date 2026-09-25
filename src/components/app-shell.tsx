@@ -12,12 +12,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const [loading, setLoading] = useState(false);
   const pathRole = roleFromPath(pathname);
-  const { logout, notificationsFor, session, hydrated } = useClinic();
+  const { logout, session, hydrated } = useClinic();
   const navigate = useNavigate();
   const ready = hydrated;
   const role = session?.role ?? pathRole;
   const profile = roleProfiles[role];
-  const unread = notificationsFor(role).filter((item) => !item.read).length;
 
 
   useEffect(() => {
@@ -53,7 +52,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
           <div className="ml-auto flex min-w-0 items-center gap-1.5 lg:ml-0">
             <span className="hidden text-right xl:block"><span className="block text-[10px] capitalize text-sidebar-muted">{ready ? formatLongDate(isoDate(0)).split(",")[0] : ""}</span><span className="block text-xs font-semibold">{ready ? formatDate(isoDate(0)) : ""}</span></span>
-            <Button variant="ghost" size="icon" className="relative text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground" aria-label="Notificações"><Bell />{unread > 0 && <span className="absolute right-2 top-2 size-2 rounded-full bg-warning ring-2 ring-sidebar" />}</Button>
+            <Button variant="ghost" size="icon" className="relative text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground" aria-label="Notificações"><Bell /></Button>
             <div className="hidden min-w-0 items-center gap-2 border-l border-sidebar-border pl-3 md:flex">
               <span className="grid size-8 shrink-0 place-items-center rounded-full bg-sidebar-primary text-[11px] font-bold text-sidebar-primary-foreground">{profile.initials}</span>
               <span className="hidden min-w-0 xl:block"><span className="block max-w-36 truncate text-xs font-semibold">{profile.name}</span><span className="block max-w-36 truncate text-[10px] text-sidebar-muted">{profile.title}</span></span>
