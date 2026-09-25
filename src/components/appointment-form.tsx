@@ -42,7 +42,7 @@ export function AppointmentForm({ fixedPatientId, channel = "Recepção", onDone
       {!fixedPatientId && (
         <div className="grid gap-1.5 sm:col-span-2">
           <Field label="CPF do paciente" value={cpf} onChange={(event) => setCpf(event.target.value)} placeholder="000.000.000-00" inputMode="numeric" />
-          {digits(cpf).length === 11 && <p className={`text-xs ${found && found.status === "Ativo" ? "text-success-strong" : "text-warning-strong"}`}>{found ? (found.status === "Ativo" ? `${found.name} · ${found.insurance}` : `${found.name} está com cadastro inativo.`) : "Nenhum paciente encontrado com esse CPF."}</p>}
+          {digits(cpf).length === 11 && <p className={`text-xs ${found && found.status === "Ativo" ? "text-success" : "text-warning-strong"}`}>{found ? (found.status === "Ativo" ? `${found.name} · ${found.insurance}` : `${found.name} está com cadastro inativo.`) : "Nenhum paciente encontrado com esse CPF."}</p>}
         </div>
       )}
       <SelectField label="Especialidade" value={activeSpecialty} onChange={(event) => setSpecialty(event.target.value)} options={activeSpecialties.map((item) => ({ value: item, label: item }))} />
