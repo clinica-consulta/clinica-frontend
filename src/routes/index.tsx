@@ -55,11 +55,11 @@ function LoginPage() {
           <div className={`overflow-hidden px-1.5 pb-1.5 ${isSignup ? "mt-4" : "mt-5"}`}>
             {isSignup ? (
               <div key="signup" className="auth-slide-right">
-                <div className="mb-3 text-center">
-                  <h2 className="text-lg font-bold text-primary-foreground sm:text-xl">Crie sua conta</h2>
-                  <p className="mt-2 text-xs text-accent sm:text-sm">Preencha seus dados para criar uma nova conta.</p>
+                <div className="mb-2 text-center">
+                  <h2 className="text-base font-bold text-primary-foreground sm:text-lg">Crie sua conta</h2>
+                  <p className="mt-1 text-xs text-accent">Preencha seus dados para criar uma nova conta.</p>
                 </div>
-                <form className="space-y-2.5 [&_label]:text-primary-foreground  [&_input]:rounded-md [&_input]:border [&_input]:border-border [&_input]:bg-auth-input [&_input]:text-primary-foreground [&_input]:placeholder:text-accent [&_select]:rounded-md [&_select]:border [&_select]:border-border [&_select]:bg-auth-input [&_select]:text-primary-foreground [&_.field-icon]:text-accent" onSubmit={submitSignup}>
+                <form className="space-y-2 [&_label]:text-xs [&_label]:text-primary-foreground [&_input]:h-9 [&_input]:rounded-md [&_input]:border [&_input]:border-border [&_input]:bg-auth-input [&_input]:text-primary-foreground [&_input]:placeholder:text-accent [&_select]:h-9 [&_select]:rounded-md [&_select]:border [&_select]:border-border [&_select]:bg-auth-input [&_select]:text-primary-foreground [&_.field-icon]:text-accent" onSubmit={submitSignup}>
                   <AuthField label="Nome" name="name" icon={<UserRound />} type="text" autoComplete="name" placeholder="Digite seu nome" />
                   <AuthField label="CPF" name="cpf" icon={<IdCard />} type="text" inputMode="numeric" autoComplete="off" placeholder="000.000.000-00" />
                   <AuthField label="Telefone" name="phone" icon={<Phone />} type="tel" inputMode="tel" autoComplete="tel" placeholder="(00) 00000-0000" />
