@@ -18,7 +18,11 @@ export function AppointmentForm({ fixedPatientId, channel = "Recepção", onDone
   const eligible = useMemo(() => professionals.filter((item) => item.active && item.specialty === activeSpecialty), [professionals, activeSpecialty]);
   const [professionalId, setProfessionalId] = useState(eligible[0]?.id ?? "");
   const activeProfessionalId = eligible.some((item) => item.id === professionalId) ? professionalId : eligible[0]?.id ?? "";
-  const [date, setDate] = useState(isoDate(1));
+  const [date, setDate] = useState(() => {
+    const first = eligible[0]?.id;
+    for (let offset = 0; first && offset <= 30; offset += 1) if (availableSlots(first, isoDate(offset)).length) return isoDate(offset);
+    return isoDate(1);
+  });
   const [notes, setNotes] = useState("");
   const slots = activeProfessionalId ? availableSlots(activeProfessionalId, date) : [];
   const [time, setTime] = useState("");
