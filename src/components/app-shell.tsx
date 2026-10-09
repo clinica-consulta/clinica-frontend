@@ -1,10 +1,9 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
-import { Bell, LogOut, Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Bell, BriefcaseMedical, CalendarDays, LockKeyhole, LogOut, Search, ShieldCheck, Stethoscope, UserRound } from "lucide-react";
 import { LoadingScreen } from "@/components/loading-screen";
 import logo from "@/assets/gestao-consultas-logo-transparent.png";
-import { roleFromPath, roleProfiles } from "@/lib/role-data";
+import { roleFromPath, roleProfiles, type RoleProfile } from "@/lib/role-data";
 import { formatDate, formatLongDate, isoDate } from "@/lib/clinic-data";
 import { useClinic } from "@/lib/clinic-store";
 
@@ -12,12 +11,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const [loading, setLoading] = useState(false);
   const pathRole = roleFromPath(pathname);
-  const { logout, session, hydrated } = useClinic();
+  const { logout, session, hydrated, notificationsFor } = useClinic();
   const navigate = useNavigate();
   const ready = hydrated;
   const role = session?.role ?? pathRole;
   const profile = roleProfiles[role];
-
+  const unread = ready ? notificationsFor(role).some((item) => !item.read) : false;
 
   useEffect(() => {
     setLoading(true);
@@ -38,36 +37,152 @@ export function AppShell({ children }: { children: ReactNode }) {
   if (pathname === "/") return <>{children}{loading && <LoadingScreen />}</>;
   if (ready && (!session || session.role !== pathRole)) return <LoadingScreen />;
 
+  const current = profile.nav.find((item) => item.to === pathname) ?? profile.nav[0]!;
+  const today = ready ? formatLongDate(isoDate(0)).split(",")[0] ?? "" : "";
+  const todayLabel = ready ? `${capitalize(today)}, ${formatDate(isoDate(0))}` : "";
+  const deep = profile.role === "professional" || profile.role === "admin";
+  const notificationsPath = profile.nav.find((item) => item.to.endsWith("notificacoes"))?.to;
+
   return (
-    <div className="app-interface min-h-screen bg-background">
+    <div className="app-interface flex min-h-screen flex-col bg-background">
       {loading && <LoadingScreen />}
-      <header className="sticky top-0 z-30 bg-sidebar text-sidebar-foreground shadow-sm">
-        <div className="mx-auto flex h-14 max-w-[1440px] items-center gap-3 px-3 sm:px-5 lg:px-6">
-          <Link to={profile.home} className="flex shrink-0 items-center gap-2.5" aria-label="Gestão de Consultas">
-            <span className="grid size-9 shrink-0 place-items-center"><img src={logo} alt="" className="size-8 object-contain" /></span>
-            <span className="hidden min-w-0 sm:block"><span className="block truncate font-display text-sm font-semibold uppercase">Gestão de</span><span className="block truncate text-[9px] font-semibold uppercase tracking-widest text-sidebar-muted">Consultas</span></span>
-          </Link>
 
-          <div className="relative ml-auto hidden w-full max-w-xs lg:block"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-sidebar-muted" /><input className="h-9 w-full rounded-md border border-sidebar-border bg-sidebar-accent pl-9 pr-3 text-xs text-sidebar-foreground placeholder:text-sidebar-muted outline-none focus:border-sidebar-ring focus:ring-2 focus:ring-sidebar-ring/20" placeholder={profile.search} /></div>
+      {/* Cabeçalho desktop */}
+      <header className={`sticky top-0 z-30 hidden text-sidebar-foreground shadow-[0_1px_4px_rgb(0_0_0/4%)] md:block ${deep ? "bg-header-deep" : "bg-sidebar"}`}>
+        <div className="mx-auto flex h-28 max-w-[1280px] flex-col justify-between px-8 pb-1 pt-3">
+          <div className="flex items-center gap-6 lg:gap-11">
+            <Link to={profile.home} className="flex shrink-0 items-center gap-5" aria-label="Gestão de Consultas">
+              <BrandMark profile={profile} />
+              <span className="min-w-0">
+                <span className={`block text-[11px] font-bold uppercase leading-4 tracking-[0.55px] ${deep ? "text-mobile-eyebrow" : "text-sidebar-muted"}`}>{profile.brand}</span>
+                <span className="block text-base font-bold leading-6 tracking-[-0.4px]">GESTÃO DE CONSULTAS</span>
+              </span>
+            </Link>
 
-          <div className="ml-auto flex min-w-0 items-center gap-1.5 lg:ml-0">
-            <span className="hidden text-right xl:block"><span className="block text-[10px] capitalize text-sidebar-muted">{ready ? formatLongDate(isoDate(0)).split(",")[0] : ""}</span><span className="block text-xs font-semibold">{ready ? formatDate(isoDate(0)) : ""}</span></span>
-            <Button variant="ghost" size="icon" className="relative text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground" aria-label="Notificações"><Bell /></Button>
-            <div className="hidden min-w-0 items-center gap-2 border-l border-sidebar-border pl-3 md:flex">
-              <span className="grid size-8 shrink-0 place-items-center rounded-full bg-sidebar-primary text-[11px] font-bold text-sidebar-primary-foreground">{profile.initials}</span>
-              <span className="hidden min-w-0 xl:block"><span className="block max-w-36 truncate text-xs font-semibold">{profile.name}</span><span className="block max-w-36 truncate text-[10px] text-sidebar-muted">{profile.title}</span></span>
+            <label className="relative hidden min-w-0 max-w-[448px] flex-1 lg:block">
+              <span className="sr-only">Buscar</span>
+              <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-sidebar-muted" />
+              <input className="h-[38px] w-full rounded-lg bg-sidebar-accent pl-10 pr-4 text-sm text-sidebar-foreground outline-none placeholder:text-sidebar-muted focus:ring-2 focus:ring-sidebar-ring/40" placeholder={profile.search} />
+            </label>
+
+            <div className="ml-auto flex shrink-0 items-center gap-4 lg:gap-6">
+              {profile.role === "professional" ? (
+                <span className="hidden items-center gap-1.5 rounded-lg bg-sidebar-accent px-3 py-1.5 text-xs font-medium xl:flex"><CalendarDays className="size-3.5" />{todayLabel.replace(",", "")}</span>
+              ) : profile.role === "admin" ? (
+                <span className="hidden text-[13px] font-medium text-sidebar-muted xl:block">{todayLabel.replace(",", "")}</span>
+              ) : (
+                <span className="hidden text-right xl:block">
+                  <span className="block text-[11px] font-medium leading-[14px] text-sidebar-muted">Data do Sistema</span>
+                  <span className="block text-[13px] font-medium leading-[18px]">{todayLabel}</span>
+                </span>
+              )}
+              <NotificationButton to={notificationsPath} unread={unread} boxed={profile.role === "professional"} />
+              <UserChip profile={profile} />
+              <Link to="/" onClick={logout} aria-label="Sair" className="grid size-9 place-items-center rounded-lg text-sidebar-muted transition hover:bg-sidebar-accent hover:text-sidebar-foreground"><LogOut className="size-4" /></Link>
+              {deep && <span className="grid size-10 place-items-center rounded-full bg-avatar"><UserRound className="size-4" /></span>}
             </div>
-            <Button variant="ghost" size="icon" className="text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground" asChild><Link to="/" onClick={logout} aria-label="Sair"><LogOut /></Link></Button>
+          </div>
+
+          <nav className="horizontal-nav flex items-center gap-1 overflow-x-auto" aria-label="Navegação principal">
+            {profile.nav.map((item) => (
+              <Link
+                key={item.to}
+                to={item.to}
+                activeOptions={{ exact: true }}
+                activeProps={{ className: profile.headerStyle === "pills" ? "nav-pill-active" : "nav-active" }}
+                className={profile.headerStyle === "pills" ? "nav-link nav-pill" : "nav-link"}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+      </header>
+
+      {/* Cabeçalho mobile */}
+      <header className={`sticky top-0 z-30 flex h-16 items-center gap-3 px-3 text-sidebar-foreground shadow-[0_4px_20px_-2px_rgb(30_46_61/8%)] md:hidden ${deep && profile.role === "admin" ? "bg-header-deep" : "bg-sidebar"}`}>
+        {profile.role === "admin" ? (
+          <span className="w-1" />
+        ) : (
+          <Link to={profile.home} aria-label="Gestão de Consultas" className="grid size-11 shrink-0 place-items-center"><img src={logo} alt="" className="size-10 object-contain" /></Link>
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="flex items-center gap-1.5 truncate text-[11px] font-bold uppercase leading-4 tracking-[0.88px] text-mobile-eyebrow">
+            {profile.role === "admin" && <span className="size-1.5 shrink-0 rounded-full bg-mobile-eyebrow" />}
+            {profile.area}
+          </p>
+          <p className="truncate text-base font-semibold leading-5">{current.mobileTitle ?? current.short ?? current.label}</p>
+        </div>
+        <NotificationButton to={notificationsPath} unread={false} mobile />
+        <Link to="/" onClick={logout} aria-label="Sair" className="grid size-8 shrink-0 place-items-center rounded-full bg-avatar"><UserRound className="size-3.5" /></Link>
+      </header>
+
+      <main className="mx-auto w-full max-w-[1280px] flex-1 px-4 pb-24 pt-5 md:p-8">{children}</main>
+
+      {/* Rodapé desktop */}
+      <footer className="hidden bg-soft py-6 shadow-[0_1px_4px_rgb(0_0_0/4%)] md:block">
+        <div className="mx-auto flex max-w-[1280px] items-center justify-between gap-6 px-8 text-[13px] leading-5 text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-6">
+            <span className="flex items-center gap-1.5">{profile.role === "professional" && <LockKeyhole className="size-3.5 text-success" />}{profile.footer}</span>
+            {(profile.role === "receptionist") && <span className="flex items-center gap-1.5 font-medium text-success"><LockKeyhole className="size-3.5" />Ambiente Seguro &amp; Criptografado</span>}
+          </div>
+          <div className="flex shrink-0 items-center gap-6">
+            {profile.role === "patient" && <span className="flex items-center gap-1 text-xs font-medium text-success"><ShieldCheck className="size-3.5" />Ambiente Seguro &amp; Criptografado</span>}
+            <a href="#" className="hover:text-foreground">Privacidade</a>
+            {profile.role !== "patient" && <a href="#" className="hover:text-foreground">Termos de Uso</a>}
+            <a href="#" className="hover:text-foreground">Suporte</a>
           </div>
         </div>
+      </footer>
 
-        <nav className="border-t border-sidebar-border" aria-label="Navegação principal">
-          <div className="horizontal-nav mx-auto flex max-w-[1440px] items-stretch overflow-x-auto px-2 sm:px-4 lg:px-5">
-            {profile.nav.map((item) => <Link key={item.to} to={item.to} activeOptions={{ exact: true }} activeProps={{ className: "nav-active" }} className="nav-link"><item.icon className="size-4 shrink-0" /><span>{item.label}</span></Link>)}
-          </div>
-        </nav>
-      </header>
-      <main className="mx-auto w-full max-w-[1440px] p-3 sm:p-5 lg:p-6">{children}</main>
+      {/* Navegação inferior mobile */}
+      <nav className="fixed inset-x-0 bottom-0 z-30 flex h-16 items-center bg-card/90 px-1 shadow-[0_-2px_12px_rgb(30_46_61/5%)] backdrop-blur-md md:hidden" aria-label="Navegação principal">
+        {profile.nav.filter((item) => !item.desktopOnly).map((item) => (
+          <Link key={item.to} to={item.to} activeOptions={{ exact: true }} activeProps={{ className: "bottom-nav-active" }} className="bottom-nav-link">
+            <item.icon />
+            <span>{item.short ?? item.label}</span>
+          </Link>
+        ))}
+      </nav>
     </div>
   );
+}
+
+function BrandMark({ profile }: { profile: RoleProfile }) {
+  if (profile.role === "professional") return <span className="grid size-10 place-items-center rounded-lg bg-sidebar-accent"><BriefcaseMedical className="size-5" /></span>;
+  if (profile.role === "admin") return <span className="grid size-10 place-items-center rounded-lg bg-sidebar-accent"><Stethoscope className="size-5" /></span>;
+  return <span className="grid size-10 place-items-center overflow-hidden rounded-lg bg-sidebar-accent"><img src={logo} alt="" className="size-9 object-contain" /></span>;
+}
+
+function NotificationButton({ to, unread, boxed, mobile }: { to?: string | undefined; unread: boolean; boxed?: boolean; mobile?: boolean }) {
+  const className = `relative grid shrink-0 place-items-center text-sidebar-foreground transition hover:bg-sidebar-accent ${mobile ? "size-11 rounded-full" : boxed ? "size-9 rounded-lg bg-sidebar-accent" : "size-9 rounded-lg"}`;
+  const content = <><Bell className="size-[18px]" />{unread && <span className={`absolute right-1.5 top-1.5 size-2 rounded-full ${boxed ? "bg-mobile-eyebrow" : "bg-destructive"}`} />}</>;
+  return to ? <Link to={to} aria-label="Notificações" className={className}>{content}</Link> : <button type="button" aria-label="Notificações" className={className}>{content}</button>;
+}
+
+function UserChip({ profile }: { profile: RoleProfile }) {
+  if (profile.role === "professional" || profile.role === "admin") {
+    return (
+      <span className={`flex items-center gap-2 ${profile.role === "professional" ? "rounded-full bg-sidebar-accent py-1 pl-1 pr-3" : ""}`}>
+        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-success-soft text-xs font-bold text-success-strong">{profile.initials}</span>
+        <span className="hidden min-w-0 xl:block">
+          <span className="block max-w-40 truncate text-sm font-semibold leading-4">{profile.name}</span>
+          <span className="block text-[11px] leading-[14px] text-sidebar-muted">{profile.title}</span>
+        </span>
+      </span>
+    );
+  }
+  return (
+    <span className="flex items-center gap-2 pl-2">
+      <span className="grid size-8 shrink-0 place-items-center rounded-full bg-avatar"><UserRound className="size-3.5" /></span>
+      <span className="hidden min-w-0 xl:block">
+        <span className="block max-w-40 truncate text-[13px] font-bold leading-4">{profile.name}</span>
+        <span className="block text-[11px] font-medium leading-[14px] text-sidebar-muted">{profile.title}</span>
+      </span>
+    </span>
+  );
+}
+
+function capitalize(value: string) {
+  return value.replace(/(^|-)(\p{L})/gu, (_, sep: string, letter: string) => sep + letter.toUpperCase());
 }

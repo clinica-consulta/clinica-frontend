@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Activity, CalendarCheck, CalendarClock, Check, CheckCircle2, ChevronLeft, ChevronRight, CircleAlert, History, MessageSquareText, MoreHorizontal, Phone, Send, ShieldCheck, Users, UsersRound, X } from "lucide-react";
+import { Activity, CalendarCheck, CalendarCheck2, CalendarDays, MailCheck, Plus, SlidersHorizontal, CalendarClock, Check, CheckCircle2, ChevronLeft, ChevronRight, CircleAlert, History, MessageSquareText, MoreHorizontal, Phone, Send, ShieldCheck, Users, UsersRound, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { EmptyHint, Field, Modal, PageHeader, Section, SelectField, StatCard, StatusBadge, TextareaField, Toggle, Toolbar } from "@/components/page-kit";
@@ -78,44 +78,109 @@ export function ManageModal({ appointment, onClose }: { appointment: Appointment
 }
 
 export function DashboardPage() {
-  const { appointments, professionals, sendAllReminders, availableSlots, patientById, professionalById } = useClinic();
-  const reports = useReports();
+  const { appointments, professionals, sendAllReminders, sendReminder, availableSlots, patientById, professionalById } = useClinic();
   const [newOpen, setNewOpen] = useState(false);
   const active = professionals.filter((item) => item.active);
   const [proId, setProId] = useState(active[0]?.id ?? "");
   const [calDate, setCalDate] = useState(isoDate(0));
+  const [slot, setSlot] = useState("");
   const today = appointments.filter((item) => item.date === isoDate(0) && item.status !== "Cancelada").sort((a, b) => a.time.localeCompare(b.time));
   const confirmed = today.filter((item) => item.status === "Confirmada").length;
+  const ready = today.length ? Math.round((confirmed / today.length) * 100) : 0;
   const pending = appointments.filter((item) => item.confirmationReply === "Sem resposta" && openStatuses.includes(item.status) && item.date >= isoDate(0)).sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`));
   const slots = proId ? availableSlots(proId, calDate) : [];
+  const chosen = slots.includes(slot) ? slot : slots[0] ?? "";
+  const doctor = professionalById(proId);
+  const remindAll = () => { const sent = sendAllReminders(); toast[sent ? "success" : "info"](sent ? `${sent} lembrete(s) enviado(s)` : "Todos os lembretes já foram enviados"); };
 
   return <>
-    <PageHeader eyebrow="Visão geral" title="Bom dia, Rafaela" description="Acompanhe os agendamentos do dia e as confirmações pendentes." action="Nova consulta" onAction={() => setNewOpen(true)} />
-    <div className="grid gap-4 sm:grid-cols-2">
-      <StatCard label="Realizadas hoje" value={String(today.filter((item) => item.status === "Realizada").length)} detail={`${today.filter((item) => item.status === "Não compareceu").length} ausências`} icon={<CheckCircle2 />} tone="success" />
-      <StatCard label="Taxa de presença" value={`${reports.attendance}%`} detail="Histórico da clínica" icon={<Activity />} tone="info" />
+    <header className="mb-6 md:mb-6">
+      <p className="mb-1 hidden text-[11px] font-bold uppercase leading-4 tracking-[1.1px] text-muted-foreground md:block">Visão geral</p>
+      <div className="flex items-center justify-between gap-3 md:block">
+        <h1 className="text-[26px] font-bold leading-8 tracking-[-0.8px] md:text-[32px] md:leading-10">Bom dia, Rafaela</h1>
+        <Button onClick={() => setNewOpen(true)} className="h-9 shrink-0 rounded-lg px-3 text-sm font-semibold md:hidden"><Plus />Nova consulta</Button>
+      </div>
+      <p className="mt-2 max-w-[260px] text-sm leading-5 text-muted-foreground md:mt-0.5 md:max-w-none">Acompanhe os agendamentos do dia e as confirmações pendentes.</p>
+      <Button onClick={() => setNewOpen(true)} className="mt-6 hidden h-10 rounded-lg px-5 text-sm font-semibold shadow-[0_1px_1px_rgb(0_0_0/5%)] md:inline-flex"><Plus />Nova consulta</Button>
+    </header>
+
+    <div className="grid items-start gap-4 md:gap-6 lg:grid-cols-2">
+      <section className="surface overflow-hidden md:p-6">
+        <div className="flex items-center justify-between gap-2 bg-soft px-4 py-3 md:bg-transparent md:p-0 md:pb-4">
+          <h2 className="eyebrow">Consultas hoje ({today.length} • {confirmed} confirmadas)</h2>
+          <span className="hidden rounded-full bg-success-soft px-2 py-0.5 text-[11px] font-semibold leading-[14px] text-success md:inline">{ready}% prontas</span>
+          <CalendarDays className="size-4 text-muted-foreground md:hidden" />
+        </div>
+        {today.length ? <div className="divide-y divide-border/60 md:divide-y-0">{today.map((item, index) => (
+          <div key={item.id}>
+            {index > 0 && <div className="hidden py-1 md:block"><div className="h-px bg-border/60" /></div>}
+            <div className="flex items-center justify-between gap-3 px-4 py-4 md:-mx-2 md:rounded-lg md:px-2 md:py-3.5 md:hover:bg-soft/50">
+              <div className="flex min-w-0 items-center gap-4">
+                <span className="w-14 shrink-0 text-base font-bold leading-6">{item.time}</span>
+                <div className="min-w-0"><p className="truncate text-sm font-semibold leading-5">{patientById(item.patientId)?.name}</p><p className="truncate text-xs leading-4 text-muted-foreground">{professionalById(item.professionalId)?.name} • {item.specialty}</p></div>
+              </div>
+              <StatusBadge status={item.status} />
+            </div>
+          </div>
+        ))}</div> : <div className="p-4 md:p-0"><EmptyHint>Nenhuma consulta para hoje.</EmptyHint></div>}
+      </section>
+
+      <section className="surface overflow-hidden md:p-6">
+        <div className="flex items-center justify-between gap-2 bg-soft px-4 py-3 md:bg-transparent md:p-0 md:pb-4">
+          <h2 className="eyebrow">Aguardando confirmação ({pending.length})</h2>
+          <button type="button" onClick={remindAll} className="flex shrink-0 items-center gap-1.5 rounded-lg bg-accent/60 px-3 py-1.5 text-xs font-semibold leading-[18px] text-soft-foreground transition hover:bg-accent md:bg-soft md:text-[13px]"><Send className="size-3.5" /><span className="max-w-16 text-center md:max-w-none">Enviar lembretes</span></button>
+        </div>
+        {pending.length ? <div className="divide-y divide-border/60 md:divide-y-0">{pending.map((item, index) => (
+          <div key={item.id}>
+            {index > 0 && <div className="hidden py-1 md:block"><div className="h-px bg-border/60" /></div>}
+            <div className="hidden items-center justify-between gap-3 md:-mx-2 md:flex md:rounded-lg md:px-2 md:py-3.5">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="w-20 shrink-0"><b className="block text-sm leading-5">{formatDate(item.date).slice(0, 5)}</b><span className="block text-[11px] font-medium leading-[14px] text-muted-foreground">{item.time}</span></span>
+                <div className="min-w-0"><p className="truncate text-sm font-semibold leading-5">{patientById(item.patientId)?.name}</p><p className="truncate text-xs leading-4 text-subtle-foreground">{professionalById(item.professionalId)?.name} • {item.reminderSentAt ? "Lembrete enviado" : "Sem lembrete"}</p></div>
+              </div>
+              <StatusBadge status={item.status} />
+            </div>
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 px-4 py-4 md:hidden">
+              <b className="text-sm leading-5">{formatDate(item.date).slice(0, 5)} • {item.time}</b>
+              <span className="justify-self-end"><StatusBadge status={item.status} /></span>
+              <div className="min-w-0"><p className="truncate text-sm font-semibold leading-5">{patientById(item.patientId)?.name}</p><p className="truncate text-xs leading-4 text-muted-foreground">{professionalById(item.professionalId)?.name} • {item.reminderSentAt ? "Lembrete enviado" : "Sem lembrete"}</p></div>
+              <button type="button" aria-label="Enviar lembrete" onClick={() => { sendReminder(item.id); toast.success("Lembrete enviado"); }} className="grid size-8 place-items-center self-end rounded-full bg-accent/70 text-foreground"><MailCheck className="size-4" /></button>
+            </div>
+          </div>
+        ))}</div> : <div className="p-4 md:p-0"><EmptyHint>Todas as consultas estão confirmadas.</EmptyHint></div>}
+        <div className="hidden pt-6 md:block"><p className="flex items-center gap-3 rounded-lg bg-soft p-3 text-xs leading-[15px] text-muted-foreground"><MessageSquareText className="size-[18px] shrink-0 text-foreground" />Os lembretes automáticos por WhatsApp e SMS são disparados 24h antes do horário marcado.</p></div>
+      </section>
     </div>
-    <div className="mt-5 grid gap-4 lg:grid-cols-2">
-      <Section title={`Consultas hoje (${today.length} · ${confirmed} confirmadas)`}>
-        {today.length ? <div className="divide-y divide-border">{today.map((item) => <div key={item.id} className="grid grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3 py-3"><span className="text-sm font-bold text-primary">{item.time}</span><div className="min-w-0"><p className="truncate text-sm font-semibold">{patientById(item.patientId)?.name}</p><p className="truncate text-xs text-muted-foreground">{professionalById(item.professionalId)?.name} · {item.specialty}</p></div><StatusBadge status={item.status} /></div>)}</div> : <EmptyHint>Nenhuma consulta para hoje.</EmptyHint>}
-      </Section>
-      <Section title={`Aguardando confirmação (${pending.length})`} action={pending.length > 0 ? <Button size="sm" variant="outline" onClick={() => { const sent = sendAllReminders(); toast[sent ? "success" : "info"](sent ? `${sent} lembrete(s) enviado(s)` : "Todos os lembretes já foram enviados"); }}><Send />Enviar lembretes</Button> : undefined}>
-        {pending.length ? <div className="divide-y divide-border">{pending.map((item) => <div key={item.id} className="grid grid-cols-[72px_minmax(0,1fr)_auto] items-center gap-3 py-3"><span className="text-xs font-bold text-primary">{formatDate(item.date).slice(0, 5)} · {item.time}</span><div className="min-w-0"><p className="truncate text-sm font-semibold">{patientById(item.patientId)?.name}</p><p className="truncate text-xs text-muted-foreground">{professionalById(item.professionalId)?.name} · {item.reminderSentAt ? "Lembrete enviado" : "Sem lembrete"}</p></div><StatusBadge status={item.status} /></div>)}</div> : <EmptyHint>Todas as consultas estão confirmadas.</EmptyHint>}
-      </Section>
-    </div>
-    <Section title="Horários disponíveis" className="mt-5">
-      <div className="grid gap-4 md:grid-cols-[300px_minmax(0,1fr)]">
-        <div className="grid gap-3">
-          <SelectField label="Médico" value={proId} onChange={(event) => setProId(event.target.value)} options={active.map((item) => ({ value: item.id, label: `${item.name} · ${item.specialty}` }))} />
+
+    <section className="surface mt-4 p-4 md:mt-6 md:p-7">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="eyebrow">Horários disponíveis</h2>
+        <div className="hidden items-center gap-2 text-[11px] font-medium leading-[14px] text-muted-foreground md:flex"><span className="size-2.5 rounded-full bg-success" />Dias com vagas<span className="ml-2 size-2.5 rounded-full bg-strong" />Dia selecionado</div>
+        <SlidersHorizontal className="size-4 text-muted-foreground md:hidden" />
+      </div>
+      <div className="mt-4 grid gap-5 md:mt-6 md:grid-cols-12 md:gap-8">
+        <div className="grid content-start gap-5 md:col-span-4">
+          <label className="grid gap-1.5 text-[13px] font-semibold leading-[18px]">Médico
+            <select value={proId} onChange={(event) => setProId(event.target.value)} className="h-11 w-full rounded-lg bg-soft px-3.5 text-sm font-normal outline-none ring-1 ring-transparent focus:ring-ring md:h-[38px] md:bg-card md:text-[13px] md:ring-input/60">
+              {active.map((item) => <option key={item.id} value={item.id}>{item.name} • {item.specialty}</option>)}
+            </select>
+          </label>
           <MiniCalendar value={calDate} onChange={setCalDate} slotsFor={(day) => (proId ? availableSlots(proId, day).length : 0)} />
         </div>
-        <div className="grid content-start gap-2">
-          <p className="text-sm font-semibold">{formatDate(calDate)} · {relativeDay(calDate)}</p>
-          <p className="text-xs text-muted-foreground">{slots.length} horário(s) livre(s)</p>
-          {slots.length ? <SlotPicker slots={slots} /> : <EmptyHint>Nenhum horário disponível nesta data.</EmptyHint>}
+        <div className="grid content-start gap-4 md:col-span-8">
+          <div className="flex items-center justify-between gap-3 md:pb-2">
+            <div><h3 className="text-base font-bold leading-6">{formatDate(calDate)} • {relativeDay(calDate)}</h3><p className="text-xs leading-4 text-muted-foreground">{slots.length} horário(s) livre(s)</p></div>
+            <span className="rounded-full bg-success-soft px-2.5 py-0.5 text-[11px] font-semibold text-success md:hidden">{slots.length ? "Disponível" : "Sem vagas"}</span>
+            <span className="hidden items-center gap-2 text-[11px] font-medium text-subtle-foreground md:flex">Turno:<span className="rounded bg-accent px-2.5 py-1 text-[13px] font-semibold leading-[18px] text-foreground">Integral</span></span>
+          </div>
+          {slots.length ? <SlotPicker slots={slots} value={chosen} onChange={setSlot} /> : <EmptyHint>Nenhum horário disponível nesta data.</EmptyHint>}
+          {chosen && <div className="hidden pt-4 md:block"><div className="flex items-center justify-between gap-4 rounded-xl bg-soft/40 p-4">
+            <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-lg bg-success-soft/50 text-success"><CalendarCheck className="size-[18px]" /></span><div><p className="text-sm font-bold leading-5">Horário de {chosen} reservado para marcação</p><p className="text-xs leading-4 text-muted-foreground">Duração estimada: 30 minutos • {doctor?.name}</p></div></div>
+            <Button onClick={() => setNewOpen(true)} className="rounded-lg bg-strong px-4 text-sm font-semibold hover:bg-strong/90"><CalendarCheck2 />Agendar neste horário</Button>
+          </div></div>}
         </div>
       </div>
-    </Section>
+    </section>
     <Modal open={newOpen} title="Nova consulta" description="Busque o paciente pelo CPF e agende em nome dele (presencial ou por telefone)." onClose={() => setNewOpen(false)}><AppointmentForm onDone={() => setNewOpen(false)} /></Modal>
   </>;
 }
