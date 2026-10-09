@@ -2,8 +2,18 @@ import { type ReactNode } from "react";
 import { CalendarPlus, Download, Plus, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export function PageHeader({ eyebrow, title, description, action, onAction }: { eyebrow?: string; title: string; description: string; action?: string; onAction?: () => void }) {
-  return <header className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"><div className="min-w-0">{eyebrow && <p className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-primary">{eyebrow}</p>}<h1 className="font-display text-2xl uppercase text-foreground sm:text-3xl">{title}</h1><p className="mt-1 max-w-2xl text-xs text-muted-foreground sm:text-sm">{description}</p></div>{action && <Button onClick={onAction} className="w-full sm:w-auto"><Plus />{action}</Button>}</header>;
+export function PageHeader({ eyebrow, title, description, action, onAction, uppercase = false, aside }: { eyebrow?: string; title: string; description: string; action?: string; onAction?: () => void; uppercase?: boolean; aside?: ReactNode }) {
+  return (
+    <header className="mb-6 flex flex-col gap-4 md:mb-6 md:flex-row md:items-end md:justify-between">
+      <div className="min-w-0">
+        {eyebrow && <p className="mb-1 text-[11px] font-bold uppercase leading-4 tracking-[1.1px] text-muted-foreground">{eyebrow}</p>}
+        <h1 className={`text-[28px] font-bold leading-9 tracking-[-0.8px] text-foreground md:text-[32px] md:leading-10 ${uppercase ? "uppercase" : ""}`}>{title}</h1>
+        <p className="mt-0.5 max-w-2xl text-sm leading-5 text-muted-foreground">{description}</p>
+      </div>
+      {aside}
+      {action && <Button onClick={onAction} className="h-10 w-full rounded-lg px-5 text-sm font-semibold shadow-[0_1px_1px_rgb(0_0_0/5%)] md:w-auto"><Plus />{action}</Button>}
+    </header>
+  );
 }
 
 export function Toolbar({ placeholder = "Buscar...", value, onChange, exportAction, filter }: { placeholder?: string; value?: string; onChange?: (value: string) => void; exportAction?: () => void; filter?: ReactNode }) {
@@ -11,20 +21,23 @@ export function Toolbar({ placeholder = "Buscar...", value, onChange, exportActi
 }
 
 export function StatCard({ label, value, detail, icon, tone = "primary" }: { label: string; value: string; detail: string; icon: ReactNode; tone?: "primary" | "info" | "success" | "warning" }) {
-  return <article className="metric-card"><div className={`metric-icon metric-${tone}`}>{icon}</div><div className="min-w-0"><p className="truncate text-[11px] font-medium text-muted-foreground sm:text-xs">{label}</p><p className="mt-0.5 font-display text-2xl text-foreground">{value}</p><p className="mt-0.5 text-[11px] text-muted-foreground sm:text-xs">{detail}</p></div></article>;
+  return <article className="metric-card"><div className={`metric-icon ${{ primary: "metric-primary", info: "metric-info", success: "metric-success", warning: "metric-warning" }[tone]}`}>{icon}</div><div className="min-w-0"><p className="truncate text-[11px] font-medium text-muted-foreground sm:text-xs">{label}</p><p className="mt-0.5 text-[32px] font-bold leading-10 text-foreground">{value}</p><p className="mt-0.5 text-[11px] text-muted-foreground sm:text-xs">{detail}</p></div></article>;
 }
 
 export function Section({ title, action, children, className = "" }: { title: string; action?: ReactNode; children: ReactNode; className?: string }) {
-  return <section className={`surface min-w-0 ${className}`}><div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-border px-3.5 py-3 sm:px-4"><h2 className="truncate font-display text-base uppercase">{title}</h2>{action}</div><div className="p-3.5 sm:p-4">{children}</div></section>;
+  return <section className={`surface min-w-0 p-4 md:p-6 ${className}`}><div className="flex min-w-0 items-center justify-between gap-2 pb-4"><h2 className="truncate text-[11px] font-bold uppercase leading-4 tracking-[0.55px] text-muted-foreground">{title}</h2>{action}</div><div>{children}</div></section>;
 }
 
 export function StatusBadge({ status }: { status: string }) {
   const type =
     status === "Confirmada" || status === "Realizada" || status === "Ativo" ? "success"
-    : status === "Agendada" || status === "Alta" || status === "Aguardando" || status === "Pendente" || status === "Não compareceu" ? "warning"
+    : status === "Agendada" || status === "Aguardando" || status === "Pendente" ? "info"
+    : status === "Alta" ? "warning"
+    : status === "Não compareceu" ? "danger"
     : status === "Cancelada" || status === "Inativo" ? "muted"
     : "info";
-  return <span className={`status status-${type}`}><span className="size-1.5 rounded-full bg-current" />{status}</span>;
+  const tone = { success: "status-success", info: "status-info", warning: "status-warning", danger: "status-danger", muted: "status-muted" }[type];
+  return <span className={`status ${tone}`}><span className="size-2 shrink-0 rounded-full bg-current" />{status}</span>;
 }
 
 export function EmptyHint({ children }: { children: ReactNode }) { return <div className="rounded-md border border-dashed border-border bg-muted/40 p-4 text-center text-xs text-muted-foreground sm:text-sm">{children}</div>; }

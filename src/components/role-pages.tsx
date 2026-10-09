@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Activity, Bell, CalendarCheck, CalendarClock, CalendarDays, Check, CheckCircle2, CircleAlert, Clock3, Lock, ShieldCheck, Stethoscope, Tags, UserCheck, UsersRound, X } from "lucide-react";
+import { Activity, ArrowRight, BadgeCheck, BarChart3, RefreshCw, Shield, TrendingUp, UserX, Bell, BriefcaseMedical, CalendarRange, CheckCheck, ClipboardList, ClipboardPlus, FileText, HeartPulse, Info, MoreVertical, SlidersHorizontal, ChevronRight, CircleX, Eye, Headset, History, MapPin, Plus, Syringe, CalendarCheck, CalendarClock, CalendarDays, Check, CheckCircle2, CircleAlert, Clock3, Lock, ShieldCheck, Stethoscope, Tags, UserCheck, UsersRound, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { EmptyHint, Field, Modal, PageHeader, Section, SelectField, StatCard, StatusBadge, Toggle, Toolbar } from "@/components/page-kit";
@@ -55,23 +55,90 @@ export function PatientDashboardPage() {
   const [reschedule, setReschedule] = useState<Appointment | null>(null);
   const [detail, setDetail] = useState<Appointment | null>(null);
   const upcoming = mine.filter((item) => openStatuses.includes(item.status)).sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`));
-  const history = mine.filter((item) => !openStatuses.includes(item.status)).sort((a, b) => b.date.localeCompare(a.date));
+  const history = mine.filter((item) => !openStatuses.includes(item.status)).sort((a, b) => `${b.date}${b.time}`.localeCompare(`${a.date}${a.time}`));
+  const pendingConfirm = upcoming.filter((item) => item.confirmationReply !== "Confirmou").length;
+  const confirm = (item: Appointment) => { clinic.setAppointmentStatus(item.id, "Confirmada", "Paciente confirmou presença"); toast.success("Consulta confirmada"); };
+  const cancel = (item: Appointment) => { clinic.setAppointmentStatus(item.id, "Cancelada", "Consulta cancelada pelo paciente"); toast.warning("Consulta cancelada"); };
+  const doctorName = (item: Appointment) => clinic.professionalById(item.professionalId)?.name ?? "";
 
   return <>
-    <PageHeader eyebrow="Área do paciente" title={`Olá, ${patient?.name.split(" ")[0] ?? "paciente"}`} description="Bem-vindo(a)! Confirme, cancele, remarque e acompanhe o status das suas consultas." action="Agendar consulta" onAction={() => navigate({ to: "/paciente/agendar" })} />
-    <div className="grid gap-6">
-      <Section title={`Próximas consultas (${upcoming.length})`}>
-        {upcoming.length ? <div className="divide-y divide-border">{upcoming.map((item) => <AppointmentRow key={item.id} item={item} right={<div className="flex flex-wrap gap-2">
-          {item.confirmationReply !== "Confirmou" && <Button size="sm" onClick={() => { clinic.setAppointmentStatus(item.id, "Confirmada", "Paciente confirmou presença"); toast.success("Consulta confirmada"); }}>Confirmar</Button>}
-          <Button size="sm" variant="outline" onClick={() => setReschedule(item)}>Remarcar</Button>
-          <Button size="sm" variant="outline" onClick={() => setDetail(item)}>Detalhes</Button>
-          <Button size="sm" variant="ghost" onClick={() => { clinic.setAppointmentStatus(item.id, "Cancelada", "Consulta cancelada pelo paciente"); toast.warning("Consulta cancelada"); }}>Cancelar</Button>
-        </div>} />)}</div> : <EmptyHint>Nenhuma consulta agendada.</EmptyHint>}
-      </Section>
-      <Section title={`Histórico (${history.length})`}>
-        {history.length ? <div className="divide-y divide-border">{history.map((item) => <AppointmentRow key={item.id} item={item} right={<Button size="sm" variant="outline" onClick={() => setDetail(item)}>Detalhes</Button>} />)}</div> : <EmptyHint>Você ainda não tem consultas anteriores.</EmptyHint>}
-      </Section>
+    <header className="mb-6 flex flex-col gap-4 md:mb-8 md:flex-row md:items-end md:justify-between">
+      <div>
+        <h1 className="text-[28px] font-bold leading-9 tracking-[-0.8px] md:text-[32px] md:leading-10">Olá, {patient?.name.split(" ")[0] ?? "paciente"}</h1>
+        <p className="mt-1 text-sm leading-6 text-muted-foreground md:leading-5">Bem-vindo(a)! Confirme, cancele, remarque e acompanhe o status das suas consultas.</p>
+      </div>
+      <Button onClick={() => navigate({ to: "/paciente/agendar" })} className="h-11 w-full rounded-xl px-5 text-[15px] font-semibold md:w-auto md:rounded-lg"><Plus />Agendar consulta</Button>
+    </header>
+
+    <section className="md:surface md:overflow-hidden">
+      <div className="flex items-center justify-between gap-2 px-1 pb-3 md:bg-soft/60 md:px-6 md:py-3.5">
+        <h2 className="eyebrow flex items-center gap-1.5 text-foreground md:text-muted-foreground"><CalendarDays className="hidden size-4 text-foreground md:block" />Próximas consultas ({upcoming.length})</h2>
+        {upcoming[0] && <span className="flex items-center gap-1 text-xs font-medium text-success md:hidden"><Clock3 className="size-3.5" />{relativeDay(upcoming[0].date)}</span>}
+        {pendingConfirm > 0 && <span className="hidden rounded-full bg-success-soft/60 px-2 py-0.5 text-[11px] font-medium text-success md:inline">{pendingConfirm} confirmação pendente</span>}
+      </div>
+      {upcoming.length ? <div className="grid gap-3 md:gap-0 md:divide-y md:divide-border/60">{upcoming.map((item) => (
+        <article key={item.id} className="overflow-hidden rounded-xl border-t-4 border-success bg-card md:border-border/60 shadow-[0_1px_1px_rgb(0_0_0/5%)] md:rounded-none md:border-t-0 md:shadow-none">
+          <div className="hidden items-center gap-6 px-6 py-6 md:flex">
+            <div className="grid w-[98px] shrink-0 place-items-center rounded-xl bg-soft py-3"><span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Horário</span><b className="text-[26px] font-bold leading-8">{item.time}</b></div>
+            <div className="min-w-0 flex-1">
+              <p className="flex items-center gap-2 text-base font-bold leading-6">{patient?.name}<span className="rounded bg-accent px-2 py-0.5 text-[11px] font-semibold text-accent-foreground">Presencial</span></p>
+              <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground"><span className="font-medium text-foreground">{doctorName(item)}</span><Dot />{item.specialty}<Dot /><span className="flex items-center gap-1 font-medium text-success"><CalendarCheck className="size-3.5" />{relativeDay(item.date)}</span></p>
+              <p className="mt-1.5 flex items-center gap-1 text-xs text-subtle-foreground"><MapPin className="size-3.5" />Unidade Jardins — Sala 402, 4º Andar</p>
+            </div>
+            <StatusBadge status={item.status} />
+            <div className="flex shrink-0 items-center gap-2">
+              {item.confirmationReply !== "Confirmou" && <Button onClick={() => confirm(item)} className="h-10 rounded-lg bg-strong px-4 hover:bg-strong/90"><CheckCircle2 />Confirmar</Button>}
+              <Button variant="ghost" onClick={() => setReschedule(item)} className="h-10 rounded-lg bg-soft px-3.5 font-semibold hover:bg-accent">Remarcar</Button>
+              <Button variant="ghost" onClick={() => setDetail(item)} className="h-10 rounded-lg bg-soft px-3.5 font-semibold hover:bg-accent">Detalhes</Button>
+              <Button variant="ghost" onClick={() => cancel(item)} className="h-10 rounded-lg px-3.5 font-medium text-subtle-foreground">Cancelar</Button>
+            </div>
+          </div>
+          <div className="p-4 md:hidden">
+            <div className="flex gap-3">
+              <div className="grid h-[58px] w-[76px] shrink-0 place-items-center rounded-lg bg-soft"><b className="text-xl font-semibold leading-6">{item.time}</b><span className="text-xs text-muted-foreground">horário</span></div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-2"><p className="truncate text-base font-bold leading-6">{patient?.name}</p><span className="flex shrink-0 items-center gap-1 text-xs font-medium text-success"><span className="size-1.5 rounded-full bg-success" />{item.status}</span></div>
+                <p className="truncate text-sm text-muted-foreground">{doctorName(item)} · {item.specialty}</p>
+                <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground"><CalendarDays className="size-3.5" />{relativeDay(item.date)} · Presencial</p>
+              </div>
+            </div>
+            {item.confirmationReply !== "Confirmou" && <Button onClick={() => confirm(item)} className="mt-4 h-9 w-full rounded-lg"><CheckCircle2 />Confirmar presença</Button>}
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <Button variant="ghost" onClick={() => setReschedule(item)} className="h-9 rounded-lg bg-soft font-semibold"><CalendarClock />Remarcar</Button>
+              <Button variant="ghost" onClick={() => setDetail(item)} className="h-9 rounded-lg bg-soft font-semibold"><Eye />Detalhes</Button>
+            </div>
+            <button type="button" onClick={() => cancel(item)} className="mx-auto mt-3 flex items-center gap-1.5 text-xs font-medium text-muted-foreground"><CircleX className="size-3.5" />Cancelar consulta</button>
+          </div>
+        </article>
+      ))}</div> : <div className="md:p-6"><EmptyHint>Nenhuma consulta agendada.</EmptyHint></div>}
+    </section>
+
+    <section className="mt-6 md:surface md:mt-8 md:overflow-hidden">
+      <div className="flex items-center justify-between gap-2 px-1 pb-3 md:bg-soft/60 md:px-6 md:py-3.5">
+        <h2 className="eyebrow flex items-center gap-1.5 text-foreground md:text-muted-foreground"><History className="hidden size-4 text-foreground md:block" />Histórico ({history.length})</h2>
+        <button type="button" className="flex items-center gap-0.5 text-xs font-medium text-foreground md:text-[13px] md:font-semibold">Ver todas<ChevronRight className="size-3.5" /></button>
+      </div>
+      {history.length ? <div className="divide-y divide-border/60 rounded-xl bg-card shadow-[0_1px_1px_rgb(0_0_0/5%)] md:rounded-none md:shadow-none">{history.map((item) => (
+        <div key={item.id} className="flex items-center gap-4 px-4 py-4 md:gap-6 md:px-6">
+          <b className="w-12 shrink-0 text-lg font-bold md:w-[62px] md:text-[17px]">{item.time}</b>
+          <div className="min-w-0 flex-1"><p className="truncate text-base font-semibold leading-5 md:text-sm">{patient?.name}</p><p className="truncate text-[13px] text-muted-foreground"><span className="md:hidden">{doctorName(item)} · {item.specialty}</span><span className="hidden items-center gap-2 md:flex">{doctorName(item)}<Dot />{item.specialty}<Dot />{formatDate(item.date)}</span></p><p className="text-xs text-subtle-foreground md:hidden">{formatDate(item.date)}</p></div>
+          <div className="flex shrink-0 flex-col items-end gap-1.5 md:flex-row md:items-center md:gap-6">
+            <span className={`flex items-center gap-1.5 text-xs md:text-sm ${item.status === "Realizada" ? "font-medium text-success-strong" : "text-muted-foreground"}`}><span className={`size-1.5 rounded-full md:size-2 ${item.status === "Realizada" ? "bg-success" : "bg-subtle-foreground"}`} />{item.status}</span>
+            <Button variant="ghost" size="sm" onClick={() => setDetail(item)} className="h-7 rounded-md bg-soft px-3 text-xs font-semibold md:h-8 md:text-sm">Detalhes</Button>
+          </div>
+        </div>
+      ))}</div> : <EmptyHint>Você ainda não tem consultas anteriores.</EmptyHint>}
+    </section>
+
+    <div className="mt-6 hidden gap-4 md:mt-8 md:grid md:grid-cols-3">
+      {[
+        { icon: <BriefcaseMedical />, title: "Receitas e Exames", text: "Acesse laudos laboratoriais e prescrições digitais emitidas pelos especialistas." },
+        { icon: <Syringe />, title: "Vacinação e Prevenção", text: "Acompanhe seu calendário imunológico e campanhas preventivas ativas." },
+        { icon: <Headset />, title: "Central de Ajuda", text: "Dúvidas sobre preparo de exames ou horários de atendimento clínico." },
+      ].map((card) => <article key={card.title} className="surface flex gap-4 p-4"><span className="grid size-9 shrink-0 place-items-center rounded-lg bg-soft text-foreground [&>svg]:size-[18px]">{card.icon}</span><div><p className="text-sm font-bold leading-5">{card.title}</p><p className="mt-1 text-xs leading-4 text-muted-foreground">{card.text}</p></div></article>)}
     </div>
+    <div className="mt-6 flex items-center gap-3 rounded-xl bg-success-soft/50 p-4 md:hidden"><span className="grid size-10 shrink-0 place-items-center rounded-full bg-success-soft text-success"><ShieldCheck className="size-5" /></span><div><p className="text-sm font-bold leading-5">Elegibilidade confirmada</p><p className="text-xs leading-4 text-muted-foreground">Plano {patient?.insurance ?? "Particular"} cobre consultas com coparticipação zero.</p></div></div>
+
     <RescheduleModal appointment={reschedule} onClose={() => setReschedule(null)} />
     <Modal open={Boolean(detail)} title="Dados da consulta" description={detail ? `${detail.specialty} · ${formatDate(detail.date)} às ${detail.time}` : ""} onClose={() => setDetail(null)}>
       {detail && <div className="space-y-2 text-sm">
@@ -86,6 +153,8 @@ export function PatientDashboardPage() {
     </Modal>
   </>;
 }
+
+function Dot() { return <span className="size-1 rounded-full bg-input" />; }
 
 export function PatientBookingPage() {
   const { patient } = usePatientScope();
@@ -137,30 +206,90 @@ export function PatientProfilePage() {
 
 export function ProfessionalDashboardPage() {
   const { clinic, professional, mine } = useProfessionalScope();
+  const navigate = useNavigate();
   const today = mine.filter((item) => item.date === isoDate(0) && item.status !== "Cancelada");
   const open = today.filter((item) => openStatuses.includes(item.status)).sort((a, b) => a.time.localeCompare(b.time));
   const done = today.filter((item) => item.status === "Realizada");
+  const greeting = professional?.name.split(" ").slice(0, 2).join(" ") ?? "";
+  const complete = (item: Appointment) => { clinic.setAppointmentStatus(item.id, "Realizada", "Consulta realizada"); toast.success("Consulta registrada como realizada"); };
+  const stats = [
+    { label: "Consultas hoje", value: today.length, detail: `${today.filter((item) => item.status === "Confirmada").length} confirmadas`, icon: <CalendarDays />, dot: "bg-success", accent: true },
+    { label: "Em aberto", value: open.length, detail: "Aguardando atendimento", icon: <Clock3 />, dot: "bg-ring", accent: false },
+    { label: "Realizadas", value: done.length, detail: "Até o momento", icon: <CheckCircle2 />, dot: "bg-input", accent: false },
+    { label: "Meus pacientes", value: new Set(mine.map((item) => item.patientId)).size, detail: "Vinculados a você", icon: <HeartPulse />, dot: "bg-success", accent: true },
+  ];
 
   return <>
-    <PageHeader eyebrow="Área médica" title={`Bom dia, ${professional?.name.split(" ").slice(0, 2).join(" ") ?? ""}`} description="Acompanhe sua agenda do dia e registre o resultado dos atendimentos." />
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <StatCard label="Consultas hoje" value={String(today.length)} detail={`${today.filter((item) => item.status === "Confirmada").length} confirmadas`} icon={<CalendarCheck />} />
-      <StatCard label="Em aberto" value={String(open.length)} detail="Aguardando atendimento" icon={<Clock3 />} tone="warning" />
-      <StatCard label="Realizadas" value={String(done.length)} detail="Até o momento" icon={<CheckCircle2 />} tone="success" />
-      <StatCard label="Meus pacientes" value={String(new Set(mine.map((item) => item.patientId)).size)} detail="Vinculados a você" icon={<Activity />} tone="info" />
+    <header className="mb-6">
+      <p className="mb-1 hidden text-[11px] font-bold uppercase leading-4 tracking-[1.1px] text-muted-foreground md:block">Área médica</p>
+      <h1 className="text-[28px] font-bold leading-9 tracking-[-0.8px] md:text-[32px] md:uppercase md:leading-10">Bom dia, {greeting}</h1>
+      <p className="mt-1 text-sm leading-5 text-muted-foreground">Acompanhe sua agenda do dia e registre o resultado dos atendimentos.</p>
+    </header>
+
+    <div className="grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-4">
+      {stats.map((stat) => (
+        <article key={stat.label} className="surface relative flex flex-col gap-3 p-4 md:flex-row md:gap-4">
+          <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-soft text-foreground [&>svg]:size-5">{stat.icon}</span>
+          <span className={`absolute right-4 top-5 size-1.5 rounded-full md:hidden ${stat.dot}`} />
+          <div className="min-w-0">
+            <p className="text-sm leading-5 md:text-xs">{stat.label}</p>
+            <p className="text-[32px] font-bold leading-10">{stat.value}</p>
+            <p className={`text-xs leading-4 md:text-muted-foreground ${stat.accent ? "text-success" : "text-muted-foreground"}`}>{stat.detail}</p>
+          </div>
+        </article>
+      ))}
     </div>
-    <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_320px]">
-      <Section title="Atendimentos de hoje">
-        {open.length ? <div className="divide-y divide-border">{open.map((item) => <AppointmentRow key={item.id} item={item} right={<Button size="sm" onClick={() => { clinic.setAppointmentStatus(item.id, "Realizada", "Consulta realizada"); toast.success("Consulta registrada como realizada"); }}>Realizada</Button>} />)}</div> : <EmptyHint>Sem atendimentos em aberto para hoje.</EmptyHint>}
-      </Section>
-      <Section title="Resumo do dia">
-        <div className="space-y-3">
-          {today.filter((item) => item.confirmationReply === "Sem resposta").map((item) => <Notice key={item.id} icon={<CircleAlert />} title="Confirmação pendente" text={`${clinic.patientById(item.patientId)?.name} ainda não confirmou o horário de ${item.time}.`} />)}
-          <Notice icon={<UserCheck />} title={`${done.length} consulta(s) realizada(s)`} text="Registros enviados para o histórico do paciente." />
+
+    <div className="mt-6 grid items-start gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+      <section className="md:surface md:p-6">
+        <div className="flex items-center justify-between pb-3 md:pb-4">
+          <h2 className="eyebrow flex items-center gap-2 text-foreground md:text-muted-foreground">Atendimentos de hoje<span className="rounded-full bg-accent px-1.5 text-[11px] text-foreground md:hidden">{open.length}</span></h2>
+          <span className="flex items-center gap-1 text-[13px] font-semibold md:hidden">Filtrar<SlidersHorizontal className="size-3.5" /></span>
         </div>
-      </Section>
+        {open.length ? <div className="grid gap-3 md:gap-0 md:divide-y md:divide-border/60">{open.map((item) => (
+          <article key={item.id}>
+            <div className="hidden items-center gap-5 py-4 md:flex">
+              <b className="w-[72px] shrink-0 text-[22px] font-bold leading-7">{item.time}</b>
+              <div className="min-w-0 flex-1"><p className="text-base font-semibold leading-6">{clinic.patientById(item.patientId)?.name}</p><p className="text-xs leading-4 text-muted-foreground">{professional?.name} • {item.specialty} • {relativeDay(item.date)}</p></div>
+              <span className="flex items-center gap-2 text-sm font-medium"><span className={`size-2 rounded-full ${item.status === "Confirmada" ? "bg-success" : "bg-foreground"}`} />{item.status}</span>
+              <Button onClick={() => complete(item)} className="h-9 rounded-lg bg-strong px-5 text-sm font-semibold hover:bg-strong/90">Realizada</Button>
+            </div>
+            <div className="surface p-4 md:hidden">
+              <div className="flex items-start gap-4">
+                <div className="grid h-[46px] w-[62px] shrink-0 place-items-center rounded-lg bg-soft"><b className="text-[15px] leading-5">{item.time}</b><span className="text-[10px] font-medium uppercase text-muted-foreground">{Number(item.time.slice(0, 2)) < 12 ? "Manhã" : "Tarde"}</span></div>
+                <div className="min-w-0 flex-1"><p className="text-base font-bold leading-5">{clinic.patientById(item.patientId)?.name}</p><p className="mt-0.5 text-xs leading-4 text-muted-foreground">{professional?.name} • {item.specialty} • {relativeDay(item.date)}</p></div>
+                <StatusBadge status={item.status} />
+              </div>
+              <div className="mt-4 flex gap-2">
+                <Button onClick={() => complete(item)} className="h-9 flex-1 rounded-lg"><CheckCheck />Realizada</Button>
+                <Button variant="ghost" size="icon" aria-label="Prontuário" className="size-9 rounded-lg bg-soft"><ClipboardList /></Button>
+                <Button variant="ghost" size="icon" aria-label="Mais opções" className="size-9 rounded-lg bg-soft"><MoreVertical /></Button>
+              </div>
+            </div>
+          </article>
+        ))}</div> : <EmptyHint>Sem atendimentos em aberto para hoje.</EmptyHint>}
+      </section>
+
+      <section className="surface p-4 md:p-6">
+        <div className="flex items-center justify-between pb-4">
+          <h2 className="flex items-center gap-3 text-base font-bold uppercase md:eyebrow"><span className="grid size-8 place-items-center rounded-lg bg-success-soft text-success md:hidden"><Activity className="size-4" /></span>Resumo do dia</h2>
+          <span className="text-xs font-medium text-success md:hidden">Hoje</span>
+        </div>
+        <div className="space-y-3 md:space-y-4">
+          {today.filter((item) => item.confirmationReply === "Sem resposta").map((item) => <SummaryNote key={item.id} icon={<Info />} title="Confirmação pendente" text={`${clinic.patientById(item.patientId)?.name} ainda não confirmou o horário de ${item.time}.`} />)}
+          <SummaryNote icon={<ClipboardPlus />} title={`${done.length} consulta(s) realizada(s)`} text="Registros enviados para o histórico do paciente." />
+        </div>
+        <div className="mt-4 grid gap-2 border-border md:mt-5 md:gap-0 md:border-t md:pt-3">
+          <button type="button" onClick={() => toast.info("Emissão de documentos em breve")} className="flex items-center gap-3 rounded-lg bg-soft/60 p-3 text-left text-sm font-medium md:bg-transparent md:px-0 md:py-2.5"><FileText className="size-4" /><span className="flex-1">Emitir Atestado ou Receita</span><ChevronRight className="size-4" /></button>
+          <button type="button" onClick={() => navigate({ to: "/profissional/agenda" })} className="flex items-center gap-3 rounded-lg bg-soft/60 p-3 text-left text-sm font-medium md:bg-transparent md:px-0 md:py-2.5"><CalendarRange className="size-4" /><span className="flex-1">Ver escala semanal completa</span><ChevronRight className="size-4" /></button>
+        </div>
+      </section>
     </div>
   </>;
+}
+
+function SummaryNote({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) {
+  return <article className="flex gap-4 rounded-xl bg-soft p-4"><span className="grid size-10 shrink-0 place-items-center rounded-lg bg-card/70 text-foreground md:bg-accent/60 [&>svg]:size-[18px]">{icon}</span><div className="min-w-0"><p className="text-sm font-bold leading-5 md:text-[15px]">{title}</p><p className="mt-0.5 text-xs leading-5 text-muted-foreground">{text}</p></div></article>;
 }
 
 export function ProfessionalAgendaPage() {
@@ -284,21 +413,95 @@ export function ProfessionalProfilePage() {
 export function AdminDashboardPage() {
   const { patients, professionals, appointments, staff, specialties } = useClinic();
   const reports = useReports();
+  const navigate = useNavigate();
   const monthly = appointments.filter((item) => item.date.slice(0, 7) === isoDate(0).slice(0, 7)).length;
+  const todayCount = appointments.filter((item) => item.date === isoDate(0)).length;
+  const activePros = professionals.filter((item) => item.active);
+  const activeSpecs = specialties.filter((item) => item.active);
+  const monthLabel = new Intl.DateTimeFormat("pt-BR", { month: "long" }).format(new Date());
+  const year = isoDate(0).slice(0, 4);
+  const max = Math.max(reports.total, 1);
+  const rows = [
+    { label: "Consultas registradas", hint: "Total acumulado de agendamentos no período", value: String(reports.total), pct: 72, icon: <ClipboardList />, tone: "bg-soft text-foreground", bar: "bg-strong", text: "" },
+    { label: "Taxa de presença", hint: "Pacientes atendidos pontualmente", value: `${reports.attendance}%`, pct: reports.attendance, icon: <CheckCircle2 />, tone: "bg-success-soft text-success", bar: "bg-success", text: "text-success", tag: reports.attendance >= 80 ? "Meta atingida" : "" },
+    { label: "Não compareceu", hint: "Ausência sem aviso prévio (No-show)", value: String(reports.noShow), pct: Math.round((reports.noShow / max) * 100), icon: <UserX />, tone: "bg-soft text-foreground", bar: "bg-subtle-foreground", text: "" },
+    { label: "Cancelamentos", hint: "Desmarcações solicitadas por pacientes ou médicos", value: String(reports.canceled), pct: Math.round((reports.canceled / max) * 100), icon: <CircleX />, tone: "bg-destructive-soft text-destructive", bar: "bg-destructive", text: "text-destructive" },
+  ];
+  const initials = (name: string) => name.replace(/^(Dra?\.)\s+/, "").split(" ").map((part) => part[0]).slice(0, 2).join("");
 
   return <>
-    <PageHeader eyebrow="Administração" title="Visão geral" description="Acompanhe usuários, médicos, especialidades e indicadores da clínica." />
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-      <StatCard label="Usuários" value={String(patients.length + professionals.length + staff.length)} detail={`${patients.length} pacientes`} icon={<UsersRound />} />
-      <StatCard label="Médicos ativos" value={String(professionals.filter((item) => item.active).length)} detail={`${specialties.filter((item) => item.active).length} especialidades ativas`} icon={<Stethoscope />} tone="info" />
-      <StatCard label="Consultas no mês" value={String(monthly)} detail={`${reports.attendance}% de presença`} icon={<CalendarDays />} tone="success" />
+    <header className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+      <div>
+        <p className="mb-1 flex items-center gap-1.5 text-[11px] font-bold uppercase leading-4 tracking-[1.1px] text-muted-foreground"><span className="size-1.5 rounded-full bg-success md:bg-foreground" />Administração</p>
+        <div className="flex items-center justify-between gap-3"><h1 className="text-[28px] font-bold uppercase leading-9 tracking-[-0.8px] md:text-[32px] md:leading-10">Visão geral</h1><span className="rounded-full bg-soft px-2 py-0.5 text-xs font-medium capitalize text-muted-foreground md:hidden">{monthLabel.slice(0, 3)} {year}</span></div>
+        <p className="mt-0.5 text-sm leading-5 text-muted-foreground">Acompanhe usuários, médicos, especialidades e indicadores da clínica.</p>
+      </div>
+      <div className="hidden items-center gap-3 md:flex"><span className="flex items-center gap-1.5 rounded-full bg-accent/70 px-3 py-1 text-xs font-medium"><span className="size-1.5 rounded-full bg-success" />Sistema Operacional</span><RefreshCw className="size-4 text-muted-foreground" /></div>
+    </header>
+
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
+      <article className="surface p-4 md:flex md:gap-4 md:p-6">
+        <span className="order-2 ml-auto grid size-8 place-items-center rounded-lg bg-accent/70 md:order-none md:ml-0 md:size-12 md:rounded-xl md:bg-soft [&>svg]:size-4 md:[&>svg]:size-5 float-right"><UsersRound /></span>
+        <div><p className="text-sm leading-5">Usuários</p><p className="mt-3 flex items-baseline gap-1.5 text-[32px] font-bold leading-10 md:mt-0">{patients.length + professionals.length + staff.length}<span className="hidden rounded-full bg-success-soft/70 px-1.5 text-xs font-medium text-success md:inline">+2 este mês</span></p><p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground md:text-[13px]"><span className="size-1.5 rounded-full bg-success-soft md:bg-input" />{patients.length} pacientes<span className="hidden md:inline">cadastrados</span></p></div>
+      </article>
+      <article className="surface p-4 md:flex md:gap-4 md:p-6">
+        <span className="float-right grid size-8 place-items-center rounded-lg bg-success-soft text-success md:size-12 md:rounded-xl [&>svg]:size-4 md:[&>svg]:size-5"><Stethoscope /></span>
+        <div><p className="text-sm leading-5">Médicos ativos</p><p className="mt-3 flex items-baseline gap-1.5 text-[32px] font-bold leading-10 md:mt-0">{activePros.length}<span className="hidden text-xs font-medium text-ring md:inline">100% disponíveis</span></p><p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground md:text-[13px]"><span className="size-1.5 rounded-full bg-success" />{activeSpecs.length} <span className="md:hidden">esp. ativas</span><span className="hidden md:inline">especialidades ativas</span></p></div>
+      </article>
+      <article className="surface col-span-2 flex items-center gap-4 p-4 md:col-span-1 md:items-start md:p-6">
+        <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-accent/60 md:size-12 md:bg-soft [&>svg]:size-5"><CalendarDays /></span>
+        <div className="flex-1"><p className="text-sm leading-5">Consultas no mês</p><p className="flex items-baseline gap-2 text-[32px] font-bold leading-10">{monthly}<span className="text-xs font-normal text-muted-foreground"><span className="md:hidden">{reports.attendance}% de presença</span><span className="hidden md:inline">agendadas hoje</span></span></p><p className="hidden items-center gap-1.5 text-[13px] text-muted-foreground md:flex"><span className="size-1.5 rounded-full bg-success" /><b className="font-medium text-success">{reports.attendance}% de presença</b> média global</p></div>
+        <span className="rounded-full bg-soft px-2.5 py-1 text-xs font-medium md:hidden">Em curso</span>
+        <span className="sr-only">{todayCount} consultas hoje</span>
+      </article>
     </div>
-    <div className="mt-5 grid gap-4">
-      <Section title="Desempenho da clínica">
-        <div className="space-y-4">
-          {[["Consultas registradas", String(reports.total)], ["Taxa de presença", `${reports.attendance}%`], ["Não compareceu", String(reports.noShow)], ["Cancelamentos", String(reports.canceled)]].map(([label, value]) => <div key={label} className="flex items-center justify-between border-b border-border pb-3 text-sm"><span className="text-muted-foreground">{label}</span><b>{value}</b></div>)}
-        </div>
-      </Section>
+
+    <section className="surface mt-6 overflow-hidden md:mt-6">
+      <div className="flex items-center justify-between gap-3 bg-soft/70 px-4 py-3 md:bg-transparent md:px-6 md:pb-2 md:pt-6">
+        <h2 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide md:text-lg md:tracking-normal"><BarChart3 className="size-4 md:hidden" />Desempenho da clínica<span className="hidden rounded bg-accent px-1.5 py-0.5 text-xs font-medium normal-case md:inline">{monthLabel.replace(/^./, (c) => c.toUpperCase())} / {year}</span></h2>
+        <span className="text-xs text-muted-foreground md:hidden">Ciclo Atual</span>
+        <span className="hidden items-center gap-1.5 text-xs font-medium md:flex"><TrendingUp className="size-4" />Indicadores consolidados</span>
+      </div>
+      <div className="md:px-6 md:pb-2">
+        {rows.map((row) => (
+          <div key={row.label} className="flex items-center gap-4 border-b border-border/40 px-4 py-3 last:border-0 md:border-0 md:px-0 md:py-4">
+            <span className={`grid size-7 shrink-0 place-items-center rounded-md md:size-9 md:rounded-lg [&>svg]:size-4 ${row.tone}`}>{row.icon}</span>
+            <div className="min-w-0 flex-1"><p className="flex items-center gap-2 text-[15px] font-medium leading-5">{row.label}{row.tag && <span className="hidden rounded bg-success-soft px-1.5 text-[11px] font-semibold text-success md:inline">{row.tag}</span>}</p><p className="hidden text-[13px] text-muted-foreground md:block">{row.hint}</p></div>
+            <div className="hidden h-1.5 w-24 overflow-hidden rounded-full bg-accent md:block"><div className={`h-full rounded-full ${row.bar}`} style={{ width: `${Math.max(row.pct, 6)}%` }} /></div>
+            <b className={`w-14 text-right text-lg font-semibold md:text-xl ${row.text}`}>{row.value}</b>
+          </div>
+        ))}
+      </div>
+      <div className="hidden items-center justify-between bg-soft/50 px-6 py-2.5 text-xs md:flex"><span className="flex items-center gap-1.5 text-muted-foreground"><BadgeCheck className="size-4 text-success" />Estatísticas atualizadas automaticamente a cada consulta confirmada</span><button type="button" className="flex items-center gap-1 font-semibold">Ver relatório analítico completo<ArrowRight className="size-3.5" /></button></div>
+    </section>
+
+    <p className="mb-3 mt-6 text-xs font-bold uppercase tracking-wide text-muted-foreground md:hidden">Ações rápidas</p>
+    <div className="grid grid-cols-2 gap-3 md:hidden">
+      <Button onClick={() => navigate({ to: "/administrador/profissionais" })} className="h-12 rounded-xl bg-avatar text-[15px] hover:bg-avatar/90"><Stethoscope />Gerenciar Médicos</Button>
+      <Button variant="ghost" onClick={() => navigate({ to: "/administrador/usuarios" })} className="h-12 rounded-xl bg-card text-[15px] shadow-[0_1px_1px_rgb(0_0_0/5%)]"><UsersRound />Ver Usuários</Button>
+    </div>
+
+    <div className="mt-6 hidden gap-4 md:grid md:grid-cols-3">
+      <article className="surface flex flex-col p-6 pb-0">
+        <div className="flex items-center justify-between"><h3 className="eyebrow text-foreground">Equipe médica ativa</h3><span className="size-2 rounded-full bg-success" /></div>
+        <ul className="mt-3 flex-1 space-y-2.5">{activePros.slice(0, 3).map((pro) => <li key={pro.id} className="flex items-center gap-2.5"><span className="grid size-8 place-items-center rounded-full bg-strong text-xs font-bold text-strong-foreground">{initials(pro.name)}</span><span><b className="block text-sm font-medium leading-4">{pro.name}</b><span className="text-xs text-muted-foreground">{pro.specialty}</span></span></li>)}</ul>
+        <div className="-mx-6 mt-4 flex items-center justify-between bg-soft/50 px-6 py-3 text-xs"><span className="text-muted-foreground">{activeSpecs.length} especialidades cobertas</span><button type="button" onClick={() => navigate({ to: "/administrador/profissionais" })} className="font-semibold">Gerenciar</button></div>
+      </article>
+      <article className="surface flex flex-col p-6 pb-0">
+        <div className="flex items-center justify-between"><h3 className="eyebrow text-foreground">Configurações de agendamento</h3><SlidersHorizontal className="size-4" /></div>
+        <p className="mt-3 text-[15px] font-semibold">Agendas abertas para {new Intl.DateTimeFormat("pt-BR", { month: "long" }).format(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1)).replace(/^./, (c) => c.toUpperCase())}</p>
+        <p className="mt-1 text-xs leading-4 text-muted-foreground">As grades horárias para os próximos 30 dias já se encontram sincronizadas com o portal de autoatendimento ao paciente.</p>
+        <div className="mt-3 flex flex-1 flex-wrap content-start gap-1.5">{activeSpecs.map((spec, index) => <span key={spec.id} className="h-fit rounded bg-accent/60 px-1.5 py-0.5 text-xs">{spec.name} ({["Manhã", "Tarde", "Integral"][index % 3]})</span>)}</div>
+        <div className="-mx-6 mt-4 flex items-center justify-between bg-soft/50 px-6 py-3 text-xs"><span className="text-muted-foreground">Turnos configurados</span><button type="button" onClick={() => navigate({ to: "/administrador/agendas" })} className="font-semibold">Ajustar horários</button></div>
+      </article>
+      <article className="relative flex flex-col overflow-hidden rounded-xl bg-strong p-6 text-strong-foreground">
+        <span className="absolute -bottom-10 -right-10 size-36 rounded-full bg-white/5" />
+        <div className="flex items-center justify-between"><h3 className="text-[11px] font-bold uppercase tracking-[0.55px] text-sidebar-muted">Integridade e backup</h3><span className="size-2 rounded-full bg-success-soft" /></div>
+        <p className="mt-3 text-[17px] font-semibold">Ambiente Clínico Protegido</p>
+        <p className="mt-1.5 text-xs leading-4 text-sidebar-muted">Todos os registros de pacientes e prontuários estão salvaguardados com criptografia de ponta a ponta (AES-256).</p>
+        <div className="mt-3 flex items-center gap-2.5 rounded-md bg-white/5 px-2.5 py-2"><Shield className="size-4" /><span><b className="block text-xs font-semibold">Último backup: Hoje, 04:00</b><span className="text-[10px] text-sidebar-muted">Auditoria LGPD conforme</span></span></div>
+        <div className="relative mt-auto flex items-center justify-between pt-6 text-xs"><span className="text-sidebar-muted">Sessão: Marcelo Andrade</span><button type="button" onClick={() => toast.success("Log exportado")} className="rounded-md bg-success-soft px-4 py-1 font-semibold text-success-strong">Exportar Log</button></div>
+      </article>
     </div>
   </>;
 }
