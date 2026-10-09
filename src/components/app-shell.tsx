@@ -48,8 +48,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       {loading && <LoadingScreen />}
 
       {/* Cabeçalho desktop */}
-      <header className={`sticky top-0 z-30 hidden text-sidebar-foreground shadow-[0_1px_4px_rgb(0_0_0/4%)] md:block ${deep ? "bg-header-deep" : "bg-sidebar"}`}>
-        <div className="mx-auto flex h-28 max-w-[1280px] flex-col justify-between px-8 pb-1 pt-3">
+      <header className={`sticky top-0 z-30 hidden text-sidebar-foreground shadow-[0_1px_4px_rgb(0_0_0/4%)] md:block ${profile.role === "admin" ? "bg-header-deep" : "bg-sidebar"}`}>
+        <div className={`mx-auto flex max-w-[1280px] flex-col px-8 ${profile.role === "professional" ? "pt-3 pb-3" : "h-28 justify-between pb-1 pt-3"}`}>
           <div className="flex items-center gap-6 lg:gap-11">
             <Link to={profile.home} className="flex shrink-0 items-center gap-5" aria-label="Gestão de Consultas">
               <BrandMark profile={profile} />
@@ -78,25 +78,19 @@ export function AppShell({ children }: { children: ReactNode }) {
               )}
               <NotificationButton to={notificationsPath} unread={unread} boxed={profile.role === "professional"} />
               <UserChip profile={profile} />
+              {profile.role === "professional" && <span className="grid size-10 place-items-center rounded-full bg-avatar"><UserRound className="size-4" /></span>}
               <Link to="/" onClick={logout} aria-label="Sair" className="grid size-9 place-items-center rounded-lg text-sidebar-muted transition hover:bg-sidebar-accent hover:text-sidebar-foreground"><LogOut className="size-4" /></Link>
-              {deep && <span className="grid size-10 place-items-center rounded-full bg-avatar"><UserRound className="size-4" /></span>}
+              {profile.role === "admin" && <span className="grid size-10 place-items-center rounded-full bg-avatar"><UserRound className="size-4" /></span>}
             </div>
           </div>
 
-          <nav className="horizontal-nav flex items-center gap-1 overflow-x-auto" aria-label="Navegação principal">
-            {profile.nav.map((item) => (
-              <Link
-                key={item.to}
-                to={item.to}
-                activeOptions={{ exact: true }}
-                activeProps={{ className: profile.headerStyle === "pills" ? "nav-pill-active" : "nav-active" }}
-                className={profile.headerStyle === "pills" ? "nav-link nav-pill" : "nav-link"}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+          {profile.role !== "professional" && <DesktopNav profile={profile} />}
         </div>
+        {profile.role === "professional" && (
+          <div className="bg-header-deep">
+            <div className="mx-auto max-w-[1280px] px-8 py-2"><DesktopNav profile={profile} /></div>
+          </div>
+        )}
       </header>
 
       {/* Cabeçalho mobile */}
@@ -120,10 +114,24 @@ export function AppShell({ children }: { children: ReactNode }) {
       <main className="mx-auto w-full max-w-[1280px] flex-1 px-4 pb-24 pt-5 md:p-8">{children}</main>
 
       {/* Rodapé desktop */}
+      {profile.role === "professional" ? (
+        <footer className="hidden border-t border-border bg-card py-6 md:block">
+          <div className="mx-auto flex max-w-[1280px] items-center justify-between gap-6 px-8 text-[13px] leading-5 text-muted-foreground">
+            <span className="flex items-center gap-1.5"><LockKeyhole className="size-3.5" />{profile.footer}</span>
+            <div className="flex shrink-0 items-center gap-4">
+              <a href="#" className="hover:text-foreground">Privacidade</a>
+              <span aria-hidden className="size-1 rounded-full bg-input" />
+              <a href="#" className="hover:text-foreground">Termos de Uso</a>
+              <span aria-hidden className="size-1 rounded-full bg-input" />
+              <a href="#" className="hover:text-foreground">Suporte</a>
+            </div>
+          </div>
+        </footer>
+      ) : (
       <footer className="hidden bg-soft py-6 shadow-[0_1px_4px_rgb(0_0_0/4%)] md:block">
         <div className="mx-auto flex max-w-[1280px] items-center justify-between gap-6 px-8 text-[13px] leading-5 text-muted-foreground">
           <div className="flex flex-wrap items-center gap-6">
-            <span className="flex items-center gap-1.5">{profile.role === "professional" && <LockKeyhole className="size-3.5 text-success" />}{profile.footer}</span>
+            <span className="flex items-center gap-1.5">{profile.footer}</span>
             {(profile.role === "receptionist") && <span className="flex items-center gap-1.5 font-medium text-success"><LockKeyhole className="size-3.5" />Ambiente Seguro &amp; Criptografado</span>}
           </div>
           <div className="flex shrink-0 items-center gap-6">
@@ -134,6 +142,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </div>
       </footer>
+      )}
 
       {/* Navegação inferior mobile */}
       <nav className="fixed inset-x-0 bottom-0 z-30 flex h-16 items-center bg-card/90 px-1 shadow-[0_-2px_12px_rgb(30_46_61/5%)] backdrop-blur-md md:hidden" aria-label="Navegação principal">
@@ -145,6 +154,19 @@ export function AppShell({ children }: { children: ReactNode }) {
         ))}
       </nav>
     </div>
+  );
+}
+
+function DesktopNav({ profile }: { profile: RoleProfile }) {
+  const pills = profile.headerStyle === "pills";
+  return (
+    <nav className="horizontal-nav flex items-center gap-1 overflow-x-auto" aria-label="Navegação principal">
+      {profile.nav.map((item) => (
+        <Link key={item.to} to={item.to} activeOptions={{ exact: true }} activeProps={{ className: pills ? "nav-pill-active" : "nav-active" }} className={pills ? "nav-link nav-pill" : "nav-link"}>
+          {item.label}
+        </Link>
+      ))}
+    </nav>
   );
 }
 
