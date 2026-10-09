@@ -61,7 +61,7 @@ const receptionistNav: AppNavItem[] = [
   { to: "/agenda", label: "Agendar", short: "Agenda", mobileTitle: "Agenda", icon: CalendarDays },
   { to: "/consultas", label: "Consultas", icon: CalendarCheck },
   { to: "/pacientes", label: "Pacientes", icon: UsersRound },
-  { to: "/fila-espera", label: "Fila de espera", short: "Fila", icon: Hourglass },
+  { to: "/fila-espera", label: "Fila de espera", short: "Fila", mobileTitle: "Espera", icon: Hourglass },
   { to: "/perfil", label: "Configurações", icon: Settings, desktopOnly: true },
 ];
 

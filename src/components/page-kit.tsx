@@ -2,22 +2,29 @@ import { type ReactNode } from "react";
 import { CalendarPlus, Download, Plus, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export function PageHeader({ eyebrow, title, description, action, onAction, uppercase = false, aside }: { eyebrow?: string; title: string; description: string; action?: string; onAction?: () => void; uppercase?: boolean; aside?: ReactNode }) {
+export function PageHeader({ eyebrow, title, description, action, onAction, uppercase = false, aside, actionIcon, mobileDescription }: { eyebrow?: string; title: string; description: string; action?: string; onAction?: () => void; uppercase?: boolean; aside?: ReactNode; actionIcon?: ReactNode; mobileDescription?: string }) {
   return (
-    <header className="mb-6 flex flex-col gap-4 md:mb-6 md:flex-row md:items-end md:justify-between">
+    <header className="mb-6 flex flex-col gap-4 md:mb-8 md:flex-row md:items-end md:justify-between">
       <div className="min-w-0">
-        {eyebrow && <p className="mb-1 text-[11px] font-bold uppercase leading-4 tracking-[1.1px] text-muted-foreground">{eyebrow}</p>}
-        <h1 className={`text-[28px] font-bold leading-9 tracking-[-0.8px] text-foreground md:text-[32px] md:leading-10 ${uppercase ? "uppercase" : ""}`}>{title}</h1>
-        <p className="mt-0.5 max-w-2xl text-sm leading-5 text-muted-foreground">{description}</p>
+        {eyebrow && <p className="mb-1 hidden text-[11px] font-bold uppercase leading-4 tracking-[1.1px] text-muted-foreground md:block">{eyebrow}</p>}
+        <div className="flex items-center justify-between gap-3">
+          <h1 className={`text-[26px] font-bold leading-8 tracking-[-0.8px] text-foreground md:text-[32px] md:leading-10 ${uppercase ? "md:uppercase" : ""}`}>{title}</h1>
+          {action && <Button onClick={onAction} className="h-9 shrink-0 rounded-lg px-3 text-sm font-semibold md:hidden">{actionIcon ?? <Plus />}{action}</Button>}
+        </div>
+        <p className="mt-2 max-w-2xl text-sm leading-5 text-muted-foreground md:mt-0.5">{mobileDescription ? <><span className="md:hidden">{mobileDescription}</span><span className="hidden md:inline">{description}</span></> : description}</p>
       </div>
       {aside}
-      {action && <Button onClick={onAction} className="h-10 w-full rounded-lg px-5 text-sm font-semibold shadow-[0_1px_1px_rgb(0_0_0/5%)] md:w-auto"><Plus />{action}</Button>}
+      {action && <Button onClick={onAction} className="hidden h-10 rounded-lg px-5 text-sm font-semibold shadow-[0_1px_1px_rgb(0_0_0/5%)] md:inline-flex">{actionIcon ?? <Plus />}{action}</Button>}
     </header>
   );
 }
 
 export function Toolbar({ placeholder = "Buscar...", value, onChange, exportAction, filter }: { placeholder?: string; value?: string; onChange?: (value: string) => void; exportAction?: () => void; filter?: ReactNode }) {
-  return <div className="mb-4 grid gap-2.5 sm:grid-cols-[minmax(0,1fr)_auto_auto]"><label className="relative min-w-0"><span className="sr-only">Buscar</span><Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" /><input value={value ?? ""} onChange={(event) => onChange?.(event.target.value)} className="h-9 w-full rounded-md border border-input bg-card pl-9 pr-3 text-xs outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 sm:text-sm" placeholder={placeholder} /></label>{filter}{exportAction && <Button variant="outline" onClick={exportAction}><Download />Exportar</Button>}</div>;
+  return <div className="mb-4 grid gap-2.5 sm:grid-cols-[minmax(0,1fr)_auto_auto] md:mb-6"><SearchInput placeholder={placeholder} value={value} onChange={onChange} />{filter}{exportAction && <Button variant="outline" onClick={exportAction}><Download />Exportar</Button>}</div>;
+}
+
+export function SearchInput({ placeholder = "Buscar...", value, onChange, className = "" }: { placeholder?: string; value?: string | undefined; onChange?: ((value: string) => void) | undefined; className?: string }) {
+  return <label className={`relative min-w-0 ${className}`}><span className="sr-only">Buscar</span><Search className="absolute left-4 top-1/2 size-[18px] -translate-y-1/2 text-muted-foreground" /><input value={value ?? ""} onChange={(event) => onChange?.(event.target.value)} className="h-11 w-full rounded-lg bg-card pl-11 pr-4 text-sm shadow-[0_1px_2px_rgb(0_0_0/6%)] outline-none ring-1 ring-border/50 placeholder:text-muted-foreground focus:ring-ring" placeholder={placeholder} /></label>;
 }
 
 export function StatCard({ label, value, detail, icon, tone = "primary" }: { label: string; value: string; detail: string; icon: ReactNode; tone?: "primary" | "info" | "success" | "warning" }) {
@@ -42,16 +49,19 @@ export function StatusBadge({ status }: { status: string }) {
 
 export function EmptyHint({ children }: { children: ReactNode }) { return <div className="rounded-md border border-dashed border-border bg-muted/40 p-4 text-center text-xs text-muted-foreground sm:text-sm">{children}</div>; }
 
+const fieldLabel = "grid min-w-0 gap-1.5 text-xs font-medium leading-4 text-muted-foreground md:text-[13px] md:font-semibold md:leading-[18px] md:text-foreground";
+const fieldControl = "h-10 min-w-0 rounded-lg bg-card px-3.5 text-sm font-normal text-foreground shadow-[0_1px_2px_rgb(0_0_0/6%)] outline-none ring-1 ring-border/60 focus:ring-ring disabled:bg-muted";
+
 export function Field({ label, className = "", ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string }) {
-  return <label className={`grid min-w-0 gap-1 text-xs font-medium sm:text-sm ${className}`}>{label}<input {...props} className="h-9 min-w-0 rounded-md border border-input bg-background px-2.5 text-xs outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:bg-muted sm:text-sm" /></label>;
+  return <label className={`${fieldLabel} ${className}`}>{label}<input {...props} className={fieldControl} /></label>;
 }
 
 export function SelectField({ label, options, className = "", ...props }: React.SelectHTMLAttributes<HTMLSelectElement> & { label: string; options: { value: string; label: string }[] }) {
-  return <label className={`grid min-w-0 gap-1 text-xs font-medium sm:text-sm ${className}`}>{label}<select {...props} className="h-9 min-w-0 rounded-md border border-input bg-background px-2.5 text-xs outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:bg-muted sm:text-sm">{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>;
+  return <label className={`${fieldLabel} ${className}`}>{label}<select {...props} className={fieldControl}>{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>;
 }
 
 export function TextareaField({ label, className = "", ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string }) {
-  return <label className={`grid min-w-0 gap-1 text-xs font-medium sm:text-sm ${className}`}>{label}<textarea {...props} className="min-h-16 min-w-0 rounded-md border border-input bg-background p-2.5 text-xs outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 sm:text-sm" /></label>;
+  return <label className={`${fieldLabel} ${className}`}>{label}<textarea {...props} className={`${fieldControl} h-auto min-h-20 py-2.5`} /></label>;
 }
 
 export function Toggle({ label, description, checked, onChange }: { label: string; description: string; checked: boolean; onChange: (value: boolean) => void }) {
@@ -63,9 +73,9 @@ export function Modal({ open, title, description, onClose, children }: { open: b
   return (
     <div className="fixed inset-0 z-[60] grid place-items-center bg-overlay p-4">
       <button aria-label="Fechar" className="absolute inset-0" onClick={onClose} />
-      <div role="dialog" aria-modal="true" className="relative z-10 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-card p-4 shadow-lg">
+      <div role="dialog" aria-modal="true" className="relative z-10 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-card p-5 shadow-[0_20px_50px_-12px_rgb(11_28_48/25%)] md:p-6">
         <div className="mb-4 flex items-start justify-between gap-3">
-          <div><h2 className="font-display text-lg uppercase">{title}</h2>{description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}</div>
+          <div><h2 className="text-lg font-bold leading-6">{title}</h2>{description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}</div>
           <Button variant="ghost" size="icon" onClick={onClose} aria-label="Fechar"><X /></Button>
         </div>
         {children}
