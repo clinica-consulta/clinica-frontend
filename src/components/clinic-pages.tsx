@@ -1,3 +1,4 @@
+import { SiteSelect } from "@/components/site-select";
 import { useMemo, useState } from "react";
 import { Activity, Lightbulb, BriefcaseMedical, ListFilter, Pencil, Info, LogIn, ChevronDown, Clock3, MoreVertical, Stethoscope, CalendarCheck, CalendarCheck2, CalendarDays, MailCheck, Plus, SlidersHorizontal, CalendarClock, Check, CheckCircle2, ChevronLeft, ChevronRight, CircleAlert, History, MessageSquareText, MoreHorizontal, Phone, Send, ShieldCheck, Users, UsersRound, X } from "lucide-react";
 import { toast } from "sonner";
@@ -161,9 +162,9 @@ export function DashboardPage() {
       <div className="mt-4 grid gap-5 md:mt-6 md:grid-cols-12 md:gap-8">
         <div className="grid content-start gap-5 md:col-span-4">
           <label className="grid gap-1.5 text-[13px] font-semibold leading-[18px]">Médico
-            <select value={proId} onChange={(event) => setProId(event.target.value)} className="h-11 w-full rounded-lg bg-soft px-3.5 text-sm font-normal outline-none ring-1 ring-transparent focus:ring-ring md:h-[38px] md:bg-card md:text-[13px] md:ring-input/60">
+            <SiteSelect value={proId} onChange={(event) => setProId(event.target.value)} className="h-11 w-full rounded-lg bg-soft px-3.5 text-sm font-normal outline-none ring-1 ring-transparent focus:ring-ring md:h-[38px] md:bg-card md:text-[13px] md:ring-input/60">
               {active.map((item) => <option key={item.id} value={item.id}>{item.name} • {item.specialty}</option>)}
-            </select>
+            </SiteSelect>
           </label>
           <MiniCalendar value={calDate} onChange={setCalDate} slotsFor={(day) => (proId ? availableSlots(proId, day).length : 0)} />
         </div>

@@ -1,3 +1,4 @@
+import { SiteSelect } from "@/components/site-select";
 import { DatePicker } from "@/components/date-picker";
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
@@ -275,7 +276,7 @@ export function ProfessionalPatientsPage() {
     })
     .sort((a, b) => (order === "name" ? a.patient.name.localeCompare(b.patient.name) : b.latest.localeCompare(a.latest)));
   const selected = rows.find((row) => row.patient.id === record) ?? null;
-  const orderSelect = <select value={order} onChange={(event) => setOrder(event.target.value as "recent" | "name")} className="cursor-pointer bg-transparent text-xs font-semibold outline-none md:text-[13px]"><option value="recent">Mais recente</option><option value="name">Nome (A–Z)</option></select>;
+  const orderSelect = <SiteSelect value={order} onChange={(event) => setOrder(event.target.value as "recent" | "name")} className="cursor-pointer bg-transparent text-xs font-semibold outline-none md:text-[13px]"><option value="recent">Mais recente</option><option value="name">Nome (A–Z)</option></SiteSelect>;
 
   return <>
     <ProHeader eyebrow="Acompanhamento" title="Meus pacientes" description="Consulte os pacientes vinculados aos seus atendimentos." />
