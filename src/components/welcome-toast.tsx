@@ -1,6 +1,5 @@
 import { toast } from "sonner";
 import { X } from "lucide-react";
-import logo from "@/assets/logo-claro.png";
 import type { RoleProfile } from "@/lib/role-data";
 
 function greeting() {
@@ -13,8 +12,7 @@ export function showWelcomeToast(profile: RoleProfile) {
   const firstName = profile.name.replace(/^(Dra?\.)\s+/, "$1 ").split(" ").slice(0, profile.name.startsWith("Dr") ? 2 : 1).join(" ");
   window.setTimeout(() => {
     toast.custom((id) => (
-      <div className="welcome-toast pointer-events-auto flex w-[356px] max-w-[calc(100vw-2rem)] items-center gap-3.5 overflow-hidden rounded-xl bg-sidebar p-3.5 pr-3 text-sidebar-foreground shadow-[0_20px_45px_-12px_rgb(11_28_48/45%)] ring-1 ring-white/10">
-        <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-sidebar-accent"><img src={logo} alt="" className="size-9 object-contain" /></span>
+      <div className="welcome-toast pointer-events-auto flex w-[356px] max-w-[calc(100vw-2rem)] items-center gap-3 overflow-hidden rounded-xl border-0 bg-sidebar py-3.5 pl-4 pr-3 text-sidebar-foreground shadow-[0_16px_40px_-14px_rgb(11_28_48/50%)]">
         <span className="min-w-0 flex-1">
           <span className="block text-[11px] font-bold uppercase leading-4 tracking-[0.88px] text-mobile-eyebrow">{profile.area}</span>
           <span className="block truncate text-[15px] font-bold leading-5">Bem-vindo(a), {firstName}!</span>
@@ -22,6 +20,6 @@ export function showWelcomeToast(profile: RoleProfile) {
         </span>
         <button type="button" aria-label="Fechar" onClick={() => toast.dismiss(id)} className="grid size-7 shrink-0 place-items-center self-start rounded-lg text-sidebar-muted transition hover:bg-sidebar-accent hover:text-sidebar-foreground"><X className="size-3.5" /></button>
       </div>
-    ), { duration: 4500 });
+    ), { duration: 4500, unstyled: true, className: "!border-0 !bg-transparent !p-0 !shadow-none" });
   }, 650);
 }
