@@ -1,3 +1,4 @@
+import { SiteSelect } from "@/components/site-select";
 import { DatePicker } from "@/components/date-picker";
 import { type ReactNode } from "react";
 import { CalendarPlus, Download, Plus, Search, X } from "lucide-react";
@@ -67,7 +68,7 @@ export function Field({ label, className = "", ...props }: React.InputHTMLAttrib
     const { value, defaultValue, onChange, name, required } = props;
     const current = String(value ?? defaultValue ?? "");
     const options = timeOptions.includes(current) || !current ? timeOptions : [current, ...timeOptions].sort();
-    return <label className={`${fieldLabel} ${className}`}>{label}<select name={name} required={required} {...(value !== undefined ? { value: value as string } : { defaultValue: defaultValue as string })} onChange={onChange as unknown as React.ChangeEventHandler<HTMLSelectElement>} className={fieldControl}>{options.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>;
+    return <label className={`${fieldLabel} ${className}`}>{label}<SiteSelect name={name} required={required} {...(value !== undefined ? { value: value as string } : { defaultValue: defaultValue as string })} onChange={onChange as unknown as React.ChangeEventHandler<HTMLSelectElement>} className={fieldControl}>{options.map((item) => <option key={item} value={item}>{item}</option>)}</SiteSelect></label>;
   }
   return <label className={`${fieldLabel} ${className}`}>{label}<input {...props} className={fieldControl} /></label>;
 }
@@ -75,7 +76,7 @@ export function Field({ label, className = "", ...props }: React.InputHTMLAttrib
 const timeOptions = Array.from({ length: 33 }, (_, i) => `${String(6 + Math.floor(i / 2)).padStart(2, "0")}:${i % 2 ? "30" : "00"}`);
 
 export function SelectField({ label, options, className = "", ...props }: React.SelectHTMLAttributes<HTMLSelectElement> & { label: string; options: { value: string; label: string }[] }) {
-  return <label className={`${fieldLabel} ${className}`}>{label}<select {...props} className={fieldControl}>{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>;
+  return <label className={`${fieldLabel} ${className}`}>{label}<SiteSelect {...props} className={fieldControl}>{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</SiteSelect></label>;
 }
 
 export function TextareaField({ label, className = "", ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string }) {
