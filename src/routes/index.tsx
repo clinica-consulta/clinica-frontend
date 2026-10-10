@@ -1,3 +1,6 @@
+import { DatePicker } from "@/components/date-picker";
+import { showWelcomeToast } from "@/components/welcome-toast";
+import { isoDate } from "@/lib/clinic-data";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowRight, CalendarDays, Eye, EyeOff, IdCard, LockKeyhole, Mail, Phone, ShieldCheck, UserRound } from "lucide-react";
@@ -76,7 +79,7 @@ function LoginPage() {
                   <h1 className="text-lg font-bold text-foreground sm:text-xl">Bem-vindo de volta</h1>
                   <p className="mt-2 text-xs text-muted-foreground sm:text-sm">Digite suas credenciais para acessar sua conta.</p>
                 </div>
-                <form className="space-y-3.5" onSubmit={(event) => { event.preventDefault(); const role = login(email); navigate({ to: roleProfiles[role].home }); }}>
+                <form className="space-y-3.5" onSubmit={(event) => { event.preventDefault(); const role = login(email); navigate({ to: roleProfiles[role].home }); showWelcomeToast(roleProfiles[role]); }}>
                   <AuthField label="E-mail" icon={<Mail />} type="email" autoComplete="email" placeholder="voce@exemplo.com" value={email} onChange={(event) => setEmail(event.target.value)} />
                   <PasswordField label="Senha" show={showPassword} onToggle={() => setShowPassword((visible) => !visible)} autoComplete="current-password" placeholder="Digite sua senha" />
                   <div className="text-center"><button type="button" onClick={() => setRecovery(true)} className="text-[11px] font-semibold text-muted-foreground underline underline-offset-2 sm:text-xs">Esqueci minha senha</button></div>
@@ -105,6 +108,19 @@ function LoginPage() {
 }
 
 function AuthField({ label, icon, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string; icon: React.ReactNode }) {
+  if (props.type === "date") {
+    return (
+      <div className="grid gap-1 text-xs font-semibold text-foreground sm:text-sm">
+        {label}
+        <DatePicker aria-label={label} name={props.name} required max={isoDate(0)}>{(value) => (
+          <span className="relative flex h-10 w-full items-center rounded-xl border-2 border-input bg-card pl-10 pr-3 text-xs font-normal text-foreground transition sm:text-sm">
+            <span className="field-icon absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground [&>svg]:size-4" aria-hidden="true">{icon}</span>
+            {value || <span className="text-muted-foreground">dd/mm/aaaa</span>}
+          </span>
+        )}</DatePicker>
+      </div>
+    );
+  }
   return (
     <label className="grid gap-1 text-xs font-semibold text-foreground sm:text-sm">
       {label}
