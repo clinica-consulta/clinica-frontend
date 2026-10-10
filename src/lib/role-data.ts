@@ -62,7 +62,7 @@ const receptionistNav: AppNavItem[] = [
   { to: "/consultas", label: "Consultas", icon: CalendarCheck },
   { to: "/pacientes", label: "Pacientes", icon: UsersRound },
   { to: "/fila-espera", label: "Fila de espera", short: "Fila", mobileTitle: "Espera", icon: Hourglass },
-  { to: "/perfil", label: "Configurações", icon: Settings, desktopOnly: true },
+  { to: "/perfil", label: "Configurações", short: "Perfil", mobileTitle: "Perfil", icon: Settings },
 ];
 
 export const roleProfiles: Record<UserRole, RoleProfile> = {

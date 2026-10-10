@@ -125,7 +125,7 @@ function RootComponent() {
       <ClinicProvider>
         <AppShell><Outlet /></AppShell>
       </ClinicProvider>
-      <Toaster position="top-right" richColors closeButton />
+      <Toaster position="top-right" richColors closeButton mobileOffset={{ top: 12, left: 12, right: 12 }} />
     </QueryClientProvider>
   );
 }
