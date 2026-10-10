@@ -1,3 +1,4 @@
+import { SiteSelect } from "@/components/site-select";
 import { DatePicker } from "@/components/date-picker";
 import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
@@ -178,7 +179,7 @@ function IconSelect({ label, icon, display, value, onChange, options }: { label:
         <span className="text-foreground [&>svg]:size-[18px]">{icon}</span>
         <span className="min-w-0 flex-1 truncate text-[15px] leading-6">{display}</span>
         <ChevronDown className="size-[18px] text-foreground" />
-        <select aria-label={label} value={value} onChange={(event) => onChange(event.target.value)} className="absolute inset-0 cursor-pointer opacity-0">{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
+        <SiteSelect aria-label={label} value={value} onChange={(event) => onChange(event.target.value)} className="absolute inset-0 cursor-pointer opacity-0">{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</SiteSelect>
       </label>
     </div>
   );
@@ -476,8 +477,7 @@ export function PatientProfilePage() {
         <ProfileInput label="Data de nascimento" name="birthDate" type="date" defaultValue={patient.birthDate} required />
         <label className="grid min-w-0 gap-2 text-[13px] font-semibold leading-[18px] text-foreground">Convênio
           <span className="relative block">
-            <select name="insurance" defaultValue={patient.insurance} className="h-11 w-full min-w-0 appearance-none rounded-lg bg-soft px-3.5 pr-10 text-[15px] font-normal outline-none focus:ring-2 focus:ring-ring">{clinic.insurances.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}</select>
-            <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 size-[18px] -translate-y-1/2 text-foreground" />
+            <SiteSelect name="insurance" defaultValue={patient.insurance} className="h-11 w-full min-w-0 appearance-none rounded-lg bg-soft px-3.5 pr-10 text-[15px] font-normal outline-none focus:ring-2 focus:ring-ring">{clinic.insurances.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}</SiteSelect>
           </span>
         </label>
       </div>

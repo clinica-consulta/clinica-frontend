@@ -1,3 +1,4 @@
+import { SiteSelect } from "@/components/site-select";
 import { useState, type ReactNode } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -108,12 +109,12 @@ function Calendar({ month, setMonth, value, min, max, onPick }: { month: Date; s
       <div className="mb-3 flex items-center justify-between gap-1">
         <button type="button" aria-label="Mês anterior" onClick={() => go(-1)} className="grid size-8 place-items-center rounded-lg transition hover:bg-soft"><ChevronLeft className="size-4" /></button>
         <div className="flex items-center gap-1">
-          <select aria-label="Mês" value={month.getMonth()} onChange={(event) => setMonth(new Date(year, Number(event.target.value), 1))} className="h-8 cursor-pointer rounded-lg bg-transparent px-1.5 text-sm font-bold outline-none transition hover:bg-soft">
+          <SiteSelect aria-label="Mês" value={month.getMonth()} onChange={(event) => setMonth(new Date(year, Number(event.target.value), 1))} className="h-8 cursor-pointer rounded-lg bg-transparent px-1.5 text-sm font-bold outline-none transition hover:bg-soft">
             {monthNames.map((item, index) => <option key={item} value={index}>{item}</option>)}
-          </select>
-          <select aria-label="Ano" value={year} onChange={(event) => setMonth(new Date(Number(event.target.value), month.getMonth(), 1))} className="h-8 cursor-pointer rounded-lg bg-transparent px-1.5 text-sm font-bold outline-none transition hover:bg-soft">
+          </SiteSelect>
+          <SiteSelect aria-label="Ano" value={year} onChange={(event) => setMonth(new Date(Number(event.target.value), month.getMonth(), 1))} className="h-8 cursor-pointer rounded-lg bg-transparent px-1.5 text-sm font-bold outline-none transition hover:bg-soft">
             {(years.includes(year) ? years : [year, ...years]).map((item) => <option key={item} value={item}>{item}</option>)}
-          </select>
+          </SiteSelect>
         </div>
         <button type="button" aria-label="Próximo mês" onClick={() => go(1)} className="grid size-8 place-items-center rounded-lg transition hover:bg-soft"><ChevronRight className="size-4" /></button>
       </div>

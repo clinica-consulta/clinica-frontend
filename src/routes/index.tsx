@@ -1,3 +1,4 @@
+import { SiteSelect } from "@/components/site-select";
 import { DatePicker } from "@/components/date-picker";
 import { showWelcomeToast } from "@/components/welcome-toast";
 import { isoDate } from "@/lib/clinic-data";
@@ -138,9 +139,9 @@ function AuthSelect({ label, icon, options, ...props }: React.SelectHTMLAttribut
       {label}
       <span className="relative">
         <span className="field-icon absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground [&>svg]:size-4" aria-hidden="true">{icon}</span>
-        <select {...props} required className="h-10 w-full rounded-xl border-2 border-input bg-card pl-10 pr-3 text-xs font-normal text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20 sm:text-sm">
+        <SiteSelect {...props} required className="h-10 w-full rounded-xl border-2 border-input bg-card pl-10 pr-3 text-xs font-normal text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20 sm:text-sm">
           {options.map((option) => <option key={option} value={option}>{option}</option>)}
-        </select>
+        </SiteSelect>
       </span>
     </label>
   );

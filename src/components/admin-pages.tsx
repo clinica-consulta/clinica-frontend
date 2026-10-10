@@ -1,3 +1,4 @@
+import { SiteSelect } from "@/components/site-select";
 import { DatePicker } from "@/components/date-picker";
 import { useState, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
@@ -198,7 +199,7 @@ export function AdminUsersPage() {
 
     <div className="mb-4 grid gap-4 md:mb-0 md:grid-cols-[minmax(0,1fr)_292px]">
       <SearchInput placeholder="Buscar nome ou e-mail..." value={search} onChange={(value) => { setSearch(value); setPage(0); }} className="[&_input]:h-12 [&_input]:ring-0" />
-      <label className="relative hidden md:block"><span className="sr-only">Filtrar perfil</span><select value={role} onChange={(event) => changeFilter(event.target.value)} className="h-12 w-full appearance-none rounded-lg bg-card px-4 text-[15px] shadow-[0_1px_2px_rgb(0_0_0/6%)] outline-none focus:ring-1 focus:ring-ring">{roles.map((item) => <option key={item} value={item}>{item}</option>)}</select><ChevronDown className="pointer-events-none absolute right-4 top-1/2 size-4 -translate-y-1/2" /></label>
+      <label className="relative hidden md:block"><span className="sr-only">Filtrar perfil</span><SiteSelect value={role} onChange={(event) => changeFilter(event.target.value)} className="h-12 w-full appearance-none rounded-lg bg-card px-4 text-[15px] shadow-[0_1px_2px_rgb(0_0_0/6%)] outline-none focus:ring-1 focus:ring-ring">{roles.map((item) => <option key={item} value={item}>{item}</option>)}</SiteSelect></label>
     </div>
 
     <div className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1 md:hidden">{roles.map((item) => <button key={item} type="button" onClick={() => changeFilter(item)} className={`h-9 shrink-0 rounded-full px-4 text-sm font-semibold ${role === item ? "bg-strong text-strong-foreground" : "bg-card shadow-[0_1px_2px_rgb(0_0_0/6%)]"}`}>{item}{item === "Todos" && <span className="ml-1.5 font-normal opacity-80">({all.length})</span>}</button>)}</div>
@@ -401,7 +402,7 @@ const timeOptions = Array.from({ length: 33 }, (_, index) => `${String(6 + Math.
 
 function TimeSelect({ label, value, onChange, className }: { label: string; value: string; onChange: (value: string) => void; className: string }) {
   const options = timeOptions.includes(value) ? timeOptions : [...timeOptions, value].sort();
-  return <select aria-label={label} value={value} onChange={(event) => onChange(event.target.value)} className={className}>{options.map((item) => <option key={item} value={item}>{item}</option>)}</select>;
+  return <SiteSelect chevron={false} aria-label={label} value={value} onChange={(event) => onChange(event.target.value)} className={className}>{options.map((item) => <option key={item} value={item}>{item}</option>)}</SiteSelect>;
 }
 
 export function AdminSchedulesPage() {
@@ -423,7 +424,7 @@ export function AdminSchedulesPage() {
 
     {/* Filtros */}
     <div className="surface mb-4 grid gap-4 p-4 md:mb-6 md:grid-cols-2 md:bg-transparent md:p-0 md:shadow-none lg:max-w-[1012px]">
-      <label className="grid gap-2 text-[13px] font-semibold"><span className="flex items-center gap-1.5"><Stethoscope className="size-4 text-success md:hidden" />Médico</span><span className="relative"><select value={professional?.id ?? ""} onChange={(event) => setSelected(event.target.value)} className="h-11 w-full appearance-none rounded-lg bg-soft px-3.5 text-[15px] font-medium outline-none focus:ring-1 focus:ring-ring md:h-12 md:bg-card md:px-4 md:font-normal md:shadow-[0_1px_2px_rgb(0_0_0/6%)]">{professionals.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><ChevronDown className="pointer-events-none absolute right-4 top-1/2 size-4 -translate-y-1/2" /></span></label>
+      <label className="grid gap-2 text-[13px] font-semibold"><span className="flex items-center gap-1.5"><Stethoscope className="size-4 text-success md:hidden" />Médico</span><span className="relative"><SiteSelect value={professional?.id ?? ""} onChange={(event) => setSelected(event.target.value)} className="h-11 w-full appearance-none rounded-lg bg-soft px-3.5 text-[15px] font-medium outline-none focus:ring-1 focus:ring-ring md:h-12 md:bg-card md:px-4 md:font-normal md:shadow-[0_1px_2px_rgb(0_0_0/6%)]">{professionals.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</SiteSelect></span></label>
       <div className="grid gap-2 text-[13px] font-semibold"><span className="flex items-center gap-1.5"><CalendarDays className="size-4 md:hidden" />Dia da agenda centralizada</span><DatePicker value={date} required onChange={(next) => setDate(next || isoDate(0))} aria-label="Dia da agenda centralizada" className="flex h-11 w-full items-center justify-between rounded-lg bg-soft px-3.5 text-[15px] font-medium md:h-12 md:bg-card md:px-4 md:font-normal md:shadow-[0_1px_2px_rgb(0_0_0/6%)]" /></div>
     </div>
 
@@ -557,7 +558,7 @@ export function AdminSettingsPage() {
         </div>
         <label className="grid gap-2 text-[15px] font-semibold md:flex md:items-center md:gap-4">
           <span className="flex items-center gap-2"><Bell className="hidden size-4 text-info-strong md:block" />Antecedência do lembrete</span>
-          <span className="relative block md:w-56"><select value={String(settings.reminderHours)} onChange={(event) => { updateSettings({ reminderHours: Number(event.target.value) }); toast.success("Antecedência atualizada"); }} className="h-11 w-full appearance-none rounded-lg bg-soft px-3.5 text-[15px] font-normal outline-none focus:ring-1 focus:ring-ring md:h-11 md:bg-card">{[12, 24, 48].map((hours) => <option key={hours} value={hours}>{hours} horas antes</option>)}</select><ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 size-4 -translate-y-1/2" /></span>
+          <span className="relative block md:w-56"><SiteSelect value={String(settings.reminderHours)} onChange={(event) => { updateSettings({ reminderHours: Number(event.target.value) }); toast.success("Antecedência atualizada"); }} className="h-11 w-full appearance-none rounded-lg bg-soft px-3.5 text-[15px] font-normal outline-none focus:ring-1 focus:ring-ring md:h-11 md:bg-card">{[12, 24, 48].map((hours) => <option key={hours} value={hours}>{hours} horas antes</option>)}</SiteSelect></span>
         </label>
       </div>
       <div className="mt-6 md:mt-6 md:border-t md:border-border md:pt-6">
