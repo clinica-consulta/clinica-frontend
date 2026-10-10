@@ -1,3 +1,4 @@
+import { DatePicker } from "@/components/date-picker";
 import { type ReactNode } from "react";
 import { CalendarPlus, Download, Plus, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -53,8 +54,25 @@ const fieldLabel = "grid min-w-0 gap-1.5 text-xs font-medium leading-4 text-mute
 const fieldControl = "h-10 min-w-0 rounded-lg bg-card px-3.5 text-sm font-normal text-foreground shadow-[0_1px_2px_rgb(0_0_0/6%)] outline-none ring-1 ring-border/60 focus:ring-ring disabled:bg-muted";
 
 export function Field({ label, className = "", ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string }) {
+  if (props.type === "date") {
+    const { value, defaultValue, onChange, name, min, max, required } = props;
+    return (
+      <div className={`${fieldLabel} ${className}`}>{label}
+        <DatePicker aria-label={label} value={value as string | undefined} defaultValue={defaultValue as string | undefined} name={name} min={min as string | undefined} max={max as string | undefined} required={required}
+          onChange={onChange && ((next) => onChange({ target: { value: next }, currentTarget: { value: next } } as React.ChangeEvent<HTMLInputElement>))} />
+      </div>
+    );
+  }
+  if (props.type === "time") {
+    const { value, defaultValue, onChange, name, required } = props;
+    const current = String(value ?? defaultValue ?? "");
+    const options = timeOptions.includes(current) || !current ? timeOptions : [current, ...timeOptions].sort();
+    return <label className={`${fieldLabel} ${className}`}>{label}<select name={name} required={required} {...(value !== undefined ? { value: value as string } : { defaultValue: defaultValue as string })} onChange={onChange as unknown as React.ChangeEventHandler<HTMLSelectElement>} className={fieldControl}>{options.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>;
+  }
   return <label className={`${fieldLabel} ${className}`}>{label}<input {...props} className={fieldControl} /></label>;
 }
+
+const timeOptions = Array.from({ length: 33 }, (_, i) => `${String(6 + Math.floor(i / 2)).padStart(2, "0")}:${i % 2 ? "30" : "00"}`);
 
 export function SelectField({ label, options, className = "", ...props }: React.SelectHTMLAttributes<HTMLSelectElement> & { label: string; options: { value: string; label: string }[] }) {
   return <label className={`${fieldLabel} ${className}`}>{label}<select {...props} className={fieldControl}>{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>;

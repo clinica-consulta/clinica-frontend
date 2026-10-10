@@ -1,3 +1,4 @@
+import { DatePicker } from "@/components/date-picker";
 import { useState, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Activity, ArrowRight, BadgeCheck, BarChart3, RefreshCw, Shield, TrendingUp, UserX, Bell, BriefcaseMedical, CalendarRange, CheckCheck, ClipboardList, ClipboardPlus, FileText, HeartPulse, Info, MoreVertical, SlidersHorizontal, ChevronRight, CircleX, Eye, Headset, History, MapPin, Plus, Syringe, CalendarCheck, CalendarClock, CalendarDays, Check, CheckCircle2, CircleAlert, Clock3, Lock, ShieldCheck, Stethoscope, Tags, UserCheck, UsersRound, X, Ban, Building2, CalendarOff, CalendarX2, ChevronDown, ChevronLeft, Contact, IdCard, LayoutList, LockKeyhole, Mail, Pencil, Phone, Save, Shapes, ShieldPlus, UserPlus, UserRound } from "lucide-react";
@@ -423,7 +424,7 @@ export function AdminSchedulesPage() {
     {/* Filtros */}
     <div className="surface mb-4 grid gap-4 p-4 md:mb-6 md:grid-cols-2 md:bg-transparent md:p-0 md:shadow-none lg:max-w-[1012px]">
       <label className="grid gap-2 text-[13px] font-semibold"><span className="flex items-center gap-1.5"><Stethoscope className="size-4 text-success md:hidden" />Médico</span><span className="relative"><select value={professional?.id ?? ""} onChange={(event) => setSelected(event.target.value)} className="h-11 w-full appearance-none rounded-lg bg-soft px-3.5 text-[15px] font-medium outline-none focus:ring-1 focus:ring-ring md:h-12 md:bg-card md:px-4 md:font-normal md:shadow-[0_1px_2px_rgb(0_0_0/6%)]">{professionals.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><ChevronDown className="pointer-events-none absolute right-4 top-1/2 size-4 -translate-y-1/2" /></span></label>
-      <label className="grid gap-2 text-[13px] font-semibold"><span className="flex items-center gap-1.5"><CalendarDays className="size-4 md:hidden" />Dia da agenda centralizada</span><input type="date" value={date} onChange={(event) => setDate(event.target.value || isoDate(0))} className="h-11 w-full rounded-lg bg-soft px-3.5 text-[15px] font-medium outline-none focus:ring-1 focus:ring-ring md:h-12 md:bg-card md:px-4 md:font-normal md:shadow-[0_1px_2px_rgb(0_0_0/6%)]" /></label>
+      <div className="grid gap-2 text-[13px] font-semibold"><span className="flex items-center gap-1.5"><CalendarDays className="size-4 md:hidden" />Dia da agenda centralizada</span><DatePicker value={date} required onChange={(next) => setDate(next || isoDate(0))} aria-label="Dia da agenda centralizada" className="flex h-11 w-full items-center justify-between rounded-lg bg-soft px-3.5 text-[15px] font-medium md:h-12 md:bg-card md:px-4 md:font-normal md:shadow-[0_1px_2px_rgb(0_0_0/6%)]" /></div>
     </div>
 
     {/* Horários */}

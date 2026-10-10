@@ -40,7 +40,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   const current = profile.nav.find((item) => item.to === pathname) ?? profile.nav[0]!;
   const today = ready ? formatLongDate(isoDate(0)).split(",")[0] ?? "" : "";
   const todayLabel = ready ? `${capitalize(today)}, ${formatDate(isoDate(0))}` : "";
-  const deep = profile.role === "professional" || profile.role === "admin";
   const notificationsPath = profile.nav.find((item) => item.to.endsWith("notificacoes"))?.to;
 
   return (
@@ -48,13 +47,13 @@ export function AppShell({ children }: { children: ReactNode }) {
       {loading && <LoadingScreen />}
 
       {/* Cabeçalho desktop */}
-      <header className={`sticky top-0 z-30 hidden text-sidebar-foreground shadow-[0_1px_4px_rgb(0_0_0/4%)] md:block ${profile.role === "admin" ? "bg-header-deep" : "bg-sidebar"}`}>
-        <div className={`mx-auto flex max-w-[1280px] flex-col px-8 ${profile.role === "professional" ? "pt-3 pb-3" : "h-28 justify-between pb-1 pt-3"}`}>
+      <header className={`sticky top-0 z-30 hidden text-sidebar-foreground shadow-[0_1px_4px_rgb(0_0_0/4%)] md:block bg-sidebar`}>
+        <div className="mx-auto flex h-28 max-w-[1280px] flex-col justify-between px-8 pb-1 pt-3">
           <div className="flex items-center gap-6 lg:gap-11">
             <Link to={profile.home} className="flex shrink-0 items-center gap-5" aria-label="Gestão de Consultas">
               <BrandMark />
               <span className="min-w-0">
-                <span className={`block text-[11px] font-bold uppercase leading-4 tracking-[0.55px] ${deep ? "text-mobile-eyebrow" : "text-sidebar-muted"}`}>{profile.brand}</span>
+                <span className={`block text-[11px] font-bold uppercase leading-4 tracking-[0.55px] text-sidebar-muted`}>{profile.brand}</span>
                 <span className="block text-base font-bold leading-6 tracking-[-0.4px]">GESTÃO DE CONSULTAS</span>
               </span>
             </Link>
@@ -84,17 +83,12 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
           </div>
 
-          {profile.role !== "professional" && <DesktopNav profile={profile} />}
+          <DesktopNav profile={profile} />
         </div>
-        {profile.role === "professional" && (
-          <div className="bg-header-deep">
-            <div className="mx-auto max-w-[1280px] px-8 py-2"><DesktopNav profile={profile} /></div>
-          </div>
-        )}
       </header>
 
       {/* Cabeçalho mobile */}
-      <header className={`sticky top-0 z-30 flex h-16 items-center gap-3 px-3 text-sidebar-foreground shadow-[0_4px_20px_-2px_rgb(30_46_61/8%)] md:hidden ${deep && profile.role === "admin" ? "bg-header-deep" : "bg-sidebar"}`}>
+      <header className={`sticky top-0 z-30 flex h-16 items-center gap-3 px-3 text-sidebar-foreground shadow-[0_4px_20px_-2px_rgb(30_46_61/8%)] md:hidden bg-sidebar`}>
         <Link to={profile.home} aria-label="Gestão de Consultas" className="grid size-11 shrink-0 place-items-center"><img src={logo} alt="" className="size-9 object-contain" /></Link>
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-1.5 truncate text-[11px] font-bold uppercase leading-4 tracking-[0.88px] text-mobile-eyebrow">

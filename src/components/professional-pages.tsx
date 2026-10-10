@@ -1,3 +1,4 @@
+import { DatePicker } from "@/components/date-picker";
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Activity, ArrowRight, BadgeCheck, BarChart3, RefreshCw, Shield, TrendingUp, UserX, Bell, BriefcaseMedical, CalendarRange, CheckCheck, ClipboardList, ClipboardPlus, FileText, HeartPulse, Info, MoreVertical, SlidersHorizontal, ChevronRight, CircleX, Eye, Headset, History, MapPin, Plus, Syringe, CalendarCheck, CalendarClock, CalendarDays, Check, CheckCircle2, CircleAlert, Clock3, Lock, ShieldCheck, Stethoscope, Tags, UserCheck, UsersRound, X, AlarmClock, Ban, CalendarX2, ChevronDown, ChevronLeft, CircleHelp, CircleMinus, CirclePlus, IdCard, Mail, Phone, Send, UserRound } from "lucide-react";
@@ -124,10 +125,6 @@ function shiftDate(iso: string, days: number) {
   return date.toISOString().slice(0, 10);
 }
 
-function openPicker(event: React.MouseEvent<HTMLInputElement>) {
-  try { event.currentTarget.showPicker(); } catch { /* navegador sem suporte */ }
-}
-
 const periodOf = (time: string) => (Number(time.slice(0, 2)) < 12 ? "Manhã" : "Tarde");
 
 /* ---------- Minha agenda ---------- */
@@ -155,10 +152,9 @@ export function ProfessionalAgendaPage() {
     {/* Filtros desktop */}
     <div className="mb-6 hidden grid-cols-[224px_minmax(0,1fr)] items-end gap-4 md:grid">
       <label className="grid gap-1.5 text-[13px] font-semibold leading-[18px]">Data
-        <span className="relative flex h-[42px] items-center justify-between rounded-lg bg-card px-3 text-sm font-normal shadow-[0_1px_2px_rgb(0_0_0/8%)] ring-1 ring-border/50">
-          {formatDate(date)}<CalendarDays className="size-[18px]" />
-          <input type="date" value={date} onClick={openPicker} onChange={(event) => event.target.value && setDate(event.target.value)} className="absolute inset-0 cursor-pointer opacity-0" aria-label="Data" />
-        </span>
+        <DatePicker value={date} required onChange={setDate} aria-label="Data">{(label) => (
+          <span className="flex h-[42px] items-center justify-between rounded-lg bg-card px-3 text-sm font-normal shadow-[0_1px_2px_rgb(0_0_0/8%)] ring-1 ring-border/50">{label}<CalendarDays className="size-[18px]" /></span>
+        )}</DatePicker>
       </label>
       <SearchInput placeholder="Buscar paciente..." value={search} onChange={setSearch} className="[&>input]:h-[42px]" />
     </div>
@@ -166,9 +162,12 @@ export function ProfessionalAgendaPage() {
     {/* Filtros mobile */}
     <div className="mb-3 grid grid-cols-[minmax(0,1fr)_auto] gap-2 md:hidden">
       <div className="surface relative flex items-center gap-3 p-3">
-        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent"><CalendarDays className="size-[18px]" /></span>
-        <span className="min-w-0 flex-1"><span className="block text-[11px] leading-4 text-muted-foreground">Data selecionada</span><b className="block text-[17px] leading-6">{formatDate(date)}</b></span>
-        <input type="date" value={date} onClick={openPicker} onChange={(event) => event.target.value && setDate(event.target.value)} className="absolute inset-0 cursor-pointer opacity-0" aria-label="Data" />
+        <span className="min-w-0 flex-1"><DatePicker value={date} required onChange={setDate} aria-label="Data">{(label) => (
+          <span className="flex items-center gap-3">
+            <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent"><CalendarDays className="size-[18px]" /></span>
+            <span className="min-w-0 flex-1"><span className="block text-[11px] leading-4 text-muted-foreground">Data selecionada</span><b className="block text-[17px] leading-6">{label}</b></span>
+          </span>
+        )}</DatePicker></span>
         <button type="button" onClick={() => setDate(isoDate(0))} className="relative z-10 flex items-center gap-0.5 text-xs font-semibold">Hoje<ChevronDown className="size-3.5" /></button>
       </div>
       <div className="surface flex items-center px-1">
