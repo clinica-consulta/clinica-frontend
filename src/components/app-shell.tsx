@@ -1,8 +1,8 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
-import { Bell, BriefcaseMedical, CalendarDays, LockKeyhole, LogOut, Search, ShieldCheck, Stethoscope, UserRound } from "lucide-react";
+import { Bell, CalendarDays, LockKeyhole, LogOut, Search, ShieldCheck, UserRound } from "lucide-react";
 import { LoadingScreen } from "@/components/loading-screen";
-import logo from "@/assets/gestao-consultas-logo-transparent.png";
+import logo from "@/assets/logo-claro.png";
 import { roleFromPath, roleProfiles, type RoleProfile } from "@/lib/role-data";
 import { formatDate, formatLongDate, isoDate } from "@/lib/clinic-data";
 import { useClinic } from "@/lib/clinic-store";
@@ -52,7 +52,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className={`mx-auto flex max-w-[1280px] flex-col px-8 ${profile.role === "professional" ? "pt-3 pb-3" : "h-28 justify-between pb-1 pt-3"}`}>
           <div className="flex items-center gap-6 lg:gap-11">
             <Link to={profile.home} className="flex shrink-0 items-center gap-5" aria-label="Gestão de Consultas">
-              <BrandMark profile={profile} />
+              <BrandMark />
               <span className="min-w-0">
                 <span className={`block text-[11px] font-bold uppercase leading-4 tracking-[0.55px] ${deep ? "text-mobile-eyebrow" : "text-sidebar-muted"}`}>{profile.brand}</span>
                 <span className="block text-base font-bold leading-6 tracking-[-0.4px]">GESTÃO DE CONSULTAS</span>
@@ -95,14 +95,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Cabeçalho mobile */}
       <header className={`sticky top-0 z-30 flex h-16 items-center gap-3 px-3 text-sidebar-foreground shadow-[0_4px_20px_-2px_rgb(30_46_61/8%)] md:hidden ${deep && profile.role === "admin" ? "bg-header-deep" : "bg-sidebar"}`}>
-        {profile.role === "admin" ? (
-          <span className="w-1" />
-        ) : (
-          <Link to={profile.home} aria-label="Gestão de Consultas" className="grid size-11 shrink-0 place-items-center"><img src={logo} alt="" className="size-10 object-contain" /></Link>
-        )}
+        <Link to={profile.home} aria-label="Gestão de Consultas" className="grid size-11 shrink-0 place-items-center"><img src={logo} alt="" className="size-9 object-contain" /></Link>
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-1.5 truncate text-[11px] font-bold uppercase leading-4 tracking-[0.88px] text-mobile-eyebrow">
-            {profile.role === "admin" && <span className="size-1.5 shrink-0 rounded-full bg-mobile-eyebrow" />}
             {profile.area}
           </p>
           <p className="truncate text-base font-semibold leading-5">{current.mobileTitle ?? current.short ?? current.label}</p>
@@ -145,7 +140,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       )}
 
       {/* Navegação inferior mobile */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 flex h-16 items-center bg-card/90 px-1 shadow-[0_-2px_12px_rgb(30_46_61/5%)] backdrop-blur-md md:hidden" aria-label="Navegação principal">
+      <nav className="fixed inset-x-0 bottom-0 z-30 flex h-16 items-center justify-center bg-card/90 px-1 shadow-[0_-2px_12px_rgb(30_46_61/5%)] backdrop-blur-md md:hidden" aria-label="Navegação principal">
         {profile.nav.filter((item) => !item.desktopOnly).map((item) => (
           <Link key={item.to} to={item.to} activeOptions={{ exact: true }} activeProps={{ className: "bottom-nav-active" }} className="bottom-nav-link">
             <item.icon />
@@ -160,7 +155,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 function DesktopNav({ profile }: { profile: RoleProfile }) {
   const pills = profile.headerStyle === "pills";
   return (
-    <nav className="horizontal-nav flex items-center gap-1 overflow-x-auto" aria-label="Navegação principal">
+    <nav className="horizontal-nav mx-auto flex w-fit max-w-full items-center gap-1 overflow-x-auto" aria-label="Navegação principal">
       {profile.nav.map((item) => (
         <Link key={item.to} to={item.to} activeOptions={{ exact: true }} activeProps={{ className: pills ? "nav-pill-active" : "nav-active" }} className={pills ? "nav-link nav-pill" : "nav-link"}>
           {item.label}
@@ -170,10 +165,8 @@ function DesktopNav({ profile }: { profile: RoleProfile }) {
   );
 }
 
-function BrandMark({ profile }: { profile: RoleProfile }) {
-  if (profile.role === "professional") return <span className="grid size-10 place-items-center rounded-lg bg-sidebar-accent"><BriefcaseMedical className="size-5" /></span>;
-  if (profile.role === "admin") return <span className="grid size-10 place-items-center rounded-lg bg-sidebar-accent"><Stethoscope className="size-5" /></span>;
-  return <span className="grid size-10 place-items-center overflow-hidden rounded-lg bg-sidebar-accent"><img src={logo} alt="" className="size-9 object-contain" /></span>;
+function BrandMark() {
+  return <span className="grid size-10 place-items-center"><img src={logo} alt="" className="size-10 object-contain" /></span>;
 }
 
 function NotificationButton({ to, unread, boxed, mobile }: { to?: string | undefined; unread: boolean; boxed?: boolean; mobile?: boolean }) {
