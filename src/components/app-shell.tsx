@@ -97,7 +97,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <p className="truncate text-base font-semibold leading-5">{current.mobileTitle ?? current.short ?? current.label}</p>
         </div>
         <NotificationButton to={notificationsPath} unread={false} mobile />
-        <Link to="/" onClick={logout} aria-label="Sair" className="grid size-8 shrink-0 place-items-center rounded-full bg-avatar"><UserRound className="size-3.5" /></Link>
+        <Link to="/" onClick={logout} aria-label="Sair" className="grid size-10 shrink-0 place-items-center rounded-full text-sidebar-foreground transition hover:bg-sidebar-accent"><LogOut className="size-[18px]" /></Link>
       </header>
 
       <main className="mx-auto w-full max-w-[1280px] flex-1 px-4 pb-24 pt-5 md:p-8">{children}</main>
