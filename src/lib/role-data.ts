@@ -139,14 +139,6 @@ export const roleProfiles: Record<UserRole, RoleProfile> = {
   },
 };
 
-export function roleFromEmail(email: string): UserRole {
-  const normalized = email.trim().toLowerCase();
-  if (normalized === "paciente@demo.com") return "patient";
-  if (normalized === "profissional@demo.com") return "professional";
-  if (normalized === "admin@demo.com") return "admin";
-  return "receptionist";
-}
-
 function inArea(pathname: string, area: string) {
   return pathname === area || pathname.startsWith(`${area}/`);
 }

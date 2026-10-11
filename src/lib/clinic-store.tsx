@@ -1,19 +1,11 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { toast } from "sonner";
 import {
+  defaultSettings,
   initialsOf,
   isoDate,
   minutesOf,
   openStatuses,
-  seedAppointments,
-  seedBlocks,
-  seedInsurances,
-  seedNotifications,
-  seedPatients,
-  seedProfessionals,
-  seedSettings,
-  seedSpecialties,
-  seedStaff,
-  seedWaitlist,
   slotRange,
   type AppNotification,
   type Appointment,
@@ -28,11 +20,13 @@ import {
   type StaffUser,
   type WaitlistEntry,
 } from "@/lib/clinic-data";
-import { roleFromEmail, type UserRole } from "@/lib/role-data";
+import { type UserRole } from "@/lib/role-data";
+import { api, ApiError, fromApi, fromApiRole, toApi, toApiRole, tokenStore, type ApiUser, type Doc } from "@/lib/api";
 
 type Session = {
   role: UserRole;
   email: string;
+  name: string;
   patientId?: string | undefined;
   professionalId?: string | undefined;
   staffId?: string | undefined;
@@ -52,19 +46,17 @@ type ClinicState = {
   session: Session | null;
 };
 
-const STORAGE_KEY = "gestao-consultas-state-v2";
-
-const initialState: ClinicState = {
-  patients: seedPatients,
-  professionals: seedProfessionals,
-  specialties: seedSpecialties,
-  insurances: seedInsurances,
-  appointments: seedAppointments,
-  blocks: seedBlocks,
-  waitlist: seedWaitlist,
-  notifications: seedNotifications,
-  staff: seedStaff,
-  settings: seedSettings,
+const emptyState: ClinicState = {
+  patients: [],
+  professionals: [],
+  specialties: [],
+  insurances: [],
+  appointments: [],
+  blocks: [],
+  waitlist: [],
+  notifications: [],
+  staff: [],
+  settings: defaultSettings,
   session: null,
 };
 
@@ -77,6 +69,8 @@ type NewAppointment = {
   channel?: Appointment["channel"];
 };
 
+export type SignupInput = Omit<Patient, "id" | "initials" | "status"> & { password: string };
+
 export type Eligibility = { ok: boolean; reason: string };
 
 type ClinicContextValue = ClinicState & {
@@ -84,8 +78,14 @@ type ClinicContextValue = ClinicState & {
   currentPatient: Patient | null;
   currentProfessional: Professional | null;
   activeSpecialties: string[];
-  login: (email: string) => UserRole;
+  /** Faz login na API. Lança erro com a mensagem da API se falhar. */
+  login: (email: string, password: string) => Promise<UserRole>;
   logout: () => void;
+  /** Cadastro público de paciente. */
+  signup: (input: SignupInput) => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<string>;
+  /** Recarrega todos os dados da API. */
+  refresh: () => Promise<void>;
   patientById: (id: string) => Patient | undefined;
   professionalById: (id: string) => Professional | undefined;
   checkEligibility: (patientId: string, specialty: string) => Eligibility;
@@ -121,43 +121,125 @@ type ClinicContextValue = ClinicState & {
 
 const ClinicContext = createContext<ClinicContextValue | null>(null);
 
-function makeId(prefix: string) {
-  return `${prefix}${Math.random().toString(36).slice(2, 8)}`;
+/** Id provisório enquanto a API não responde; o refresh troca pelo id real. */
+function tempId(prefix: string) {
+  return `tmp-${prefix}${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function sessionFrom(user: ApiUser): Session {
+  const role = fromApiRole(user.tipo);
+  return {
+    role,
+    email: user.email,
+    name: user.nome,
+    patientId: user.paciente ?? undefined,
+    professionalId: user.profissional ?? undefined,
+    staffId: role === "receptionist" || role === "admin" ? user.id : undefined,
+  };
 }
 
 export function ClinicProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<ClinicState>(initialState);
+  const [state, setState] = useState<ClinicState>(emptyState);
   const [hydrated, setHydrated] = useState(false);
+  const roleRef = useRef<UserRole | null>(null);
 
-  useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-      if (stored) setState({ ...initialState, ...(JSON.parse(stored) as ClinicState) });
-    } catch {
-      /* estado local indisponível */
-    }
-    setHydrated(true);
+  const logout = useCallback(() => {
+    tokenStore.set(null);
+    roleRef.current = null;
+    setState(emptyState);
   }, []);
 
-  useEffect(() => {
-    if (!hydrated) return;
+  /** Busca tudo o que o perfil logado pode ver. Rotas sem permissão ficam vazias. */
+  const refresh = useCallback(async () => {
+    const role = roleRef.current;
+    if (!role) return;
+    const staff = role === "receptionist" || role === "admin";
+    const list = (path: string, allowed = true) => (allowed ? api<Doc[]>("GET", path) : Promise.resolve([] as Doc[]));
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch {
-      /* estado local indisponível */
+      const [patients, professionals, specialties, insurances, appointments, blocks, waitlist, notifications, staffUsers, settings] = await Promise.all([
+        list("/pacientes"),
+        list("/profissionais"),
+        list("/especialidades"),
+        list("/convenios"),
+        list("/consultas"),
+        list("/bloqueios"),
+        list("/fila-espera", staff),
+        list("/notificacoes"),
+        list("/usuarios", role === "admin"),
+        api<Doc>("GET", "/configuracoes"),
+      ]);
+      setState((current) => ({
+        ...current,
+        patients: patients.map(fromApi.patient),
+        professionals: professionals.map(fromApi.professional),
+        specialties: specialties.map(fromApi.specialty),
+        insurances: insurances.map(fromApi.insurance),
+        appointments: appointments.map(fromApi.appointment),
+        blocks: blocks.map(fromApi.block),
+        waitlist: waitlist.map(fromApi.waitlist),
+        notifications: notifications.map(fromApi.notification),
+        staff: staffUsers.map(fromApi.staff),
+        settings: fromApi.settings(settings),
+      }));
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        logout();
+        toast.error("Sua sessão expirou", { description: "Entre novamente para continuar." });
+        return;
+      }
+      toast.error("Não foi possível carregar os dados", { description: (error as Error).message });
     }
-  }, [state, hydrated]);
+  }, [logout]);
+
+  /** Envia uma alteração para a API; em seguida sincroniza a tela com o banco. */
+  const send = useCallback(
+    (request: Promise<unknown>, errorTitle = "Não foi possível salvar") => {
+      request
+        .catch((error: Error) => toast.error(errorTitle, { description: error.message }))
+        .finally(() => void refresh());
+    },
+    [refresh],
+  );
+
+  const startSession = useCallback(
+    async (user: ApiUser) => {
+      const session = sessionFrom(user);
+      roleRef.current = session.role;
+      setState((current) => ({ ...current, session }));
+      await refresh();
+      return session.role;
+    },
+    [refresh],
+  );
+
+  // Ao abrir o app, retoma a sessão salva (se o token ainda for válido).
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      if (tokenStore.get()) {
+        try {
+          const user = await api<ApiUser>("GET", "/auth/me");
+          if (active) await startSession(user);
+        } catch {
+          tokenStore.set(null);
+        }
+      } else {
+        // Tela de cadastro usa a lista de convênios mesmo sem login.
+        api<Doc[]>("GET", "/convenios")
+          .then((docs) => active && setState((current) => ({ ...current, insurances: docs.map(fromApi.insurance) })))
+          .catch(() => undefined);
+      }
+      if (active) setHydrated(true);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [startSession]);
 
   const patientById = useCallback((id: string) => state.patients.find((item) => item.id === id), [state.patients]);
   const professionalById = useCallback((id: string) => state.professionals.find((item) => item.id === id), [state.professionals]);
 
-  const pushNotification = useCallback((title: string, text: string, audience: UserRole[]) => {
-    setState((current) => ({
-      ...current,
-      notifications: [{ id: makeId("n"), title, text, createdAt: isoDate(0), audience, read: false }, ...current.notifications].slice(0, 40),
-    }));
-  }, []);
-
+  // Mesmas regras da API, calculadas aqui para a tela responder na hora.
   const checkEligibility = useCallback(
     (patientId: string, specialty: string): Eligibility => {
       const patient = state.patients.find((item) => item.id === patientId);
@@ -205,6 +287,16 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       history: [...item.history, { at: isoDate(0), text }],
     });
 
+    const patchList = <K extends "patients" | "professionals" | "specialties" | "staff" | "waitlist" | "notifications" | "appointments">(
+      key: K,
+      id: string,
+      update: (item: ClinicState[K][number]) => ClinicState[K][number],
+    ) =>
+      setState((current) => ({
+        ...current,
+        [key]: (current[key] as ClinicState[K][number][]).map((item) => (item.id === id ? update(item) : item)),
+      }));
+
     return {
       ...state,
       hydrated,
@@ -215,36 +307,33 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       professionalById,
       checkEligibility,
       availableSlots,
+      refresh,
+      logout,
 
-      login: (email) => {
-        const role = roleFromEmail(email);
-        const normalized = email.trim().toLowerCase();
-        const patient = state.patients.find((item) => item.email.toLowerCase() === normalized) ?? state.patients[0];
-        const professional = state.professionals.find((item) => item.email.toLowerCase() === normalized) ?? state.professionals[0];
-        setState((current) => ({
-          ...current,
-          session: {
-            role,
-            email: normalized,
-            patientId: role === "patient" ? patient?.id : undefined,
-            professionalId: role === "professional" ? professional?.id : undefined,
-            staffId: current.staff.find((item) => item.email.toLowerCase() === normalized)?.id,
-          },
-        }));
-        return role;
+      login: async (email, password) => {
+        const { token, usuario } = await api<{ token: string; usuario: ApiUser }>("POST", "/auth/login", { email, senha: password });
+        tokenStore.set(token);
+        return startSession(usuario);
       },
 
-      logout: () => setState((current) => ({ ...current, session: null })),
+      signup: async ({ name, cpf, phone, email, birthDate, insurance, password }) => {
+        await api("POST", "/auth/cadastro", { nome: name, cpf, telefone: phone, email, dataNascimento: birthDate, convenio: insurance, senha: password });
+      },
+
+      requestPasswordReset: async (email) => {
+        const { mensagem } = await api<{ mensagem: string }>("POST", "/auth/recuperar-senha", { email });
+        return mensagem;
+      },
 
       createAppointment: ({ patientId, professionalId, date, time, notes, channel }) => {
         const professional = state.professionals.find((item) => item.id === professionalId);
         if (!professional) return null;
         if (!checkEligibility(patientId, professional.specialty).ok) return null;
-        const free = availableSlots(professionalId, date);
-        if (!free.includes(time)) return null;
+        if (!availableSlots(professionalId, date).includes(time)) return null;
         const origin = channel ?? "Recepção";
         const appointment: Appointment = {
-          id: makeId("").slice(0, 4).toUpperCase(),
+          id: tempId("c"),
+          code: "",
           date,
           time,
           patientId,
@@ -258,70 +347,44 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           history: [{ at: isoDate(0), text: `Consulta criada (${origin.toLowerCase()})` }],
         };
         setState((current) => ({ ...current, appointments: [...current.appointments, appointment] }));
-        pushNotification(
-          "Informações da consulta",
-          `${patientById(patientId)?.name ?? "Paciente"} · ${professional.name} · ${date} às ${time}.`,
-          ["receptionist", "professional", "patient"],
+        send(
+          api("POST", "/consultas", { paciente: patientId, profissional: professionalId, data: date, hora: time, observacoes: notes ?? "" }),
+          "Não foi possível agendar",
         );
         return appointment;
       },
 
       setAppointmentStatus: (id, status, note) => {
-        // RN09: após a confirmação o paciente recebe as informações da consulta.
-        const target = state.appointments.find((item) => item.id === id);
-        if (target && status === "Confirmada") {
-          const professional = state.professionals.find((item) => item.id === target.professionalId);
-          pushNotification(
-            "Consulta confirmada",
-            `${target.specialty}${professional ? ` com ${professional.name}` : ""} · ${target.date} às ${target.time}.`,
-            ["patient", "receptionist", "professional"],
-          );
-        }
-        if (target && status === "Cancelada") {
-          pushNotification("Horário liberado", `${target.date} às ${target.time} voltou a ficar disponível na agenda.`, ["receptionist", "admin"]);
-        }
-        setState((current) => ({
-          ...current,
-          appointments: current.appointments.map((item) =>
-            item.id === id
-              ? withLog(
-                  {
-                    ...item,
-                    status,
-                    confirmationReply:
-                      status === "Confirmada" ? "Confirmou" : status === "Cancelada" ? "Cancelou" : item.confirmationReply,
-                  },
-                  note ?? `Status alterado para ${status}`,
-                )
-              : item,
+        patchList("appointments", id, (item) =>
+          withLog(
+            {
+              ...item,
+              status,
+              confirmationReply: status === "Confirmada" ? "Confirmou" : status === "Cancelada" ? "Cancelou" : item.confirmationReply,
+            },
+            note ?? `Status alterado para ${status}`,
           ),
-        }));
+        );
+        send(api("PATCH", `/consultas/${id}/status`, { status, observacao: note }), "Não foi possível atualizar a consulta");
       },
 
       rescheduleAppointment: (id, date, time) => {
         const appointment = state.appointments.find((item) => item.id === id);
         if (!appointment) return false;
         if (!availableSlots(appointment.professionalId, date, id).includes(time)) return false;
-        setState((current) => ({
-          ...current,
-          appointments: current.appointments.map((item) =>
-            item.id === id
-              ? withLog(
-                  { ...item, date, time, status: "Remarcada", reminderSentAt: null, confirmationReply: "Sem resposta" },
-                  `Remarcada de ${appointment.date} ${appointment.time} para ${date} ${time}`,
-                )
-              : item,
+        patchList("appointments", id, (item) =>
+          withLog(
+            { ...item, date, time, status: "Remarcada", reminderSentAt: null, confirmationReply: "Sem resposta" },
+            `Remarcada de ${appointment.date} ${appointment.time} para ${date} ${time}`,
           ),
-        }));
-        pushNotification("Consulta remarcada", `${patientById(appointment.patientId)?.name ?? "Paciente"} foi movido para ${date} às ${time}.`, ["receptionist", "professional", "patient"]);
+        );
+        send(api("PATCH", `/consultas/${id}/remarcar`, { data: date, hora: time }), "Não foi possível remarcar");
         return true;
       },
 
       sendReminder: (id) => {
-        setState((current) => ({
-          ...current,
-          appointments: current.appointments.map((item) => (item.id === id ? withLog({ ...item, reminderSentAt: isoDate(0) }, "Lembrete de confirmação enviado") : item)),
-        }));
+        patchList("appointments", id, (item) => withLog({ ...item, reminderSentAt: isoDate(0) }, "Lembrete de confirmação enviado"));
+        send(api("POST", `/consultas/${id}/lembrete`), "Não foi possível enviar o lembrete");
       },
 
       sendAllReminders: () => {
@@ -335,124 +398,109 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
               pending.some((p) => p.id === item.id) ? withLog({ ...item, reminderSentAt: isoDate(0) }, "Lembrete de confirmação enviado") : item,
             ),
           }));
-          pushNotification("Lembretes enviados", `${pending.length} paciente(s) receberam o lembrete de confirmação.`, ["patient", "receptionist"]);
+          send(api("POST", "/consultas/lembretes"), "Não foi possível enviar os lembretes");
         }
         return pending.length;
       },
 
       addPatient: (input) => {
-        const patient: Patient = { ...input, id: makeId("p"), initials: initialsOf(input.name), status: input.status ?? "Ativo" };
+        const patient: Patient = { ...input, id: tempId("p"), initials: initialsOf(input.name), status: input.status ?? "Ativo" };
         setState((current) => ({ ...current, patients: [...current.patients, patient] }));
+        send(api("POST", "/pacientes", toApi.patient(patient)), "Não foi possível cadastrar o paciente");
         return patient;
       },
 
       updatePatient: (id, changes) => {
-        setState((current) => ({
-          ...current,
-          patients: current.patients.map((item) => (item.id === id ? { ...item, ...changes, initials: changes.name ? initialsOf(changes.name) : item.initials } : item)),
-        }));
+        patchList("patients", id, (item) => ({ ...item, ...changes, initials: changes.name ? initialsOf(changes.name) : item.initials }));
+        send(api("PUT", `/pacientes/${id}`, toApi.patient(changes)), "Não foi possível atualizar o paciente");
       },
 
       togglePatientStatus: (id) => {
-        setState((current) => ({
-          ...current,
-          patients: current.patients.map((item) => (item.id === id ? { ...item, status: item.status === "Ativo" ? "Inativo" : "Ativo" } : item)),
-        }));
+        patchList("patients", id, (item) => ({ ...item, status: item.status === "Ativo" ? "Inativo" : "Ativo" }));
+        send(api("PATCH", `/pacientes/${id}/status`));
       },
 
       addProfessional: (input) => {
-        const professional: Professional = {
-          ...input,
-          id: makeId("pro"),
-          initials: initialsOf(input.name),
-          color: "bg-info",
-          active: true,
-          availability: {
-            1: { active: true, start: "08:00", end: "17:00" },
-            2: { active: true, start: "08:00", end: "17:00" },
-            3: { active: true, start: "08:00", end: "17:00" },
-            4: { active: true, start: "08:00", end: "17:00" },
-            5: { active: true, start: "08:00", end: "17:00" },
-            6: { active: false, start: "08:00", end: "12:00" },
-          },
-        };
+        const professional: Professional = { ...input, id: tempId("pro"), initials: initialsOf(input.name), color: "bg-info", active: true, availability: {} };
         setState((current) => ({ ...current, professionals: [...current.professionals, professional] }));
+        send(api("POST", "/profissionais", toApi.professional(input)), "Não foi possível cadastrar o médico");
         return professional;
       },
 
       updateProfessional: (id, changes) => {
-        setState((current) => ({
-          ...current,
-          professionals: current.professionals.map((item) => (item.id === id ? { ...item, ...changes, initials: changes.name ? initialsOf(changes.name) : item.initials } : item)),
-        }));
+        patchList("professionals", id, (item) => ({ ...item, ...changes, initials: changes.name ? initialsOf(changes.name) : item.initials }));
+        send(api("PUT", `/profissionais/${id}`, toApi.professional(changes)), "Não foi possível atualizar o médico");
       },
 
       toggleProfessional: (id) => {
-        setState((current) => ({
-          ...current,
-          professionals: current.professionals.map((item) => (item.id === id ? { ...item, active: !item.active } : item)),
-        }));
+        patchList("professionals", id, (item) => ({ ...item, active: !item.active }));
+        send(api("PATCH", `/profissionais/${id}/status`));
       },
 
       setAvailability: (id, weekday, day) => {
-        setState((current) => ({
-          ...current,
-          professionals: current.professionals.map((item) => (item.id === id ? { ...item, availability: { ...item.availability, [weekday]: day } } : item)),
-        }));
+        patchList("professionals", id, (item) => ({ ...item, availability: { ...item.availability, [weekday]: day } }));
+        send(api("PUT", `/profissionais/${id}/disponibilidade/${weekday}`, { ativo: day.active, inicio: day.start, fim: day.end }), "Não foi possível salvar o horário");
       },
 
       addSpecialty: (name) => {
-        setState((current) => ({ ...current, specialties: [...current.specialties, { id: makeId("s"), name, active: true }] }));
+        setState((current) => ({ ...current, specialties: [...current.specialties, { id: tempId("s"), name, active: true }] }));
+        send(api("POST", "/especialidades", { nome: name }), "Não foi possível cadastrar a especialidade");
       },
 
       updateSpecialty: (id, name) => {
-        setState((current) => ({ ...current, specialties: current.specialties.map((item) => (item.id === id ? { ...item, name } : item)) }));
+        patchList("specialties", id, (item) => ({ ...item, name }));
+        send(api("PUT", `/especialidades/${id}`, { nome: name }), "Não foi possível renomear a especialidade");
       },
 
       toggleSpecialty: (id) => {
-        setState((current) => ({ ...current, specialties: current.specialties.map((item) => (item.id === id ? { ...item, active: !item.active } : item)) }));
+        patchList("specialties", id, (item) => ({ ...item, active: !item.active }));
+        send(api("PATCH", `/especialidades/${id}/status`));
       },
 
       addBlock: (input) => {
-        setState((current) => ({ ...current, blocks: [...current.blocks, { ...input, id: makeId("b") }] }));
-        pushNotification("Agenda bloqueada", "Um período foi bloqueado na agenda médica.", ["receptionist", "professional", "admin"]);
+        setState((current) => ({ ...current, blocks: [...current.blocks, { ...input, id: tempId("b") }] }));
+        send(api("POST", "/bloqueios", toApi.block(input)), "Não foi possível bloquear a agenda");
       },
 
-      removeBlock: (id) => setState((current) => ({ ...current, blocks: current.blocks.filter((item) => item.id !== id) })),
+      removeBlock: (id) => {
+        setState((current) => ({ ...current, blocks: current.blocks.filter((item) => item.id !== id) }));
+        send(api("DELETE", `/bloqueios/${id}`));
+      },
 
       addToWaitlist: (input) => {
-        setState((current) => ({
-          ...current,
-          waitlist: [...current.waitlist, { ...input, id: makeId("w"), createdAt: isoDate(0), status: "Aguardando" }],
-        }));
+        setState((current) => ({ ...current, waitlist: [...current.waitlist, { ...input, id: tempId("w"), createdAt: isoDate(0), status: "Aguardando" }] }));
+        send(api("POST", "/fila-espera", toApi.waitlist(input)), "Não foi possível adicionar à fila");
       },
 
       inviteFromWaitlist: (id) => {
-        setState((current) => ({
-          ...current,
-          waitlist: current.waitlist.map((item) => (item.id === id ? { ...item, status: "Convidado" } : item)),
-        }));
-        pushNotification("Horário oferecido", "Um paciente da fila de espera recebeu uma oferta de horário.", ["patient", "receptionist"]);
+        patchList("waitlist", id, (item) => ({ ...item, status: "Convidado" }));
+        send(api("PATCH", `/fila-espera/${id}/convidar`));
       },
 
       removeFromWaitlist: (id) => {
         setState((current) => ({ ...current, waitlist: current.waitlist.filter((item) => item.id !== id) }));
+        send(api("DELETE", `/fila-espera/${id}`));
       },
 
       addStaff: (input) => {
-        setState((current) => ({ ...current, staff: [...current.staff, { ...input, id: makeId("u"), status: input.status ?? "Pendente" }] }));
+        setState((current) => ({ ...current, staff: [...current.staff, { ...input, id: tempId("u"), status: input.status ?? "Pendente" }] }));
+        send(api("POST", "/usuarios", toApi.staff(input)), "Não foi possível cadastrar o usuário");
       },
 
       updateStaff: (id, changes) => {
-        setState((current) => ({ ...current, staff: current.staff.map((item) => (item.id === id ? { ...item, ...changes } : item)) }));
+        patchList("staff", id, (item) => ({ ...item, ...changes }));
+        send(api("PUT", `/usuarios/${id}`, toApi.staff(changes)), "Não foi possível atualizar o usuário");
       },
 
-      notify: ({ title, text, audience }) => pushNotification(title, text, audience),
+      notify: ({ title, text, audience }) => {
+        send(api("POST", "/notificacoes", { titulo: title, texto: text, publico: audience.map(toApiRole) }), "Não foi possível enviar o aviso");
+      },
 
       notificationsFor: (role) => state.notifications.filter((item) => item.audience.includes(role)),
 
       markNotificationRead: (id) => {
-        setState((current) => ({ ...current, notifications: current.notifications.map((item) => (item.id === id ? { ...item, read: true } : item)) }));
+        patchList("notifications", id, (item) => ({ ...item, read: true }));
+        send(api("PATCH", `/notificacoes/${id}/lida`));
       },
 
       markAllNotificationsRead: (role) => {
@@ -460,11 +508,15 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           ...current,
           notifications: current.notifications.map((item) => (item.audience.includes(role) ? { ...item, read: true } : item)),
         }));
+        send(api("PATCH", "/notificacoes/lidas"));
       },
 
-      updateSettings: (changes) => setState((current) => ({ ...current, settings: { ...current.settings, ...changes } })),
+      updateSettings: (changes) => {
+        setState((current) => ({ ...current, settings: { ...current.settings, ...changes } }));
+        send(api("PUT", "/configuracoes", toApi.settings(changes)), "Não foi possível salvar as configurações");
+      },
     };
-  }, [state, hydrated, availableSlots, checkEligibility, patientById, professionalById, pushNotification]);
+  }, [state, hydrated, availableSlots, checkEligibility, patientById, professionalById, refresh, logout, send, startSession]);
 
   return <ClinicContext.Provider value={value}>{children}</ClinicContext.Provider>;
 }
