@@ -90,3 +90,13 @@ cd <repository-name>
 npm i
 npm run dev
 ```
+
+## Rodando com o back-end (API)
+
+Os dados (login, pacientes, consultas, agenda, avisos) vêm da API [clinica-backend](https://github.com/clinica-consulta/clinica-backend) com MongoDB.
+
+1. Suba a API seguindo o README do back-end (`npm install`, `.env`, `npm run seed`, `npm run dev`). Ela fica em `http://localhost:3000`.
+2. Neste projeto, rode `npm install` e `npm run dev`. O site abre em `http://localhost:8080`.
+3. Se a API estiver em outro endereço, crie um `.env` a partir do `.env.example` e ajuste `VITE_API_URL`.
+
+Logins de demonstração (senha `123456`): `recepcao@demo.com`, `paciente@demo.com`, `profissional@demo.com`, `admin@demo.com`.
