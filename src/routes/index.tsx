@@ -18,27 +18,51 @@ export const Route = createFileRoute("/")({
 });
 function LoginPage() {
   const navigate = useNavigate();
-  const { login, addPatient, insurances } = useClinic();
+  const { login, signup, requestPasswordReset, insurances } = useClinic();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [recovery, setRecovery] = useState(false);
+  const [busy, setBusy] = useState(false);
   const isSignup = mode === "signup";
 
-  function submitSignup(event: React.FormEvent<HTMLFormElement>) {
+  async function submitLogin(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const password = String(new FormData(event.currentTarget).get("password") ?? "");
+    setBusy(true);
+    try {
+      const role = await login(email, password);
+      navigate({ to: roleProfiles[role].home });
+      showWelcomeToast(roleProfiles[role]);
+    } catch (error) {
+      toast.error("Não foi possível entrar", { description: (error as Error).message });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function submitSignup(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    addPatient({
-      name: String(data.get("name") ?? ""),
-      cpf: String(data.get("cpf") ?? ""),
-      phone: String(data.get("phone") ?? ""),
-      email: String(data.get("email") ?? ""),
-      birthDate: String(data.get("birthDate") ?? ""),
-      insurance: String(data.get("insurance") ?? "Particular"),
-    });
-    setEmail(String(data.get("email") ?? ""));
-    toast.success("Cadastro realizado! Agora você já pode entrar.");
-    setMode("login");
+    setBusy(true);
+    try {
+      await signup({
+        name: String(data.get("name") ?? ""),
+        cpf: String(data.get("cpf") ?? ""),
+        phone: String(data.get("phone") ?? ""),
+        email: String(data.get("email") ?? ""),
+        birthDate: String(data.get("birthDate") ?? ""),
+        insurance: String(data.get("insurance") ?? "Particular"),
+        password: String(data.get("password") ?? ""),
+      });
+      setEmail(String(data.get("email") ?? ""));
+      toast.success("Cadastro realizado! Agora você já pode entrar.");
+      setMode("login");
+    } catch (error) {
+      toast.error("Não foi possível criar a conta", { description: (error as Error).message });
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -68,10 +92,10 @@ function LoginPage() {
                   <AuthField label="CPF" name="cpf" icon={<IdCard />} type="text" inputMode="numeric" autoComplete="off" placeholder="000.000.000-00" />
                   <AuthField label="Telefone" name="phone" icon={<Phone />} type="tel" inputMode="tel" autoComplete="tel" placeholder="(00) 00000-0000" />
                   <AuthField label="E-mail" name="email" icon={<Mail />} type="email" autoComplete="email" placeholder="voce@exemplo.com" />
-                  <PasswordField label="Senha" show={showPassword} onToggle={() => setShowPassword((visible) => !visible)} autoComplete="new-password" placeholder="Crie uma senha" />
+                  <PasswordField label="Senha" name="password" minLength={6} show={showPassword} onToggle={() => setShowPassword((visible) => !visible)} autoComplete="new-password" placeholder="Crie uma senha (mín. 6 caracteres)" />
                   <AuthField label="Data de nascimento" name="birthDate" icon={<CalendarDays />} type="date" autoComplete="bday" />
                   <AuthSelect label="Convênio" name="insurance" icon={<ShieldCheck />} options={insurances.filter((item) => item.active).map((item) => item.name)} />
-                  <Button type="submit" size="lg" className="h-8 w-full rounded-md bg-secondary text-sm font-semibold text-secondary-foreground hover:bg-secondary hover:text-secondary-foreground">Criar conta <ArrowRight /></Button>
+                  <Button type="submit" size="lg" disabled={busy} className="h-8 w-full rounded-md bg-secondary text-sm font-semibold text-secondary-foreground hover:bg-secondary hover:text-secondary-foreground">Criar conta <ArrowRight /></Button>
                 </form>
               </div>
             ) : (
@@ -80,11 +104,11 @@ function LoginPage() {
                   <h1 className="text-lg font-bold text-foreground sm:text-xl">Bem-vindo de volta</h1>
                   <p className="mt-2 text-xs text-muted-foreground sm:text-sm">Digite suas credenciais para acessar sua conta.</p>
                 </div>
-                <form className="space-y-3.5" onSubmit={(event) => { event.preventDefault(); const role = login(email); navigate({ to: roleProfiles[role].home }); showWelcomeToast(roleProfiles[role]); }}>
+                <form className="space-y-3.5" onSubmit={submitLogin}>
                   <AuthField label="E-mail" icon={<Mail />} type="email" autoComplete="email" placeholder="voce@exemplo.com" value={email} onChange={(event) => setEmail(event.target.value)} />
-                  <PasswordField label="Senha" show={showPassword} onToggle={() => setShowPassword((visible) => !visible)} autoComplete="current-password" placeholder="Digite sua senha" />
+                  <PasswordField label="Senha" name="password" show={showPassword} onToggle={() => setShowPassword((visible) => !visible)} autoComplete="current-password" placeholder="Digite sua senha" />
                   <div className="text-center"><button type="button" onClick={() => setRecovery(true)} className="text-[11px] font-semibold text-muted-foreground underline underline-offset-2 sm:text-xs">Esqueci minha senha</button></div>
-                  <Button type="submit" size="lg" className="h-10 w-full rounded-xl text-sm font-semibold hover:bg-primary hover:text-primary-foreground">Entrar <ArrowRight /></Button>
+                  <Button type="submit" size="lg" disabled={busy} className="h-10 w-full rounded-xl text-sm font-semibold hover:bg-primary hover:text-primary-foreground">{busy ? "Entrando..." : "Entrar"} <ArrowRight /></Button>
                 </form>
               </div>
             )}
@@ -94,11 +118,15 @@ function LoginPage() {
       <footer className={`mt-auto w-full shrink-0 text-center text-[11px] transition-colors duration-700 ${isSignup ? "py-2 text-accent" : "py-4 text-muted-foreground"}`}>© 2026 Gestão de Consultas. Todos os direitos reservados.</footer>
 
       <Modal open={recovery} title="Redefinir senha" description="Informe seu e-mail cadastrado para receber o link de redefinição." onClose={() => setRecovery(false)}>
-        <form className="grid gap-4 font-display" onSubmit={(event) => {
+        <form className="grid gap-4 font-display" onSubmit={async (event) => {
           event.preventDefault();
           const value = String(new FormData(event.currentTarget).get("recoveryEmail") ?? "");
-          toast.success("Link de redefinição enviado", { description: `Confira a caixa de entrada de ${value}.` });
-          setRecovery(false);
+          try {
+            toast.success("Pedido enviado", { description: await requestPasswordReset(value) });
+            setRecovery(false);
+          } catch (error) {
+            toast.error("Não foi possível enviar", { description: (error as Error).message });
+          }
         }}>
           <AuthField label="E-mail" name="recoveryEmail" icon={<Mail />} type="email" autoComplete="email" placeholder="voce@exemplo.com" defaultValue={email} />
           <Button type="submit" className="h-10 w-full rounded-xl text-sm font-semibold hover:bg-primary hover:text-primary-foreground">Enviar link</Button>
