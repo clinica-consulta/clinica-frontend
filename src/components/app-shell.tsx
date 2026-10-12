@@ -1,6 +1,7 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { Bell, CalendarDays, LockKeyhole, LogOut, Search, ShieldCheck, UserRound } from "lucide-react";
+import { AccountModal } from "@/components/account-modal";
 import { LoadingScreen } from "@/components/loading-screen";
 import logo from "@/assets/logo-claro.png";
 import { roleFromPath, roleProfiles, type RoleProfile } from "@/lib/role-data";
@@ -11,11 +12,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const [loading, setLoading] = useState(false);
   const pathRole = roleFromPath(pathname);
-  const { logout, session, hydrated, notificationsFor } = useClinic();
+  const { logout, session, hydrated, notificationsFor, profile: myProfile } = useClinic();
+  const [accountOpen, setAccountOpen] = useState(false);
   const navigate = useNavigate();
   const ready = hydrated;
   const role = session?.role ?? pathRole;
-  const profile = roleProfiles[role];
+  const profile = myProfile ?? roleProfiles[role];
   const unread = ready ? notificationsFor(role).some((item) => !item.read) : false;
 
   useEffect(() => {
@@ -45,6 +47,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="app-interface flex min-h-screen flex-col bg-background">
       {loading && <LoadingScreen />}
+      <AccountModal open={accountOpen} onClose={() => setAccountOpen(false)} />
 
       {/* Cabeçalho desktop */}
       <header className={`sticky top-0 z-30 hidden text-sidebar-foreground shadow-[0_1px_4px_rgb(0_0_0/4%)] md:block bg-sidebar`}>
@@ -76,7 +79,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </span>
               )}
               <NotificationButton to={notificationsPath} unread={unread} boxed={profile.role === "professional"} />
-              <UserChip profile={profile} />
+              <button type="button" onClick={() => setAccountOpen(true)} title="Minha conta" className="rounded-lg text-left transition hover:opacity-80"><UserChip profile={profile} /></button>
               {profile.role === "professional" && <span className="grid size-10 place-items-center rounded-full bg-avatar"><UserRound className="size-4" /></span>}
               <Link to="/" onClick={logout} aria-label="Sair" className="grid size-9 place-items-center rounded-lg text-sidebar-muted transition hover:bg-sidebar-accent hover:text-sidebar-foreground"><LogOut className="size-4" /></Link>
               {profile.role === "admin" && <span className="grid size-10 place-items-center rounded-full bg-avatar"><UserRound className="size-4" /></span>}
@@ -97,6 +100,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <p className="truncate text-base font-semibold leading-5">{current.mobileTitle ?? current.short ?? current.label}</p>
         </div>
         <NotificationButton to={notificationsPath} unread={false} mobile />
+        <button type="button" onClick={() => setAccountOpen(true)} aria-label="Minha conta" className="grid size-10 shrink-0 place-items-center rounded-full text-sidebar-foreground transition hover:bg-sidebar-accent"><UserRound className="size-[18px]" /></button>
         <Link to="/" onClick={logout} aria-label="Sair" className="grid size-10 shrink-0 place-items-center rounded-full text-sidebar-foreground transition hover:bg-sidebar-accent"><LogOut className="size-[18px]" /></Link>
       </header>
 

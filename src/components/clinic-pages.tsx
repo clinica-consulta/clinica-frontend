@@ -79,7 +79,7 @@ export function ManageModal({ appointment, onClose }: { appointment: Appointment
 }
 
 export function DashboardPage() {
-  const { appointments, professionals, sendAllReminders, sendReminder, availableSlots, patientById, professionalById } = useClinic();
+  const { appointments, professionals, sendAllReminders, sendReminder, availableSlots, patientById, professionalById, session } = useClinic();
   const [newOpen, setNewOpen] = useState(false);
   const active = professionals.filter((item) => item.active);
   const [proId, setProId] = useState(active[0]?.id ?? "");
@@ -98,7 +98,7 @@ export function DashboardPage() {
     <header className="mb-6 md:mb-6">
       <p className="mb-1 hidden text-[11px] font-bold uppercase leading-4 tracking-[1.1px] text-muted-foreground md:block">Visão geral</p>
       <div className="flex items-center justify-between gap-3 md:block">
-        <h1 className="text-[26px] font-bold leading-8 tracking-[-0.8px] md:text-[32px] md:leading-10">Bom dia, Rafaela</h1>
+        <h1 className="text-[26px] font-bold leading-8 tracking-[-0.8px] md:text-[32px] md:leading-10">{greeting()}, {firstName(session?.name)}</h1>
         <Button onClick={() => setNewOpen(true)} className="h-9 shrink-0 rounded-lg px-3 text-sm font-semibold md:hidden"><Plus />Nova consulta</Button>
       </div>
       <p className="mt-2 max-w-[260px] text-sm leading-5 text-muted-foreground md:mt-0.5 md:max-w-none">Acompanhe os agendamentos do dia e as confirmações pendentes.</p>
@@ -617,18 +617,38 @@ export function ProfessionalsPage() {
   </>;
 }
 
+function greeting() {
+  const hour = new Date().getHours();
+  return hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
+}
+
+function firstName(name = "") {
+  return name.trim().split(/\s+/)[0] ?? "";
+}
+
 export function ProfilePage() {
-  const { settings, updateSettings } = useClinic();
+  const { settings, updateSettings, session, updateMyAccount } = useClinic();
   const [reminders, setReminders] = useState(true);
+
+  async function saveProfile(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    try {
+      await updateMyAccount({ name: String(data.get("name") ?? ""), phone: String(data.get("phone") ?? "") });
+      toast.success("Perfil atualizado", { description: "Suas alterações foram salvas." });
+    } catch (error) {
+      toast.error("Não foi possível salvar", { description: (error as Error).message });
+    }
+  }
 
   return <>
     <PageHeader eyebrow="Preferências" title="Perfil e configurações" description="Atualize seus dados e as preferências de confirmação da recepção." />
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
       <Section title="Dados do perfil">
-        <form className="grid gap-4 sm:grid-cols-2" onSubmit={(event) => { event.preventDefault(); toast.success("Perfil atualizado", { description: "Suas alterações foram salvas." }); }}>
-          <Field label="Nome completo" defaultValue="Rafaela Costa" />
-          <Field label="E-mail" defaultValue="recepcao@demo.com" />
-          <Field label="Telefone" defaultValue="(11) 99912-8400" />
+        <form key={session?.name} className="grid gap-4 sm:grid-cols-2" onSubmit={saveProfile}>
+          <Field label="Nome completo" name="name" defaultValue={session?.name} required />
+          <Field label="E-mail" defaultValue={session?.email} disabled />
+          <Field label="Telefone" name="phone" defaultValue={session?.phone} />
           <Field label="Perfil de acesso" defaultValue="Recepção / Equipe de marcação" disabled />
           <TextareaField label="Observações internas" className="sm:col-span-2" placeholder="Anotações da recepção" />
           <div className="sm:col-span-2"><Button type="submit">Salvar alterações</Button></div>
