@@ -14,7 +14,7 @@ import { useClinic, useReports } from "@/lib/clinic-store";
 import { AppointmentRow, Dot, Notice, NotificationList, usePatientScope, useProfessionalScope } from "@/components/role-shared";
 
 export function AdminDashboardPage() {
-  const { patients, professionals, appointments, staff, specialties } = useClinic();
+  const { patients, professionals, appointments, staff, specialties, session } = useClinic();
   const reports = useReports();
   const navigate = useNavigate();
   const monthly = appointments.filter((item) => item.date.slice(0, 7) === isoDate(0).slice(0, 7)).length;
@@ -103,7 +103,7 @@ export function AdminDashboardPage() {
         <p className="mt-3 text-[17px] font-semibold">Ambiente Clínico Protegido</p>
         <p className="mt-1.5 text-xs leading-4 text-sidebar-muted">Todos os registros de pacientes e prontuários estão salvaguardados com criptografia de ponta a ponta (AES-256).</p>
         <div className="mt-3 flex items-center gap-2.5 rounded-md bg-white/5 px-2.5 py-2"><Shield className="size-4" /><span><b className="block text-xs font-semibold">Último backup: Hoje, 04:00</b><span className="text-[10px] text-sidebar-muted">Auditoria LGPD conforme</span></span></div>
-        <div className="relative mt-auto flex items-center justify-between pt-6 text-xs"><span className="text-sidebar-muted">Sessão: Marcelo Andrade</span><button type="button" onClick={() => toast.success("Log exportado")} className="rounded-md bg-success-soft px-4 py-1 font-semibold text-success-strong">Exportar Log</button></div>
+        <div className="relative mt-auto flex items-center justify-between pt-6 text-xs"><span className="text-sidebar-muted">Sessão: {session?.name}</span><button type="button" onClick={() => toast.success("Log exportado")} className="rounded-md bg-success-soft px-4 py-1 font-semibold text-success-strong">Exportar Log</button></div>
       </article>
     </div>
   </>;

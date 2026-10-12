@@ -9,7 +9,6 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/page-kit";
 import logo from "@/assets/gestao-consultas-logo-transparent.png";
-import { roleProfiles } from "@/lib/role-data";
 import { useClinic } from "@/lib/clinic-store";
 
 export const Route = createFileRoute("/")({
@@ -31,9 +30,9 @@ function LoginPage() {
     const password = String(new FormData(event.currentTarget).get("password") ?? "");
     setBusy(true);
     try {
-      const role = await login(email, password);
-      navigate({ to: roleProfiles[role].home });
-      showWelcomeToast(roleProfiles[role]);
+      const profile = await login(email, password);
+      navigate({ to: profile.home });
+      showWelcomeToast(profile);
     } catch (error) {
       toast.error("Não foi possível entrar", { description: (error as Error).message });
     } finally {

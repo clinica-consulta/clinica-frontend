@@ -20,13 +20,14 @@ import {
   type StaffUser,
   type WaitlistEntry,
 } from "@/lib/clinic-data";
-import { type UserRole } from "@/lib/role-data";
+import { roleProfiles, type RoleProfile, type UserRole } from "@/lib/role-data";
 import { api, ApiError, fromApi, fromApiRole, toApi, toApiRole, tokenStore, type ApiUser, type Doc } from "@/lib/api";
 
 type Session = {
   role: UserRole;
   email: string;
   name: string;
+  phone: string;
   patientId?: string | undefined;
   professionalId?: string | undefined;
   staffId?: string | undefined;
@@ -78,8 +79,13 @@ type ClinicContextValue = ClinicState & {
   currentPatient: Patient | null;
   currentProfessional: Professional | null;
   activeSpecialties: string[];
+  /** Perfil do usuário logado, com o nome real vindo da API. */
+  profile: RoleProfile | null;
   /** Faz login na API. Lança erro com a mensagem da API se falhar. */
-  login: (email: string, password: string) => Promise<UserRole>;
+  login: (email: string, password: string) => Promise<RoleProfile>;
+  /** Atualiza o nome e o telefone do próprio usuário. */
+  updateMyAccount: (changes: { name: string; phone: string }) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   logout: () => void;
   /** Cadastro público de paciente. */
   signup: (input: SignupInput) => Promise<void>;
@@ -132,6 +138,7 @@ function sessionFrom(user: ApiUser): Session {
     role,
     email: user.email,
     name: user.nome,
+    phone: user.telefone ?? "",
     patientId: user.paciente ?? undefined,
     professionalId: user.profissional ?? undefined,
     staffId: role === "receptionist" || role === "admin" ? user.id : undefined,
@@ -211,6 +218,16 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     },
     [refresh],
   );
+
+  const personalize = useCallback((session: Session, professional: Professional | null): RoleProfile => {
+    const base = roleProfiles[session.role];
+    return {
+      ...base,
+      name: session.name,
+      initials: initialsOf(session.name),
+      title: session.role === "professional" ? professional?.specialty ?? base.title : base.title,
+    };
+  }, []);
 
   // Ao abrir o app, retoma a sessão salva (se o token ainda for válido).
   useEffect(() => {
@@ -303,6 +320,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       currentPatient,
       currentProfessional,
       activeSpecialties: state.specialties.filter((item) => item.active).map((item) => item.name),
+      profile: state.session ? personalize(state.session, currentProfessional) : null,
       patientById,
       professionalById,
       checkEligibility,
@@ -313,7 +331,18 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       login: async (email, password) => {
         const { token, usuario } = await api<{ token: string; usuario: ApiUser }>("POST", "/auth/login", { email, senha: password });
         tokenStore.set(token);
-        return startSession(usuario);
+        await startSession(usuario);
+        return personalize(sessionFrom(usuario), null);
+      },
+
+      updateMyAccount: async ({ name, phone }) => {
+        const user = await api<ApiUser>("PUT", "/auth/me", { nome: name, telefone: phone });
+        setState((current) => (current.session ? { ...current, session: { ...current.session, name: user.nome, phone: user.telefone ?? "" } } : current));
+        await refresh();
+      },
+
+      changePassword: async (currentPassword, newPassword) => {
+        await api("PATCH", "/auth/senha", { senhaAtual: currentPassword, novaSenha: newPassword });
       },
 
       signup: async ({ name, cpf, phone, email, birthDate, insurance, password }) => {
@@ -516,7 +545,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         send(api("PUT", "/configuracoes", toApi.settings(changes)), "Não foi possível salvar as configurações");
       },
     };
-  }, [state, hydrated, availableSlots, checkEligibility, patientById, professionalById, refresh, logout, send, startSession]);
+  }, [state, hydrated, availableSlots, checkEligibility, patientById, professionalById, refresh, logout, send, startSession, personalize]);
 
   return <ClinicContext.Provider value={value}>{children}</ClinicContext.Provider>;
 }
