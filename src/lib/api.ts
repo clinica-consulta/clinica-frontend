@@ -176,4 +176,4 @@ export const fromApi = {
 };
 
 /** Usuário logado, como devolvido por /auth/login e /auth/me. */
-export type ApiUser = { id: string; nome: string; email: string; tipo: ApiRole; paciente: string | null; profissional: string | null };
+export type ApiUser = { id: string; nome: string; email: string; telefone?: string; tipo: ApiRole; paciente: string | null; profissional: string | null };

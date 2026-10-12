@@ -134,9 +134,11 @@ export function isoDate(offsetDays = 0) {
   return date.toISOString().slice(0, 10);
 }
 
+/** Iniciais do nome, ignorando títulos como "Dr." e "Dra." (Dra. Ana Martins -> AM). */
 export function initialsOf(name: string) {
-  const parts = name.trim().split(/\s+/).filter((part) => part.length > 2);
-  const source = parts.length ? parts : name.trim().split(/\s+/);
+  const clean = name.trim().replace(/^dra?\.?\s+/i, "");
+  const parts = clean.split(/\s+/).filter((part) => part.length > 2);
+  const source = parts.length ? parts : clean.split(/\s+/);
   return `${source[0]?.[0] ?? ""}${source[source.length - 1]?.[0] ?? ""}`.toUpperCase();
 }
 
@@ -158,7 +160,7 @@ export function relativeDay(iso: string) {
 
 /** Valores usados até as configurações chegarem da API. */
 export const defaultSettings: ClinicSettings = {
-  name: "Clínica Vita",
+  name: "",
   cnpj: "",
   phone: "",
   email: "",
