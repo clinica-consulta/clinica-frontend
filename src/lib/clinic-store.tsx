@@ -111,6 +111,8 @@ type ClinicContextValue = ClinicState & {
   addSpecialty: (name: string) => void;
   updateSpecialty: (id: string, name: string) => void;
   toggleSpecialty: (id: string) => void;
+  saveInsurance: (input: { id?: string; name: string; covered: string[] }) => void;
+  toggleInsurance: (id: string) => void;
   addBlock: (input: Omit<ScheduleBlock, "id">) => void;
   removeBlock: (id: string) => void;
   addToWaitlist: (input: Omit<WaitlistEntry, "id" | "createdAt" | "status">) => void;
@@ -150,11 +152,19 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
   const roleRef = useRef<UserRole | null>(null);
 
+  /** Convênios são públicos: a tela de cadastro precisa deles mesmo sem login. */
+  const loadPublicInsurances = useCallback(() => {
+    api<Doc[]>("GET", "/convenios")
+      .then((docs) => !roleRef.current && setState((current) => ({ ...current, insurances: docs.map(fromApi.insurance) })))
+      .catch(() => undefined);
+  }, []);
+
   const logout = useCallback(() => {
     tokenStore.set(null);
     roleRef.current = null;
     setState(emptyState);
-  }, []);
+    loadPublicInsurances();
+  }, [loadPublicInsurances]);
 
   /** Busca tudo o que o perfil logado pode ver. Rotas sem permissão ficam vazias. */
   const refresh = useCallback(async () => {
@@ -240,18 +250,14 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         } catch {
           tokenStore.set(null);
         }
-      } else {
-        // Tela de cadastro usa a lista de convênios mesmo sem login.
-        api<Doc[]>("GET", "/convenios")
-          .then((docs) => active && setState((current) => ({ ...current, insurances: docs.map(fromApi.insurance) })))
-          .catch(() => undefined);
       }
+      if (active && !roleRef.current) loadPublicInsurances();
       if (active) setHydrated(true);
     })();
     return () => {
       active = false;
     };
-  }, [startSession]);
+  }, [startSession, loadPublicInsurances]);
 
   const patientById = useCallback((id: string) => state.patients.find((item) => item.id === id), [state.patients]);
   const professionalById = useCallback((id: string) => state.professionals.find((item) => item.id === id), [state.professionals]);
@@ -304,7 +310,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       history: [...item.history, { at: isoDate(0), text }],
     });
 
-    const patchList = <K extends "patients" | "professionals" | "specialties" | "staff" | "waitlist" | "notifications" | "appointments">(
+    const patchList = <K extends "patients" | "professionals" | "specialties" | "insurances" | "staff" | "waitlist" | "notifications" | "appointments">(
       key: K,
       id: string,
       update: (item: ClinicState[K][number]) => ClinicState[K][number],
@@ -484,6 +490,18 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       toggleSpecialty: (id) => {
         patchList("specialties", id, (item) => ({ ...item, active: !item.active }));
         send(api("PATCH", `/especialidades/${id}/status`));
+      },
+
+      saveInsurance: ({ id, name, covered }) => {
+        if (id) patchList("insurances", id, (item) => ({ ...item, name, covered }));
+        else setState((current) => ({ ...current, insurances: [...current.insurances, { id: tempId("c"), name, covered, active: true }] }));
+        const body = { nome: name, coberturas: covered };
+        send(id ? api("PUT", `/convenios/${id}`, body) : api("POST", "/convenios", body), "Não foi possível salvar o convênio");
+      },
+
+      toggleInsurance: (id) => {
+        patchList("insurances", id, (item) => ({ ...item, active: !item.active }));
+        send(api("PATCH", `/convenios/${id}/status`));
       },
 
       addBlock: (input) => {

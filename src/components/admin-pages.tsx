@@ -508,9 +508,10 @@ export function AdminSchedulesPage() {
 /* ---------- Configurações ---------- */
 
 export function AdminSettingsPage() {
-  const { settings, updateSettings, insurances, staff } = useClinic();
+  const { settings, updateSettings, insurances, staff, specialties, saveInsurance, toggleInsurance } = useClinic();
   const navigate = useNavigate();
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [planForm, setPlanForm] = useState<{ id?: string; name: string; covered: string[] } | null>(null);
   const activePlans = insurances.filter((plan) => plan.active);
   const staffTone = (role: string, mobile = false) => role === "admin" ? (mobile ? "bg-avatar text-white" : "bg-success-soft text-success") : "bg-accent text-foreground";
   const planDots = ["bg-success", "bg-foreground", "bg-subtle-foreground"];
@@ -540,14 +541,35 @@ export function AdminSettingsPage() {
       </section>
 
       <section className="surface p-6">
-        <CardTitle icon={<ShieldPlus />} action={<button type="button" aria-label="Adicionar convênio" onClick={() => toast.info("Novo convênio", { description: "O cadastro de convênios é feito junto à equipe de credenciamento." })} className="grid size-7 place-items-center rounded-full bg-accent"><Plus className="size-4" /></button>}>Convênios e cobertura</CardTitle>
+        <CardTitle icon={<ShieldPlus />} action={<button type="button" aria-label="Adicionar convênio" onClick={() => setPlanForm({ name: "", covered: [] })} className="grid size-7 place-items-center rounded-full bg-accent"><Plus className="size-4" /></button>}>Convênios e cobertura</CardTitle>
         <div className="space-y-2">{insurances.map((plan, index) => <div key={plan.id} className="rounded-lg bg-soft p-4">
           <div className="flex items-center gap-2.5"><span className={`size-2 shrink-0 rounded-full md:hidden ${planDots[index % planDots.length]}`} /><b className="flex-1 text-[15px] font-semibold">{plan.name}</b><span className={`rounded-full px-2 py-0.5 text-[11px] font-medium md:hidden ${plan.covered.length ? "bg-success-soft text-success-strong" : "bg-card/70 text-muted-foreground"}`}>{plan.covered.length ? "Credenciado" : "Padrão"}</span><span className={`hidden size-2 rounded-full md:block ${plan.active ? "bg-success" : "bg-subtle-foreground"}`} /></div>
-          <p className="mt-1 pl-[18px] text-sm text-muted-foreground md:pl-0 md:text-[13px]">{plan.covered.length ? `Cobre: ${plan.covered.join(", ")}` : "Atendimento particular (todas as especialidades)"}</p>
+          <p className="mt-1 pl-[18px] text-sm text-muted-foreground md:pl-0 md:text-[13px]">{plan.covered.length ? `Cobre: ${plan.covered.join(", ")}` : "Cobre todas as especialidades"}{!plan.active && " · Inativo"}</p>
+          <div className="mt-2 flex gap-2 pl-[18px] md:pl-0"><button type="button" onClick={() => setPlanForm({ id: plan.id, name: plan.name, covered: plan.covered })} className="h-7 rounded-md bg-card px-3 text-xs font-semibold">Editar</button><button type="button" onClick={() => { toggleInsurance(plan.id); toast.success(plan.active ? `${plan.name} desativado` : `${plan.name} ativado`); }} className="h-7 rounded-md px-3 text-xs font-medium text-muted-foreground hover:text-foreground">{plan.active ? "Desativar" : "Ativar"}</button></div>
         </div>)}</div>
+        {!insurances.length && <EmptyHint>Nenhum convênio cadastrado. Clique em + para adicionar.</EmptyHint>}
         <div className="mt-6 hidden items-center justify-between text-xs md:flex"><span className="text-muted-foreground">{activePlans.length} convênios ativos</span><button type="button" onClick={() => navigate({ to: "/administrador/especialidades" })} className="flex items-center gap-1 font-semibold">Gerenciar regras<ArrowRight className="size-3.5" /></button></div>
       </section>
     </div>
+
+    <Modal open={Boolean(planForm)} title={planForm?.id ? "Editar convênio" : "Novo convênio"} description="Marque as especialidades cobertas. Sem nenhuma marcada, o convênio cobre todas." onClose={() => setPlanForm(null)}>
+      {planForm && <form className="grid gap-4" onSubmit={(event) => {
+        event.preventDefault();
+        const data = new FormData(event.currentTarget);
+        const name = String(data.get("name") ?? "").trim();
+        if (!name) return;
+        if (insurances.some((plan) => plan.id !== planForm.id && plan.name.toLowerCase() === name.toLowerCase())) { toast.error("Já existe um convênio com esse nome"); return; }
+        saveInsurance({ ...(planForm.id && { id: planForm.id }), name, covered: data.getAll("covered").map(String) });
+        toast.success(planForm.id ? "Convênio atualizado" : "Convênio cadastrado", { description: name });
+        setPlanForm(null);
+      }}>
+        <Field label="Nome do convênio" name="name" defaultValue={planForm.name} placeholder="Ex.: Unimed" required />
+        <fieldset className="grid gap-2"><legend className="mb-2 text-sm font-semibold">Especialidades cobertas</legend>
+          {specialties.length ? specialties.map((item) => <label key={item.id} className="flex items-center gap-2 text-sm"><input type="checkbox" name="covered" value={item.name} defaultChecked={planForm.covered.includes(item.name)} className="size-4 accent-primary" />{item.name}</label>) : <p className="text-sm text-muted-foreground">Nenhuma especialidade cadastrada.</p>}
+        </fieldset>
+        <Button type="submit">{planForm.id ? "Salvar alterações" : "Cadastrar convênio"}</Button>
+      </form>}
+    </Modal>
 
     <section className="surface mt-4 p-6 md:mt-6">
       <CardTitle icon={<SlidersHorizontal />}>Preferências de confirmação</CardTitle>
