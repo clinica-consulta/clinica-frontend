@@ -38,6 +38,7 @@ export type AppNavItem = {
   desktopOnly?: boolean;
 };
 
+/** Nome e iniciais abaixo são só o padrão: na tela aparece o nome real do usuário logado. */
 export type RoleProfile = {
   role: UserRole;
   name: string;
@@ -68,9 +69,9 @@ const receptionistNav: AppNavItem[] = [
 export const roleProfiles: Record<UserRole, RoleProfile> = {
   receptionist: {
     role: "receptionist",
-    name: "Rafaela",
+    name: "Recepção",
     title: "Recepcionista",
-    initials: "RC",
+    initials: "RE",
     home: "/dashboard",
     search: "Buscar consulta ou especialidade...",
     brand: "Portal de Saúde",
@@ -81,9 +82,9 @@ export const roleProfiles: Record<UserRole, RoleProfile> = {
   },
   patient: {
     role: "patient",
-    name: "Marina Costa",
+    name: "Paciente",
     title: "Paciente",
-    initials: "MC",
+    initials: "PA",
     home: "/paciente",
     search: "Buscar consulta ou especialidade...",
     brand: "Portal de Saúde",
@@ -99,9 +100,9 @@ export const roleProfiles: Record<UserRole, RoleProfile> = {
   },
   professional: {
     role: "professional",
-    name: "Dra. Ana Martins",
-    title: "Médica",
-    initials: "AM",
+    name: "Profissional",
+    title: "Profissional de saúde",
+    initials: "PR",
     home: "/profissional",
     search: "Buscar paciente ou atendimento...",
     brand: "Área médica",
@@ -119,9 +120,9 @@ export const roleProfiles: Record<UserRole, RoleProfile> = {
   },
   admin: {
     role: "admin",
-    name: "Marcelo Andrade",
+    name: "Administrador",
     title: "Administrador",
-    initials: "MA",
+    initials: "AD",
     home: "/administrador",
     search: "Buscar usuário ou indicador...",
     brand: "Clínica integrada",
