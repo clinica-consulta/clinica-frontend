@@ -4,12 +4,13 @@ import { showWelcomeToast } from "@/components/welcome-toast";
 import { isoDate } from "@/lib/clinic-data";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowRight, CalendarDays, Eye, EyeOff, IdCard, LockKeyhole, Mail, Phone, ShieldCheck, UserRound } from "lucide-react";
+import { ArrowRight, CalendarDays, Eye, EyeOff, IdCard, KeyRound, LockKeyhole, Mail, Phone, ShieldCheck, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/page-kit";
 import logo from "@/assets/gestao-consultas-logo-transparent.png";
 import { useClinic } from "@/lib/clinic-store";
+import { isValidCpf, maskCpf, maskPhone } from "@/lib/cpf";
 
 export const Route = createFileRoute("/")({
   head: () => ({ meta: [{ title: "Acesso — Gestão de Consultas" }, { name: "description", content: "Entre ou crie seu acesso à plataforma de gestão de consultas da clínica." }, { property: "og:title", content: "Acesso — Gestão de Consultas" }, { property: "og:description", content: "Entre ou crie seu acesso à plataforma de gestão de consultas da clínica." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
@@ -17,12 +18,19 @@ export const Route = createFileRoute("/")({
 });
 function LoginPage() {
   const navigate = useNavigate();
-  const { login, signup, requestPasswordReset, insurances } = useClinic();
+  const { login, signup, requestPasswordReset, resetPassword, insurances } = useClinic();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [recovery, setRecovery] = useState(false);
+  /** Passo 2 da redefinição: e-mail já conferido, falta o código e a nova senha. */
+  const [recoveryEmail, setRecoveryEmail] = useState<string | null>(null);
+  const [testCode, setTestCode] = useState("");
+  const closeRecovery = () => { setRecovery(false); setRecoveryEmail(null); setTestCode(""); };
   const [busy, setBusy] = useState(false);
+  const [cpf, setCpf] = useState("");
+  const [phone, setPhone] = useState("");
+  const cpfError = cpf.replace(/\D/g, "").length === 11 && !isValidCpf(cpf) ? "CPF inválido. Confira os números." : "";
   const isSignup = mode === "signup";
 
   async function submitLogin(event: React.FormEvent<HTMLFormElement>) {
@@ -43,12 +51,16 @@ function LoginPage() {
   async function submitSignup(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
+    if (!isValidCpf(cpf)) {
+      toast.error("CPF inválido", { description: "Confira os 11 números do CPF." });
+      return;
+    }
     setBusy(true);
     try {
       await signup({
         name: String(data.get("name") ?? ""),
-        cpf: String(data.get("cpf") ?? ""),
-        phone: String(data.get("phone") ?? ""),
+        cpf,
+        phone,
         email: String(data.get("email") ?? ""),
         birthDate: String(data.get("birthDate") ?? ""),
         insurance: String(data.get("insurance") ?? "Particular"),
@@ -56,6 +68,8 @@ function LoginPage() {
       });
       setEmail(String(data.get("email") ?? ""));
       toast.success("Cadastro realizado! Agora você já pode entrar.");
+      setCpf("");
+      setPhone("");
       setMode("login");
     } catch (error) {
       toast.error("Não foi possível criar a conta", { description: (error as Error).message });
@@ -74,9 +88,9 @@ function LoginPage() {
 
         <div className={`border p-2.5 transition-colors duration-700 sm:p-3 ${isSignup ? "rounded-xl border-border/75 bg-auth-panel" : "rounded-2xl border-border bg-muted/55"}`}>
           <div className={`relative grid h-10 grid-cols-2 border-border p-1 transition-colors duration-700 ${isSignup ? "rounded-lg border bg-auth-input" : "rounded-xl border-2 bg-card"}`} role="tablist" aria-label="Acesso">
-            <span className={`absolute bottom-1 left-1 top-1 w-[calc(50%-4px)] transition-transform duration-500 ease-out ${isSignup ? "translate-x-full rounded-md bg-secondary" : "translate-x-0 rounded-lg bg-primary"}`} aria-hidden="true" />
-            <Button type="button" variant="ghost" role="tab" aria-selected={!isSignup} onClick={() => setMode("login")} className={`relative z-10 flex h-full items-center justify-center p-0 text-sm font-semibold leading-none hover:bg-transparent ${isSignup ? "rounded-sm text-primary hover:text-primary" : "rounded-lg text-primary-foreground hover:text-primary-foreground"}`}>Login</Button>
-            <Button type="button" variant="ghost" role="tab" aria-selected={isSignup} onClick={() => setMode("signup")} className={`relative z-10 flex h-full items-center justify-center p-0 text-sm font-semibold leading-none hover:bg-transparent ${isSignup ? "rounded-sm text-primary hover:text-primary" : "rounded-lg text-muted-foreground hover:text-muted-foreground"}`}>Cadastre-se</Button>
+            <span className={`absolute bottom-1 left-1 top-1 w-[calc(50%-4px)] transition-transform duration-500 ease-out ${isSignup ? "translate-x-full rounded-md bg-primary" : "translate-x-0 rounded-lg bg-primary"}`} aria-hidden="true" />
+            <Button type="button" variant="ghost" role="tab" aria-selected={!isSignup} onClick={() => setMode("login")} className={`relative z-10 flex h-full items-center justify-center p-0 text-sm font-semibold leading-none hover:bg-transparent ${isSignup ? "rounded-sm text-accent hover:text-primary-foreground" : "rounded-lg text-primary-foreground hover:text-primary-foreground"}`}>Login</Button>
+            <Button type="button" variant="ghost" role="tab" aria-selected={isSignup} onClick={() => setMode("signup")} className={`relative z-10 flex h-full items-center justify-center p-0 text-sm font-semibold leading-none hover:bg-transparent ${isSignup ? "rounded-sm text-primary-foreground hover:text-primary-foreground" : "rounded-lg text-muted-foreground hover:text-muted-foreground"}`}>Cadastre-se</Button>
           </div>
 
           <div className={`overflow-hidden px-1.5 pb-1.5 ${isSignup ? "mt-2" : "mt-5"}`}>
@@ -88,13 +102,14 @@ function LoginPage() {
                 </div>
                 <form className="space-y-1.5 [&_label]:gap-0.5 [&_label]:text-xs [&_label]:text-primary-foreground [&_input]:h-8 [&_input]:rounded-md [&_input]:border [&_input]:border-border [&_input]:bg-auth-input [&_input]:text-primary-foreground [&_input]:placeholder:text-accent [&_select]:h-8 [&_select]:rounded-md [&_select]:border [&_select]:border-border [&_select]:bg-auth-input [&_select]:text-primary-foreground [&_.field-icon]:text-accent" onSubmit={submitSignup}>
                   <AuthField label="Nome" name="name" icon={<UserRound />} type="text" autoComplete="name" placeholder="Digite seu nome" />
-                  <AuthField label="CPF" name="cpf" icon={<IdCard />} type="text" inputMode="numeric" autoComplete="off" placeholder="000.000.000-00" />
-                  <AuthField label="Telefone" name="phone" icon={<Phone />} type="tel" inputMode="tel" autoComplete="tel" placeholder="(00) 00000-0000" />
+                  <AuthField label="CPF" name="cpf" icon={<IdCard />} type="text" inputMode="numeric" autoComplete="off" placeholder="000.000.000-00" value={cpf} onChange={(event) => setCpf(maskCpf(event.target.value))} maxLength={14} pattern="\d{3}\.\d{3}\.\d{3}-\d{2}" title="Digite os 11 números do CPF" aria-invalid={Boolean(cpfError)} />
+                  {cpfError && <p role="alert" className="text-[11px] font-semibold text-red-300">{cpfError}</p>}
+                  <AuthField label="Telefone" name="phone" icon={<Phone />} type="tel" inputMode="tel" autoComplete="tel" placeholder="(00) 00000-0000" value={phone} onChange={(event) => setPhone(maskPhone(event.target.value))} maxLength={15} />
                   <AuthField label="E-mail" name="email" icon={<Mail />} type="email" autoComplete="email" placeholder="voce@exemplo.com" />
                   <PasswordField label="Senha" name="password" minLength={6} show={showPassword} onToggle={() => setShowPassword((visible) => !visible)} autoComplete="new-password" placeholder="Crie uma senha (mín. 6 caracteres)" />
-                  <AuthField label="Data de nascimento" name="birthDate" icon={<CalendarDays />} type="date" autoComplete="bday" />
-                  <AuthSelect label="Convênio" name="insurance" icon={<ShieldCheck />} options={insurances.filter((item) => item.active).map((item) => item.name)} />
-                  <Button type="submit" size="lg" disabled={busy} className="h-8 w-full rounded-md bg-secondary text-sm font-semibold text-secondary-foreground hover:bg-secondary hover:text-secondary-foreground">Criar conta <ArrowRight /></Button>
+                  <AuthField label="Data de nascimento" name="birthDate" icon={<CalendarDays />} type="date" autoComplete="bday" dark />
+                  <AuthSelect label="Convênio" name="insurance" icon={<ShieldCheck />} options={insurances.filter((item) => item.active).map((item) => item.name)} dark />
+                  <Button type="submit" size="lg" disabled={busy || Boolean(cpfError)} className="h-8 w-full rounded-md border border-border/60 bg-primary text-sm font-semibold text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground">{busy ? "Criando..." : "Criar conta"} <ArrowRight /></Button>
                 </form>
               </div>
             ) : (
@@ -116,34 +131,69 @@ function LoginPage() {
       </section>
       <footer className={`mt-auto w-full shrink-0 text-center text-[11px] transition-colors duration-700 ${isSignup ? "py-2 text-accent" : "py-4 text-muted-foreground"}`}>© 2026 Gestão de Consultas. Todos os direitos reservados.</footer>
 
-      <Modal open={recovery} title="Redefinir senha" description="Informe seu e-mail cadastrado para receber o link de redefinição." onClose={() => setRecovery(false)}>
-        <form className="grid gap-4 font-display" onSubmit={async (event) => {
-          event.preventDefault();
-          const value = String(new FormData(event.currentTarget).get("recoveryEmail") ?? "");
-          try {
-            toast.success("Pedido enviado", { description: await requestPasswordReset(value) });
-            setRecovery(false);
-          } catch (error) {
-            toast.error("Não foi possível enviar", { description: (error as Error).message });
-          }
-        }}>
-          <AuthField label="E-mail" name="recoveryEmail" icon={<Mail />} type="email" autoComplete="email" placeholder="voce@exemplo.com" defaultValue={email} />
-          <Button type="submit" className="h-10 w-full rounded-xl text-sm font-semibold hover:bg-primary hover:text-primary-foreground">Enviar link</Button>
-        </form>
+      <Modal open={recovery} title="Redefinir senha" description={recoveryEmail ? `Digite o código enviado para ${recoveryEmail} e escolha a nova senha.` : "Informe o e-mail da sua conta. Vamos conferir se ele está cadastrado e enviar um código."} onClose={closeRecovery}>
+        {recoveryEmail ? (
+          <form className="grid gap-4 font-display" onSubmit={async (event) => {
+            event.preventDefault();
+            const data = new FormData(event.currentTarget);
+            const password = String(data.get("newPassword") ?? "");
+            if (password !== String(data.get("confirmPassword") ?? "")) { toast.error("As senhas não conferem"); return; }
+            setBusy(true);
+            try {
+              await resetPassword(recoveryEmail, String(data.get("code") ?? ""), password);
+              toast.success("Senha redefinida", { description: "Agora entre com a nova senha." });
+              setEmail(recoveryEmail);
+              closeRecovery();
+            } catch (error) {
+              toast.error("Não foi possível redefinir", { description: (error as Error).message });
+            } finally {
+              setBusy(false);
+            }
+          }}>
+            {testCode && <p className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">Envio de e-mail não configurado na API. Código de teste: <b className="text-sm tracking-[2px] text-foreground">{testCode}</b></p>}
+            <AuthField label="Código de 6 dígitos" name="code" icon={<KeyRound />} type="text" inputMode="numeric" autoComplete="one-time-code" placeholder="000000" maxLength={6} pattern="\d{6}" title="Digite os 6 números do código" />
+            <PasswordField label="Nova senha" name="newPassword" minLength={6} show={showPassword} onToggle={() => setShowPassword((visible) => !visible)} autoComplete="new-password" placeholder="Mínimo 6 caracteres" />
+            <PasswordField label="Repita a nova senha" name="confirmPassword" minLength={6} show={showPassword} onToggle={() => setShowPassword((visible) => !visible)} autoComplete="new-password" placeholder="Digite de novo" />
+            <Button type="submit" disabled={busy} className="h-10 w-full rounded-xl text-sm font-semibold hover:bg-primary hover:text-primary-foreground">Salvar nova senha</Button>
+            <button type="button" onClick={() => { setRecoveryEmail(null); setTestCode(""); }} className="text-xs font-semibold text-muted-foreground underline underline-offset-2">Usar outro e-mail</button>
+          </form>
+        ) : (
+          <form className="grid gap-4 font-display" onSubmit={async (event) => {
+            event.preventDefault();
+            const value = String(new FormData(event.currentTarget).get("recoveryEmail") ?? "").trim();
+            setBusy(true);
+            try {
+              const result = await requestPasswordReset(value);
+              toast.success("E-mail confirmado", { description: result.message });
+              setTestCode(result.testCode ?? "");
+              setRecoveryEmail(value.toLowerCase());
+            } catch (error) {
+              toast.error("E-mail não validado", { description: (error as Error).message });
+            } finally {
+              setBusy(false);
+            }
+          }}>
+            <AuthField label="E-mail" name="recoveryEmail" icon={<Mail />} type="email" autoComplete="email" placeholder="voce@exemplo.com" defaultValue={email} />
+            <Button type="submit" disabled={busy} className="h-10 w-full rounded-xl text-sm font-semibold hover:bg-primary hover:text-primary-foreground">{busy ? "Conferindo..." : "Validar e-mail e enviar código"}</Button>
+          </form>
+        )}
       </Modal>
     </main>
   );
 }
 
-function AuthField({ label, icon, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string; icon: React.ReactNode }) {
+/** `dark`: campo no tema azul da tela de cadastro. */
+const darkField = "h-8 rounded-md border border-border bg-auth-input text-primary-foreground";
+
+function AuthField({ label, icon, dark = false, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string; icon: React.ReactNode; dark?: boolean }) {
   if (props.type === "date") {
     return (
-      <div className="grid gap-1 text-xs font-semibold text-foreground sm:text-sm">
+      <div className={`grid gap-0.5 text-xs font-semibold ${dark ? "text-primary-foreground" : "gap-1 text-foreground sm:text-sm"}`}>
         {label}
         <DatePicker aria-label={label} name={props.name} required max={isoDate(0)}>{(value) => (
-          <span className="relative flex h-10 w-full items-center rounded-xl border-2 border-input bg-card pl-10 pr-3 text-xs font-normal text-foreground transition sm:text-sm">
-            <span className="field-icon absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground [&>svg]:size-4" aria-hidden="true">{icon}</span>
-            {value || <span className="text-muted-foreground">dd/mm/aaaa</span>}
+          <span className={`relative flex w-full items-center pl-10 pr-3 text-xs font-normal transition sm:text-sm ${dark ? darkField : "h-10 rounded-xl border-2 border-input bg-card text-foreground"}`}>
+            <span className={`field-icon absolute left-3.5 top-1/2 size-4 -translate-y-1/2 [&>svg]:size-4 ${dark ? "text-accent" : "text-muted-foreground"}`} aria-hidden="true">{icon}</span>
+            {value || <span className={dark ? "text-accent" : "text-muted-foreground"}>dd/mm/aaaa</span>}
           </span>
         )}</DatePicker>
       </div>
@@ -160,13 +210,13 @@ function AuthField({ label, icon, ...props }: React.InputHTMLAttributes<HTMLInpu
   );
 }
 
-function AuthSelect({ label, icon, options, ...props }: React.SelectHTMLAttributes<HTMLSelectElement> & { label: string; icon: React.ReactNode; options: string[] }) {
+function AuthSelect({ label, icon, options, dark = false, ...props }: React.SelectHTMLAttributes<HTMLSelectElement> & { label: string; icon: React.ReactNode; options: string[]; dark?: boolean }) {
   return (
     <label className="grid gap-1 text-xs font-semibold text-foreground sm:text-sm">
       {label}
       <span className="relative">
-        <span className="field-icon absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground [&>svg]:size-4" aria-hidden="true">{icon}</span>
-        <SiteSelect {...props} required className="h-10 w-full rounded-xl border-2 border-input bg-card pl-10 pr-3 text-xs font-normal text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20 sm:text-sm">
+        <span className={`field-icon absolute left-3.5 top-1/2 z-10 size-4 -translate-y-1/2 [&>svg]:size-4 ${dark ? "text-accent" : "text-muted-foreground"}`} aria-hidden="true">{icon}</span>
+        <SiteSelect {...props} required className={`w-full pl-10 pr-3 text-xs font-normal outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20 sm:text-sm ${dark ? `${darkField} [&_svg]:text-accent` : "h-10 rounded-xl border-2 border-input bg-card text-foreground"}`}>
           {options.map((option) => <option key={option} value={option}>{option}</option>)}
         </SiteSelect>
       </span>

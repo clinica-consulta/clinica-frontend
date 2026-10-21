@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyHint, Field, Modal, PageHeader, SearchInput, Section, SelectField, StatCard, StatusBadge, TextareaField, Toggle, Toolbar } from "@/components/page-kit";
 import { AppointmentForm } from "@/components/appointment-form";
 import { MiniCalendar, SlotPicker } from "@/components/mini-calendar";
-import { appointmentStatuses, formatDate, isoDate, openStatuses, relativeDay, slotRange, type Appointment } from "@/lib/clinic-data";
+import { appointmentStatuses, formatDate, isoDate, openStatuses, relativeDay, slotRange, weekdayName, formatMoney, type Appointment } from "@/lib/clinic-data";
 import { useClinic, useReports } from "@/lib/clinic-store";
 
 function useAppointmentActions() {
@@ -16,7 +16,10 @@ function useAppointmentActions() {
     complete: (item: Appointment) => { setAppointmentStatus(item.id, "Realizada", "Consulta registrada como realizada"); toast.success("Consulta registrada como realizada"); },
     noShow: (item: Appointment) => { setAppointmentStatus(item.id, "Não compareceu", "Ausência registrada"); toast.warning("Ausência registrada"); },
     cancel: (item: Appointment) => { setAppointmentStatus(item.id, "Cancelada", "Consulta cancelada e horário liberado"); toast.warning("Consulta cancelada", { description: `Horário ${item.time} liberado · ${formatDate(item.date)}` }); },
-    remind: (item: Appointment) => { sendReminder(item.id); toast.success("Lembrete enviado", { description: `${patientById(item.patientId)?.name} recebeu o pedido de confirmação.` }); },
+    remind: (item: Appointment) => {
+      if (!sendReminder(item.id)) { toast.error("Lembrete já enviado", { description: "Cada consulta recebe só um lembrete." }); return; }
+      toast.success("Lembrete enviado", { description: `${patientById(item.patientId)?.name} recebeu o pedido de confirmação.` });
+    },
   };
 }
 
@@ -54,7 +57,7 @@ export function ManageModal({ appointment, onClose }: { appointment: Appointment
       <Modal open={Boolean(appointment) && !reschedule} title="Gerenciar consulta" description={`${patient?.name} · ${professionalById(appointment.professionalId)?.name} · ${relativeDay(appointment.date)} às ${appointment.time}`} onClose={onClose}>
         <div className="grid gap-3 sm:grid-cols-2">
           <Button onClick={() => { actions.confirm(appointment); onClose(); }}><Check />Confirmar</Button>
-          <Button variant="outline" onClick={() => { actions.remind(appointment); onClose(); }}><Send />Enviar lembrete</Button>
+          <Button variant="outline" disabled={Boolean(appointment.reminderSentAt)} title={appointment.reminderSentAt ? "Cada consulta recebe só um lembrete" : undefined} onClick={() => { actions.remind(appointment); onClose(); }}><Send />{appointment.reminderSentAt ? "Lembrete já enviado" : "Enviar lembrete"}</Button>
           <Button variant="outline" onClick={() => setReschedule(appointment)}><CalendarClock />Remarcar</Button>
           <Button variant="outline" onClick={() => { actions.complete(appointment); onClose(); }}><CheckCircle2 />Registrar realizada</Button>
           <Button variant="outline" onClick={() => { actions.noShow(appointment); onClose(); }}><CircleAlert />Registrar ausência</Button>
@@ -67,6 +70,7 @@ export function ManageModal({ appointment, onClose }: { appointment: Appointment
           <p className="text-muted-foreground">Canal do agendamento: {appointment.channel}</p>
           <p className="text-muted-foreground">Resposta do paciente: {appointment.confirmationReply}</p>
           <p className="text-muted-foreground">Lembrete: {appointment.reminderSentAt ? formatDate(appointment.reminderSentAt) : "não enviado"}</p>
+          <p className="text-muted-foreground">Pagamento: {appointment.payment ? `${appointment.payment.status} · ${formatMoney(appointment.payment.amount)}${appointment.payment.method ? ` · ${appointment.payment.method}` : ""}` : "sem cobrança"}</p>
         </div>
         <div className="mt-3 rounded-md border border-border p-3 text-xs sm:text-sm">
           <b className="flex items-center gap-2"><History className="size-4" />Alterações registradas</b>
@@ -145,7 +149,7 @@ export function DashboardPage() {
               <b className="text-sm leading-5">{formatDate(item.date).slice(0, 5)} • {item.time}</b>
               <span className="justify-self-end"><StatusBadge status={item.status} /></span>
               <div className="min-w-0"><p className="truncate text-sm font-semibold leading-5">{patientById(item.patientId)?.name}</p><p className="truncate text-xs leading-4 text-muted-foreground">{professionalById(item.professionalId)?.name} • {item.reminderSentAt ? "Lembrete enviado" : "Sem lembrete"}</p></div>
-              <button type="button" aria-label="Enviar lembrete" onClick={() => { sendReminder(item.id); toast.success("Lembrete enviado"); }} className="grid size-8 place-items-center self-end rounded-full bg-accent/70 text-foreground"><MailCheck className="size-4" /></button>
+              <button type="button" aria-label={item.reminderSentAt ? "Lembrete já enviado" : "Enviar lembrete"} disabled={Boolean(item.reminderSentAt)} onClick={() => { if (sendReminder(item.id)) toast.success("Lembrete enviado"); }} className="grid size-8 place-items-center self-end rounded-full bg-accent/70 text-foreground disabled:opacity-40"><MailCheck className="size-4" /></button>
             </div>
           </div>
         ))}</div> : <div className="p-4 md:p-0"><EmptyHint>Todas as consultas estão confirmadas.</EmptyHint></div>}
@@ -170,7 +174,7 @@ export function DashboardPage() {
         </div>
         <div className="grid content-start gap-4 md:col-span-8">
           <div className="flex items-center justify-between gap-3 md:pb-2">
-            <div><h3 className="text-base font-bold leading-6">{formatDate(calDate)} • {relativeDay(calDate)}</h3><p className="text-xs leading-4 text-muted-foreground">{slots.length} horário(s) livre(s)</p></div>
+            <div><h3 className="text-base font-bold leading-6">{weekdayName(calDate)}, {formatDate(calDate)} • {relativeDay(calDate)}</h3><p className="text-xs leading-4 text-muted-foreground">{slots.length} horário(s) livre(s)</p></div>
             <span className="rounded-full bg-success-soft px-2.5 py-0.5 text-[11px] font-semibold text-success md:hidden">{slots.length ? "Disponível" : "Sem vagas"}</span>
             <span className="hidden items-center gap-2 text-[11px] font-medium text-subtle-foreground md:flex">Turno:<span className="rounded bg-accent px-2.5 py-1 text-[13px] font-semibold leading-[18px] text-foreground">Integral</span></span>
           </div>
@@ -219,7 +223,7 @@ export function AgendaPage() {
   const dateBar = (
     <div className="flex items-center justify-between gap-3">
       <div className="flex gap-2"><Button variant="ghost" size="icon" className="size-9 rounded-lg bg-soft" onClick={() => shift(-1)} aria-label="Dia anterior"><ChevronLeft /></Button><Button variant="ghost" size="icon" className="size-9 rounded-lg bg-soft" onClick={() => shift(1)} aria-label="Próximo dia"><ChevronRight /></Button></div>
-      <p className="flex items-center gap-1.5 text-base md:text-xl"><CalendarDays className="size-4 md:hidden" /><b className="font-bold">{formatDate(date)}</b><span className="text-muted-foreground">•</span><span className="text-muted-foreground md:font-medium">{relativeDay(date)}</span></p>
+      <p className="flex items-center gap-1.5 text-base md:text-xl"><CalendarDays className="size-4 md:hidden" /><b className="font-bold">{weekdayName(date)}, {formatDate(date)}</b><span className="text-muted-foreground">•</span><span className="text-muted-foreground md:font-medium">{relativeDay(date)}</span></p>
       <Button variant="ghost" className="h-9 rounded-lg bg-accent/70 px-4 font-semibold md:bg-soft" onClick={() => setDate(isoDate(0))}>Hoje</Button>
     </div>
   );
