@@ -80,7 +80,23 @@ export type Appointment = {
   reminderSentAt: string | null;
   confirmationReply: "Confirmou" | "Cancelou" | "Sem resposta";
   history: AppointmentLog[];
+  /** Pagamento simulado; null quando não há cobrança. */
+  payment: AppointmentPayment | null;
 };
+
+export type PaymentMethod = "Pix" | "Cartão de crédito" | "Cartão de débito";
+
+export type AppointmentPayment = {
+  status: "Pendente" | "Pago";
+  amount: number;
+  method: string;
+  code: string;
+  paidAt: string | null;
+};
+
+export function formatMoney(value: number) {
+  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
 
 export type WaitlistEntry = {
   id: string;
@@ -99,6 +115,9 @@ export type AppNotification = {
   createdAt: string;
   audience: UserRole[];
   read: boolean;
+  /** Consulta ligada ao aviso, quando houver. */
+  appointmentId: string | null;
+  action: "" | "pagamento";
 };
 
 export type StaffUser = {
@@ -116,6 +135,7 @@ export type ClinicSettings = {
   email: string;
   reminderHours: number;
   autoConfirm: boolean;
+  appointmentPrice: number;
 };
 
 export const weekdays = [
@@ -139,6 +159,8 @@ export function initialsOf(name: string) {
   const clean = name.trim().replace(/^dra?\.?\s+/i, "");
   const parts = clean.split(/\s+/).filter((part) => part.length > 2);
   const source = parts.length ? parts : clean.split(/\s+/);
+  // Nome único (ex.: "Marco") vira "MA", não "MM".
+  if (source.length === 1) return (source[0] ?? "").slice(0, 2).toUpperCase();
   return `${source[0]?.[0] ?? ""}${source[source.length - 1]?.[0] ?? ""}`.toUpperCase();
 }
 
@@ -150,6 +172,12 @@ export function formatDate(iso: string) {
 export function formatLongDate(iso: string) {
   const date = new Date(`${iso}T12:00:00`);
   return date.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" });
+}
+
+/** Nome do dia da semana, ex.: "Quinta-feira". */
+export function weekdayName(iso: string) {
+  const name = new Date(`${iso}T12:00:00`).toLocaleDateString("pt-BR", { weekday: "long" });
+  return name.charAt(0).toUpperCase() + name.slice(1);
 }
 
 export function relativeDay(iso: string) {
@@ -166,6 +194,7 @@ export const defaultSettings: ClinicSettings = {
   email: "",
   reminderHours: 24,
   autoConfirm: false,
+  appointmentPrice: 150,
 };
 
 export function minutesOf(value: string) {

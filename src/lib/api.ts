@@ -1,6 +1,7 @@
 import type {
   AppNotification,
   Appointment,
+  AppointmentPayment,
   ClinicSettings,
   InsurancePlan,
   Patient,
@@ -93,7 +94,7 @@ const invert = (map: FieldMap): FieldMap => Object.fromEntries(Object.entries(ma
 
 const patientFields: FieldMap = { name: "nome", cpf: "cpf", phone: "telefone", email: "email", birthDate: "dataNascimento", insurance: "convenio", status: "status" };
 const professionalFields: FieldMap = { name: "nome", specialty: "especialidade", crm: "crm", phone: "telefone", email: "email", color: "cor", active: "ativo" };
-const settingsFields: FieldMap = { name: "nome", cnpj: "cnpj", phone: "telefone", email: "email", reminderHours: "antecedenciaLembreteHoras", autoConfirm: "confirmacaoAutomatica" };
+const settingsFields: FieldMap = { name: "nome", cnpj: "cnpj", phone: "telefone", email: "email", reminderHours: "antecedenciaLembreteHoras", autoConfirm: "confirmacaoAutomatica", appointmentPrice: "valorConsulta" };
 const staffFields: FieldMap = { name: "nome", email: "email", status: "status" };
 const blockFields: FieldMap = { professionalId: "profissional", startDate: "dataInicio", endDate: "dataFim", startTime: "horaInicio", endTime: "horaFim", reason: "motivo" };
 const waitlistFields: FieldMap = { patientId: "paciente", specialty: "especialidade", preference: "preferencia", priority: "prioridade" };
@@ -111,7 +112,8 @@ export const toApi = {
 type DocField =
   | "nome" | "iniciais" | "email" | "tipo" | "status" | "ativo" | "disponibilidade" | "coberturas"
   | "codigo" | "data" | "hora" | "paciente" | "profissional" | "especialidade" | "observacoes" | "canal"
-  | "lembreteEnviadoEm" | "respostaConfirmacao" | "historico" | "entradaEm" | "titulo" | "texto" | "createdAt" | "publico" | "lida";
+  | "lembreteEnviadoEm" | "respostaConfirmacao" | "historico" | "entradaEm" | "titulo" | "texto" | "createdAt" | "publico" | "lida"
+  | "pagamento" | "consulta" | "acao";
 export type Doc = { id: string } & Partial<Record<DocField, unknown>>;
 type ApiDay = { ativo: boolean; inicio: string; fim: string };
 
@@ -122,6 +124,20 @@ function localDate(value: unknown) {
   const date = new Date(str(value));
   if (Number.isNaN(date.getTime())) return str(value).slice(0, 10);
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+type ApiPayment = { status?: string | null; valor?: number; metodo?: string; codigo?: string; pagoEm?: string | null };
+
+function paymentFrom(value: unknown): AppointmentPayment | null {
+  const payment = value as ApiPayment | undefined;
+  if (!payment?.status) return null;
+  return {
+    status: payment.status === "Pago" ? "Pago" : "Pendente",
+    amount: Number(payment.valor ?? 0),
+    method: payment.metodo ?? "",
+    code: payment.codigo ?? "",
+    paidAt: payment.pagoEm ?? null,
+  };
 }
 
 export const fromApi = {
@@ -155,6 +171,7 @@ export const fromApi = {
     reminderSentAt: (doc.lembreteEnviadoEm as string | null) ?? null,
     confirmationReply: doc.respostaConfirmacao as Appointment["confirmationReply"],
     history: ((doc.historico as { em: string; texto: string }[]) ?? []).map((item) => ({ at: item.em, text: item.texto })),
+    payment: paymentFrom(doc.pagamento),
   }),
   waitlist: (doc: Doc): WaitlistEntry => ({
     ...(rename(doc, invert(waitlistFields)) as Omit<WaitlistEntry, "id" | "createdAt" | "status">),
@@ -170,6 +187,8 @@ export const fromApi = {
     createdAt: localDate(doc.createdAt),
     audience: ((doc.publico as string[]) ?? []).map(fromApiRole).filter(Boolean),
     read: Boolean(doc.lida),
+    appointmentId: doc.consulta ? str(doc.consulta) : null,
+    action: doc.acao === "pagamento" ? "pagamento" : "",
   }),
   staff: (doc: Doc): StaffUser => ({ id: doc.id, name: str(doc.nome), email: str(doc.email), role: fromApiRole(str(doc.tipo)), status: doc.status as StaffUser["status"] }),
   settings: (doc: Doc): ClinicSettings => rename(doc, invert(settingsFields)) as ClinicSettings,

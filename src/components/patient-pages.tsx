@@ -3,13 +3,14 @@ import { DatePicker } from "@/components/date-picker";
 import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Activity, ArrowRight, BadgeCheck, BarChart3, RefreshCw, Shield, TrendingUp, UserX, Bell, BriefcaseMedical, CalendarRange, CheckCheck, ClipboardList, ClipboardPlus, FileText, HeartPulse, Info, MoreVertical, SlidersHorizontal, ChevronRight, CircleX, Eye, Headset, History, MapPin, Plus, Syringe, CalendarCheck, CalendarClock, CalendarDays, Check, CheckCircle2, CircleAlert, Clock3, Lock, ShieldCheck, Stethoscope, Tags, UserCheck, UsersRound, X } from "lucide-react";
-import { AlarmClock, BellRing, CalendarX, ChevronDown, ChevronLeft, CircleCheck, CircleHelp, IdCard, ListFilter, Mail, Pencil, Phone, ScrollText, User } from "lucide-react";
+import { AlarmClock, CreditCard, BellRing, CalendarX, ChevronDown, ChevronLeft, CircleCheck, CircleHelp, IdCard, ListFilter, Mail, Pencil, Phone, ScrollText, User } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { EmptyHint, Field, Modal, PageHeader, Section, SelectField, StatCard, StatusBadge, Toggle, Toolbar } from "@/components/page-kit";
 import { AppointmentForm } from "@/components/appointment-form";
 import { RescheduleModal } from "@/components/clinic-pages";
-import { formatDate, isoDate, openStatuses, relativeDay, weekdays, type Appointment } from "@/lib/clinic-data";
+import { formatDate, formatMoney, isoDate, openStatuses, relativeDay, weekdayName, weekdays, type Appointment } from "@/lib/clinic-data";
+import { PaymentModal } from "@/components/payment-modal";
 import { useClinic, useReports } from "@/lib/clinic-store";
 
 import { AppointmentRow, Dot, Notice, NotificationList, usePatientScope, useProfessionalScope } from "@/components/role-shared";
@@ -273,7 +274,7 @@ function PatientBookingForm({ patientId }: { patientId: string }) {
               <BookingCalendar value={date} onChange={(next) => { setDate(next); setTime(""); }} slotsFor={(day) => (activeProfessionalId ? availableSlots(activeProfessionalId, day).length : 0)} />
               <div className="md:rounded-xl md:bg-soft/70 md:p-4">
                 <div className="flex items-center justify-between gap-2">
-                  <b className="text-[15px] font-bold leading-6">{brDate(date)}</b>
+                  <b className="text-[15px] font-bold leading-6">{weekdayName(date)}, {brDate(date)}</b>
                   <span className="rounded-full bg-accent/80 px-2.5 py-0.5 text-[11px] font-medium leading-4 text-soft-foreground md:bg-success-soft/70 md:text-success-strong">{slots.length} horário(s) livre(s)</span>
                 </div>
                 <p className="mb-3 hidden text-xs text-muted-foreground md:block">{period}</p>
@@ -325,7 +326,7 @@ function PatientBookingForm({ patientId }: { patientId: string }) {
 
     <Modal open={confirming} title="Confirmar agendamento" description="Revise os dados antes de concluir." onClose={() => setConfirming(false)}>
       <dl className="grid gap-2 rounded-xl bg-soft p-4 text-sm">
-        {[["Especialidade", activeSpecialty], ["Profissional", professional?.name ?? "—"], ["Data", brDate(date)], ["Horário", activeTime], ["Convênio", patient?.insurance ?? "—"], ["Observações", notes || "—"]].map(([k, v]) => <div key={k} className="flex justify-between gap-4"><dt className="text-muted-foreground">{k}</dt><dd className="text-right font-semibold">{v}</dd></div>)}
+        {[["Especialidade", activeSpecialty], ["Profissional", professional?.name ?? "—"], ["Data", `${weekdayName(date)}, ${brDate(date)}`], ["Horário", activeTime], ["Convênio", patient?.insurance ?? "—"], ["Observações", notes || "—"]].map(([k, v]) => <div key={k} className="flex justify-between gap-4"><dt className="text-muted-foreground">{k}</dt><dd className="text-right font-semibold">{v}</dd></div>)}
       </dl>
       <div className="mt-5 flex justify-end gap-2">
         <Button type="button" variant="ghost" onClick={() => setConfirming(false)} className="h-10 rounded-lg bg-soft px-5 font-semibold">Voltar</Button>
@@ -339,6 +340,7 @@ function PatientBookingForm({ patientId }: { patientId: string }) {
 
 function noticeMeta(title: string) {
   const t = title.toLowerCase();
+  if (t.includes("pagamento")) return { tag: "Pagamento", tone: "text-info", icon: <CreditCard /> };
   if (t.includes("lembrete")) return { tag: "Requer Ação", tone: "text-foreground", icon: <AlarmClock /> };
   if (t.includes("fila") || t.includes("oferecid")) return { tag: "Fila Prioritária", tone: "text-info", icon: <Clock3 /> };
   if (t.includes("cancel")) return { tag: "Cancelamento", tone: "text-destructive", icon: <CalendarX /> };
@@ -364,6 +366,7 @@ function HelpBanner({ text, mobileText }: { text: string; mobileText: string }) 
 export function PatientNotificationsPage() {
   const { clinic } = usePatientScope();
   const [onlyUnread, setOnlyUnread] = useState(false);
+  const [paying, setPaying] = useState<Appointment | null>(null);
   const items = clinic.notificationsFor("patient");
   const unread = items.filter((item) => !item.read).length;
   const list = onlyUnread ? items.filter((item) => !item.read) : items;
@@ -405,6 +408,14 @@ export function PatientNotificationsPage() {
               </p>
             </div>
             {!item.read && <span className="absolute right-4 top-5 size-2 rounded-full bg-success md:hidden" />}
+            {(() => {
+              const charge = item.action === "pagamento" ? clinic.appointments.find((appointment) => appointment.id === item.appointmentId) : undefined;
+              if (!charge?.payment) return null;
+              return charge.payment.status === "Pago"
+                ? <span className="flex shrink-0 items-center gap-1.5 self-center rounded-full bg-success-soft px-3 py-1 text-xs font-semibold text-success-strong"><CheckCheck className="size-3.5" />Pago</span>
+                : charge.status === "Cancelada" ? null
+                : <Button type="button" onClick={(event) => { event.stopPropagation(); clinic.markNotificationRead(item.id); setPaying(charge); }} className="h-9 shrink-0 self-center rounded-lg px-4 text-sm font-semibold"><CreditCard />Pagar {formatMoney(charge.payment.amount)}</Button>;
+            })()}
             <button type="button" onClick={(event) => { event.stopPropagation(); clinic.markNotificationRead(item.id); }} disabled={item.read} className="hidden shrink-0 items-center gap-3 text-xs text-soft-foreground disabled:text-subtle-foreground md:flex">{item.read ? "Lida" : "Marcar lida"}<ChevronRight className="size-4 text-foreground" /></button>
           </article>
         );
@@ -412,6 +423,7 @@ export function PatientNotificationsPage() {
     </section>
 
     <HelpBanner mobileText="Fale com nossa central de atendimento" text="Fale com nossa central de atendimento ou envie uma solicitação ao suporte." />
+    <PaymentModal appointment={paying} onClose={() => setPaying(null)} />
   </>;
 }
 

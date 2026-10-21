@@ -14,6 +14,7 @@ import {
   type ClinicSettings,
   type InsurancePlan,
   type Patient,
+  type PaymentMethod,
   type Professional,
   type ScheduleBlock,
   type Specialty,
@@ -89,7 +90,10 @@ type ClinicContextValue = ClinicState & {
   logout: () => void;
   /** Cadastro público de paciente. */
   signup: (input: SignupInput) => Promise<void>;
-  requestPasswordReset: (email: string) => Promise<string>;
+  /** Confere o e-mail e pede o código. Sem envio de e-mail configurado, a API devolve o código em `testCode`. */
+  requestPasswordReset: (email: string) => Promise<{ message: string; testCode?: string }>;
+  resetPassword: (email: string, code: string, newPassword: string) => Promise<void>;
+  payAppointment: (id: string, method: PaymentMethod) => Promise<Appointment>;
   /** Recarrega todos os dados da API. */
   refresh: () => Promise<void>;
   patientById: (id: string) => Patient | undefined;
@@ -99,7 +103,8 @@ type ClinicContextValue = ClinicState & {
   createAppointment: (input: NewAppointment) => Appointment | null;
   setAppointmentStatus: (id: string, status: AppointmentStatus, note?: string) => void;
   rescheduleAppointment: (id: string, date: string, time: string) => boolean;
-  sendReminder: (id: string) => void;
+  /** Só um lembrete por consulta: devolve false se já foi enviado. */
+  sendReminder: (id: string) => boolean;
   sendAllReminders: () => number;
   addPatient: (input: Omit<Patient, "id" | "initials" | "status"> & { status?: Patient["status"] }) => Patient;
   updatePatient: (id: string, changes: Partial<Patient>) => void;
@@ -356,8 +361,18 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       },
 
       requestPasswordReset: async (email) => {
-        const { mensagem } = await api<{ mensagem: string }>("POST", "/auth/recuperar-senha", { email });
-        return mensagem;
+        const { mensagem, codigoTeste } = await api<{ mensagem: string; codigoTeste?: string }>("POST", "/auth/recuperar-senha", { email });
+        return { message: mensagem, ...(codigoTeste && { testCode: codigoTeste }) };
+      },
+
+      resetPassword: async (email, code, newPassword) => {
+        await api("POST", "/auth/redefinir-senha", { email, codigo: code, novaSenha: newPassword });
+      },
+
+      payAppointment: async (id, method) => {
+        const doc = await api<Doc>("POST", `/consultas/${id}/pagamento`, { metodo: method });
+        await refresh();
+        return fromApi.appointment(doc);
       },
 
       createAppointment: ({ patientId, professionalId, date, time, notes, channel }) => {
@@ -380,6 +395,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           reminderSentAt: null,
           confirmationReply: state.settings.autoConfirm ? "Confirmou" : "Sem resposta",
           history: [{ at: isoDate(0), text: `Consulta criada (${origin.toLowerCase()})` }],
+          payment: origin === "Recepção" ? { status: "Pendente", amount: state.settings.appointmentPrice, method: "", code: "", paidAt: null } : null,
         };
         setState((current) => ({ ...current, appointments: [...current.appointments, appointment] }));
         send(
@@ -418,8 +434,10 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       },
 
       sendReminder: (id) => {
+        if (state.appointments.find((item) => item.id === id)?.reminderSentAt) return false;
         patchList("appointments", id, (item) => withLog({ ...item, reminderSentAt: isoDate(0) }, "Lembrete de confirmação enviado"));
         send(api("POST", `/consultas/${id}/lembrete`), "Não foi possível enviar o lembrete");
+        return true;
       },
 
       sendAllReminders: () => {
