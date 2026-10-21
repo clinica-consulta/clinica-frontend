@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { EmptyHint, Field, SelectField, TextareaField } from "@/components/page-kit";
 import { MiniCalendar, SlotPicker } from "@/components/mini-calendar";
-import { isoDate } from "@/lib/clinic-data";
+import { isoDate, weekdayName } from "@/lib/clinic-data";
 import { useClinic } from "@/lib/clinic-store";
 
 const digits = (value: string) => value.replace(/\D/g, "");
@@ -56,7 +56,7 @@ export function AppointmentForm({ fixedPatientId, channel = "Recepção", onDone
         <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <MiniCalendar value={date} onChange={(next) => { setDate(next); setTime(""); }} slotsFor={(day) => (activeProfessionalId ? availableSlots(activeProfessionalId, day).length : 0)} />
           <div className="grid content-start gap-2">
-            <p className="text-xs text-muted-foreground">{date.split("-").reverse().join("/")} · {slots.length} horário(s) livre(s)</p>
+            <p className="text-xs text-muted-foreground">{weekdayName(date)}, {date.split("-").reverse().join("/")} · {slots.length} horário(s) livre(s)</p>
             {slots.length ? <SlotPicker slots={slots} value={activeTime} onChange={setTime} /> : <EmptyHint>Nenhum horário disponível nessa data.</EmptyHint>}
           </div>
         </div>

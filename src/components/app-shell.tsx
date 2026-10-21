@@ -42,7 +42,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const current = profile.nav.find((item) => item.to === pathname) ?? profile.nav[0]!;
   const today = ready ? formatLongDate(isoDate(0)).split(",")[0] ?? "" : "";
   const todayLabel = ready ? `${capitalize(today)}, ${formatDate(isoDate(0))}` : "";
-  const notificationsPath = profile.nav.find((item) => item.to.endsWith("notificacoes"))?.to;
+  const notificationsPath = profile.notifications;
 
   return (
     <div className="app-interface flex min-h-screen flex-col bg-background">
@@ -97,9 +97,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           <p className="flex items-center gap-1.5 truncate text-[11px] font-bold uppercase leading-4 tracking-[0.88px] text-mobile-eyebrow">
             {profile.area}
           </p>
-          <p className="truncate text-base font-semibold leading-5">{current.mobileTitle ?? current.short ?? current.label}</p>
+          <p className="truncate text-base font-semibold leading-5">{pathname === profile.notifications && !profile.nav.some((item) => item.to === pathname) ? "Notificações" : current.mobileTitle ?? current.short ?? current.label}</p>
         </div>
-        <NotificationButton to={notificationsPath} unread={false} mobile />
+        <NotificationButton to={notificationsPath} unread={unread} mobile />
         <button type="button" onClick={() => setAccountOpen(true)} aria-label="Minha conta" className="grid size-10 shrink-0 place-items-center rounded-full text-sidebar-foreground transition hover:bg-sidebar-accent"><UserRound className="size-[18px]" /></button>
         <Link to="/" onClick={logout} aria-label="Sair" className="grid size-10 shrink-0 place-items-center rounded-full text-sidebar-foreground transition hover:bg-sidebar-accent"><LogOut className="size-[18px]" /></Link>
       </header>

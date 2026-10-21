@@ -21,10 +21,10 @@ import {
 export type UserRole = "receptionist" | "patient" | "professional" | "admin";
 
 export type AppPath =
-  | "/dashboard" | "/agenda" | "/consultas" | "/pacientes" | "/fila-espera" | "/perfil"
+  | "/dashboard" | "/agenda" | "/consultas" | "/pacientes" | "/fila-espera" | "/medicos" | "/horarios" | "/notificacoes" | "/perfil"
   | "/paciente" | "/paciente/agendar" | "/paciente/notificacoes" | "/paciente/perfil"
   | "/profissional" | "/profissional/agenda" | "/profissional/pacientes" | "/profissional/disponibilidade" | "/profissional/notificacoes" | "/profissional/perfil"
-  | "/administrador" | "/administrador/usuarios" | "/administrador/profissionais" | "/administrador/especialidades" | "/administrador/agendas" | "/administrador/configuracoes";
+  | "/administrador" | "/administrador/usuarios" | "/administrador/profissionais" | "/administrador/especialidades" | "/administrador/agendas" | "/administrador/configuracoes" | "/administrador/notificacoes";
 
 export type AppNavItem = {
   to: AppPath;
@@ -54,6 +54,8 @@ export type RoleProfile = {
   footer: string;
   /** Variante visual do cabeçalho, conforme o protótipo de cada perfil. */
   headerStyle: "tabs" | "pills";
+  /** Tela aberta pelo sino do cabeçalho. */
+  notifications: AppPath;
   nav: AppNavItem[];
 };
 
@@ -63,6 +65,8 @@ const receptionistNav: AppNavItem[] = [
   { to: "/consultas", label: "Consultas", icon: CalendarCheck },
   { to: "/pacientes", label: "Pacientes", icon: UsersRound },
   { to: "/fila-espera", label: "Fila de espera", short: "Fila", mobileTitle: "Espera", icon: Hourglass },
+  { to: "/medicos", label: "Médicos", icon: Stethoscope, desktopOnly: true },
+  { to: "/horarios", label: "Horários e bloqueios", short: "Horários", icon: CalendarCog, desktopOnly: true },
   { to: "/perfil", label: "Configurações", short: "Perfil", mobileTitle: "Perfil", icon: Settings },
 ];
 
@@ -78,6 +82,7 @@ export const roleProfiles: Record<UserRole, RoleProfile> = {
     area: "Área da recepção",
     footer: "© 2026 Gestão de Consultas. Todos os direitos reservados.",
     headerStyle: "tabs",
+    notifications: "/notificacoes",
     nav: receptionistNav,
   },
   patient: {
@@ -91,6 +96,7 @@ export const roleProfiles: Record<UserRole, RoleProfile> = {
     area: "Área do paciente",
     footer: "© 2026 Portal do Paciente. Sistema Integrado de Saúde. Todos os direitos reservados.",
     headerStyle: "tabs",
+    notifications: "/paciente/notificacoes",
     nav: [
       { to: "/paciente", label: "Início", icon: LayoutDashboard },
       { to: "/paciente/agendar", label: "Agendar consulta", short: "Agendar", icon: CalendarDays },
@@ -109,6 +115,7 @@ export const roleProfiles: Record<UserRole, RoleProfile> = {
     area: "Área médica",
     footer: "© 2026 Gestão de Consultas. Ambiente Seguro & Criptografado.",
     headerStyle: "pills",
+    notifications: "/profissional/notificacoes",
     nav: [
       { to: "/profissional", label: "Início", icon: LayoutDashboard },
       { to: "/profissional/agenda", label: "Minha agenda", short: "Agenda", icon: CalendarDays },
@@ -129,6 +136,7 @@ export const roleProfiles: Record<UserRole, RoleProfile> = {
     area: "Administração • Clínica",
     footer: "© 2026 Gestão de Consultas. Ambiente Seguro & Criptografado.",
     headerStyle: "tabs",
+    notifications: "/administrador/notificacoes",
     nav: [
       { to: "/administrador", label: "Visão geral", short: "Visão Geral", mobileTitle: "Overview", icon: LayoutDashboard },
       { to: "/administrador/usuarios", label: "Usuários", icon: UsersRound },
