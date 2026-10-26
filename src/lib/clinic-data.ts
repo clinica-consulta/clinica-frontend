@@ -180,6 +180,18 @@ export function weekdayName(iso: string) {
   return name.charAt(0).toUpperCase() + name.slice(1);
 }
 
+/** Hora atual no formato HH:MM. */
+export function nowTime() {
+  const now = new Date();
+  return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+}
+
+/** A data e a hora da consulta já passaram? */
+export function hasPassed(item: { date: string; time: string }) {
+  const today = isoDate(0);
+  return item.date < today || (item.date === today && item.time <= nowTime());
+}
+
 export function relativeDay(iso: string) {
   if (iso === isoDate(0)) return "Hoje";
   if (iso === isoDate(1)) return "Amanhã";

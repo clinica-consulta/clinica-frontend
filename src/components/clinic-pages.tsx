@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyHint, Field, Modal, PageHeader, SearchInput, Section, SelectField, StatCard, StatusBadge, TextareaField, Toggle, Toolbar } from "@/components/page-kit";
 import { AppointmentForm } from "@/components/appointment-form";
 import { MiniCalendar, SlotPicker } from "@/components/mini-calendar";
-import { appointmentStatuses, formatDate, isoDate, openStatuses, relativeDay, slotRange, weekdayName, formatMoney, type Appointment } from "@/lib/clinic-data";
+import { appointmentStatuses, formatDate, isoDate, openStatuses, relativeDay, slotRange, weekdayName, formatMoney, hasPassed, type Appointment } from "@/lib/clinic-data";
 import { useClinic, useReports } from "@/lib/clinic-store";
 
 function useAppointmentActions() {
@@ -52,12 +52,14 @@ export function ManageModal({ appointment, onClose }: { appointment: Appointment
   const [reschedule, setReschedule] = useState<Appointment | null>(null);
   if (!appointment) return null;
   const patient = patientById(appointment.patientId);
+  const passed = openStatuses.includes(appointment.status) && hasPassed(appointment);
   return (
     <>
       <Modal open={Boolean(appointment) && !reschedule} title="Gerenciar consulta" description={`${patient?.name} · ${professionalById(appointment.professionalId)?.name} · ${relativeDay(appointment.date)} às ${appointment.time}`} onClose={onClose}>
+        {passed && <p className="mb-3 rounded-md bg-warning/15 p-3 text-xs sm:text-sm">O horário desta consulta já passou. Registre se foi realizada ou se o paciente não compareceu.</p>}
         <div className="grid gap-3 sm:grid-cols-2">
-          <Button onClick={() => { actions.confirm(appointment); onClose(); }}><Check />Confirmar</Button>
-          <Button variant="outline" disabled={Boolean(appointment.reminderSentAt)} title={appointment.reminderSentAt ? "Cada consulta recebe só um lembrete" : undefined} onClick={() => { actions.remind(appointment); onClose(); }}><Send />{appointment.reminderSentAt ? "Lembrete já enviado" : "Enviar lembrete"}</Button>
+          <Button disabled={passed} onClick={() => { actions.confirm(appointment); onClose(); }}><Check />Confirmar</Button>
+          <Button variant="outline" disabled={passed || Boolean(appointment.reminderSentAt)} title={appointment.reminderSentAt ? "Cada consulta recebe só um lembrete" : undefined} onClick={() => { actions.remind(appointment); onClose(); }}><Send />{appointment.reminderSentAt ? "Lembrete já enviado" : "Enviar lembrete"}</Button>
           <Button variant="outline" onClick={() => setReschedule(appointment)}><CalendarClock />Remarcar</Button>
           <Button variant="outline" onClick={() => { actions.complete(appointment); onClose(); }}><CheckCircle2 />Registrar realizada</Button>
           <Button variant="outline" onClick={() => { actions.noShow(appointment); onClose(); }}><CircleAlert />Registrar ausência</Button>
@@ -70,7 +72,7 @@ export function ManageModal({ appointment, onClose }: { appointment: Appointment
           <p className="text-muted-foreground">Canal do agendamento: {appointment.channel}</p>
           <p className="text-muted-foreground">Resposta do paciente: {appointment.confirmationReply}</p>
           <p className="text-muted-foreground">Lembrete: {appointment.reminderSentAt ? formatDate(appointment.reminderSentAt) : "não enviado"}</p>
-          <p className="text-muted-foreground">Pagamento: {appointment.payment ? `${appointment.payment.status} · ${formatMoney(appointment.payment.amount)}${appointment.payment.method ? ` · ${appointment.payment.method}` : ""}` : "sem cobrança"}</p>
+          <p className="text-muted-foreground">Pagamento: {appointment.payment ? `${appointment.payment.status} · ${formatMoney(appointment.payment.amount)}${appointment.payment.method ? ` · ${appointment.payment.method}` : ""}` : patient?.insurance === "Particular" ? "liberado quando a consulta for marcada como realizada" : "coberto pelo convênio"}</p>
         </div>
         <div className="mt-3 rounded-md border border-border p-3 text-xs sm:text-sm">
           <b className="flex items-center gap-2"><History className="size-4" />Alterações registradas</b>
@@ -80,6 +82,33 @@ export function ManageModal({ appointment, onClose }: { appointment: Appointment
       <RescheduleModal appointment={reschedule} onClose={() => { setReschedule(null); onClose(); }} />
     </>
   );
+}
+
+/** Consultas em aberto cujo horário já passou: a recepção registra se foi realizada ou não. */
+function PendingRecords() {
+  const { appointments, patientById, professionalById } = useClinic();
+  const actions = useAppointmentActions();
+  const [manage, setManage] = useState<Appointment | null>(null);
+  const list = appointments.filter((item) => openStatuses.includes(item.status) && hasPassed(item)).sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`));
+  if (!list.length) return null;
+  return <>
+    <section className="surface mb-6 border-l-4 border-warning p-4 md:p-6">
+      <h2 className="flex items-center gap-2 text-sm font-bold"><Clock3 className="size-4" />Horário já passou: registre o atendimento ({list.length})</h2>
+      <p className="mt-1 text-xs text-muted-foreground">Marque se a consulta foi realizada ou se o paciente não compareceu. Pacientes particulares recebem o pagamento liberado assim que a consulta é marcada como realizada.</p>
+      <div className="mt-3 divide-y divide-border/60">{list.map((item) => {
+        const patient = patientById(item.patientId);
+        return <div key={item.id} className="flex flex-col gap-2 py-3 md:flex-row md:items-center md:justify-between">
+          <div className="min-w-0"><p className="truncate text-sm font-semibold">{patient?.name} <span className="font-normal text-muted-foreground">· {patient?.insurance}</span></p><p className="text-xs text-muted-foreground">{weekdayName(item.date)}, {formatDate(item.date)} às {item.time} · {professionalById(item.professionalId)?.name} · {item.specialty}</p></div>
+          <div className="flex shrink-0 flex-wrap gap-2">
+            <Button size="sm" onClick={() => actions.complete(item)}><CheckCircle2 />Realizada</Button>
+            <Button size="sm" variant="outline" onClick={() => actions.noShow(item)}><CircleAlert />Não compareceu</Button>
+            <Button size="sm" variant="ghost" className="bg-soft" onClick={() => setManage(item)}>Detalhes</Button>
+          </div>
+        </div>;
+      })}</div>
+    </section>
+    <ManageModal appointment={manage} onClose={() => setManage(null)} />
+  </>;
 }
 
 export function DashboardPage() {
@@ -108,6 +137,8 @@ export function DashboardPage() {
       <p className="mt-2 max-w-[260px] text-sm leading-5 text-muted-foreground md:mt-0.5 md:max-w-none">Acompanhe os agendamentos do dia e as confirmações pendentes.</p>
       <Button onClick={() => setNewOpen(true)} className="mt-6 hidden h-10 rounded-lg px-5 text-sm font-semibold shadow-[0_1px_1px_rgb(0_0_0/5%)] md:inline-flex"><Plus />Nova consulta</Button>
     </header>
+
+    <PendingRecords />
 
     <div className="grid items-start gap-4 md:gap-6 lg:grid-cols-2">
       <section className="surface overflow-hidden md:p-6">
@@ -336,6 +367,8 @@ export function ConsultasPage() {
 
   return <>
     <PageHeader eyebrow="Atendimentos" title="Consultas" description="Acompanhe, confirme, remarque ou cancele os agendamentos." mobileDescription="Acompanhe, confirme, remarque ou cancele os agendamentos da recepção." action="Nova consulta" onAction={() => setNewOpen(true)} />
+
+    <PendingRecords />
 
     {/* Filtros desktop */}
     <div className="hidden md:block">
