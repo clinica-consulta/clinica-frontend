@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyHint, Field, Modal, PageHeader, Section, SelectField, StatCard, StatusBadge, Toggle, Toolbar } from "@/components/page-kit";
 import { AppointmentForm } from "@/components/appointment-form";
 import { RescheduleModal } from "@/components/clinic-pages";
-import { formatDate, formatMoney, isoDate, openStatuses, relativeDay, weekdayName, weekdays, type Appointment } from "@/lib/clinic-data";
+import { formatDate, formatMoney, hasPassed, isoDate, openStatuses, relativeDay, weekdayName, weekdays, type Appointment } from "@/lib/clinic-data";
 import { PaymentModal } from "@/components/payment-modal";
 import { useClinic, useReports } from "@/lib/clinic-store";
 
@@ -20,8 +20,11 @@ export function PatientDashboardPage() {
   const navigate = useNavigate();
   const [reschedule, setReschedule] = useState<Appointment | null>(null);
   const [detail, setDetail] = useState<Appointment | null>(null);
-  const upcoming = mine.filter((item) => openStatuses.includes(item.status)).sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`));
-  const history = mine.filter((item) => !openStatuses.includes(item.status)).sort((a, b) => `${b.date}${b.time}`.localeCompare(`${a.date}${a.time}`));
+  const [paying, setPaying] = useState<Appointment | null>(null);
+  // Consulta cujo horário já passou sai de "Próximas" e vai para o histórico.
+  const upcoming = mine.filter((item) => openStatuses.includes(item.status) && !hasPassed(item)).sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`));
+  const history = mine.filter((item) => !openStatuses.includes(item.status) || hasPassed(item)).sort((a, b) => `${b.date}${b.time}`.localeCompare(`${a.date}${a.time}`));
+  const historyStatus = (item: Appointment) => (openStatuses.includes(item.status) ? "Aguardando registro" : item.status);
   const pendingConfirm = upcoming.filter((item) => item.confirmationReply !== "Confirmou").length;
   const confirm = (item: Appointment) => { clinic.setAppointmentStatus(item.id, "Confirmada", "Paciente confirmou presença"); toast.success("Consulta confirmada"); };
   const cancel = (item: Appointment) => { clinic.setAppointmentStatus(item.id, "Cancelada", "Consulta cancelada pelo paciente"); toast.warning("Consulta cancelada"); };
@@ -89,7 +92,7 @@ export function PatientDashboardPage() {
           <b className="w-12 shrink-0 text-lg font-bold md:w-[62px] md:text-[17px]">{item.time}</b>
           <div className="min-w-0 flex-1"><p className="truncate text-base font-semibold leading-5 md:text-sm">{patient?.name}</p><p className="truncate text-[13px] text-muted-foreground"><span className="md:hidden">{doctorName(item)} · {item.specialty}</span><span className="hidden items-center gap-2 md:flex">{doctorName(item)}<Dot />{item.specialty}<Dot />{formatDate(item.date)}</span></p><p className="text-xs text-subtle-foreground md:hidden">{formatDate(item.date)}</p></div>
           <div className="flex shrink-0 flex-col items-end gap-1.5 md:flex-row md:items-center md:gap-6">
-            <span className={`flex items-center gap-1.5 text-xs md:text-sm ${item.status === "Realizada" ? "font-medium text-success-strong" : "text-muted-foreground"}`}><span className={`size-1.5 rounded-full md:size-2 ${item.status === "Realizada" ? "bg-success" : "bg-subtle-foreground"}`} />{item.status}</span>
+            <span className={`flex items-center gap-1.5 text-xs md:text-sm ${item.status === "Realizada" ? "font-medium text-success-strong" : "text-muted-foreground"}`}><span className={`size-1.5 rounded-full md:size-2 ${item.status === "Realizada" ? "bg-success" : "bg-subtle-foreground"}`} />{historyStatus(item)}</span>
             <Button variant="ghost" size="sm" onClick={() => setDetail(item)} className="h-7 rounded-md bg-soft px-3 text-xs font-semibold md:h-8 md:text-sm">Detalhes</Button>
           </div>
         </div>
@@ -115,8 +118,11 @@ export function PatientDashboardPage() {
         <p><b>Status:</b> {detail.status}</p>
         <p><b>Sua resposta:</b> {detail.confirmationReply}</p>
         <p><b>Observações:</b> {detail.notes || "—"}</p>
+        <p><b>Pagamento:</b> {detail.payment ? `${detail.payment.status} · ${formatMoney(detail.payment.amount)}${detail.payment.method ? ` · ${detail.payment.method}` : ""}` : patient?.insurance === "Particular" ? "liberado depois da consulta realizada" : `coberto pelo convênio ${patient?.insurance ?? ""}`}</p>
+        {detail.payment?.status === "Pendente" && <Button className="mt-2 w-full" onClick={() => { setPaying(detail); setDetail(null); }}><CreditCard />Pagar {formatMoney(detail.payment.amount)}</Button>}
       </div>}
     </Modal>
+    <PaymentModal appointment={paying} onClose={() => setPaying(null)} />
   </>;
 }
 
