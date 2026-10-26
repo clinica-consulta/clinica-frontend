@@ -26,7 +26,8 @@ function LoginPage() {
   /** Passo 2 da redefinição: e-mail já conferido, falta o código e a nova senha. */
   const [recoveryEmail, setRecoveryEmail] = useState<string | null>(null);
   const [testCode, setTestCode] = useState("");
-  const closeRecovery = () => { setRecovery(false); setRecoveryEmail(null); setTestCode(""); };
+  const [recoveryCpf, setRecoveryCpf] = useState("");
+  const closeRecovery = () => { setRecovery(false); setRecoveryEmail(null); setTestCode(""); setRecoveryCpf(""); };
   const [busy, setBusy] = useState(false);
   const [cpf, setCpf] = useState("");
   const [phone, setPhone] = useState("");
@@ -79,37 +80,37 @@ function LoginPage() {
   }
 
   return (
-    <main className={`relative flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden px-4 transition-colors duration-700 ${isSignup ? "bg-primary" : "bg-background"}`}>
+    <main className={`relative flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden px-4 transition-colors duration-700 bg-background`}>
       <section className={`mx-auto flex min-h-0 w-full max-w-[370px] flex-1 flex-col justify-center overflow-hidden font-display ${isSignup ? "py-1" : "py-6"}`}>
         <div className={`${isSignup ? "mb-2" : "mb-4"} flex items-center justify-center gap-2`} aria-label="Gestão de Consultas">
           <img src={logo} alt="" className={`${isSignup ? "size-9 sm:size-10" : "size-10 sm:size-12"} object-contain`} />
-          <span className={`font-display text-lg uppercase transition-colors duration-700 sm:text-xl ${isSignup ? "text-primary-foreground" : "text-primary"}`}>Gestão de Consultas</span>
+          <span className={`font-display text-lg uppercase transition-colors duration-700 sm:text-xl text-primary`}>Gestão de Consultas</span>
         </div>
 
-        <div className={`border p-2.5 transition-colors duration-700 sm:p-3 ${isSignup ? "rounded-xl border-border/75 bg-auth-panel" : "rounded-2xl border-border bg-muted/55"}`}>
-          <div className={`relative grid h-10 grid-cols-2 border-border p-1 transition-colors duration-700 ${isSignup ? "rounded-lg border bg-auth-input" : "rounded-xl border-2 bg-card"}`} role="tablist" aria-label="Acesso">
-            <span className={`absolute bottom-1 left-1 top-1 w-[calc(50%-4px)] transition-transform duration-500 ease-out ${isSignup ? "translate-x-full rounded-md bg-primary" : "translate-x-0 rounded-lg bg-primary"}`} aria-hidden="true" />
-            <Button type="button" variant="ghost" role="tab" aria-selected={!isSignup} onClick={() => setMode("login")} className={`relative z-10 flex h-full items-center justify-center p-0 text-sm font-semibold leading-none hover:bg-transparent ${isSignup ? "rounded-sm text-accent hover:text-primary-foreground" : "rounded-lg text-primary-foreground hover:text-primary-foreground"}`}>Login</Button>
-            <Button type="button" variant="ghost" role="tab" aria-selected={isSignup} onClick={() => setMode("signup")} className={`relative z-10 flex h-full items-center justify-center p-0 text-sm font-semibold leading-none hover:bg-transparent ${isSignup ? "rounded-sm text-primary-foreground hover:text-primary-foreground" : "rounded-lg text-muted-foreground hover:text-muted-foreground"}`}>Cadastre-se</Button>
+        <div className={`border p-2.5 transition-colors duration-700 sm:p-3 rounded-2xl border-border bg-muted/55`}>
+          <div className={`relative grid h-10 grid-cols-2 border-border p-1 transition-colors duration-700 rounded-xl border-2 bg-card`} role="tablist" aria-label="Acesso">
+            <span className={`absolute bottom-1 left-1 top-1 w-[calc(50%-4px)] transition-transform duration-500 ease-out ${isSignup ? "translate-x-full" : "translate-x-0"} rounded-lg bg-primary`} aria-hidden="true" />
+            <Button type="button" variant="ghost" role="tab" aria-selected={!isSignup} onClick={() => setMode("login")} className={`relative z-10 flex h-full items-center justify-center p-0 text-sm font-semibold leading-none hover:bg-transparent rounded-lg ${isSignup ? "text-muted-foreground hover:text-muted-foreground" : "text-primary-foreground hover:text-primary-foreground"}`}>Login</Button>
+            <Button type="button" variant="ghost" role="tab" aria-selected={isSignup} onClick={() => setMode("signup")} className={`relative z-10 flex h-full items-center justify-center p-0 text-sm font-semibold leading-none hover:bg-transparent rounded-lg ${isSignup ? "text-primary-foreground hover:text-primary-foreground" : "text-muted-foreground hover:text-muted-foreground"}`}>Cadastre-se</Button>
           </div>
 
           <div className={`overflow-hidden px-1.5 pb-1.5 ${isSignup ? "mt-2" : "mt-5"}`}>
             {isSignup ? (
               <div key="signup" className="auth-slide-right">
                 <div className="mb-2 text-center">
-                  <h2 className="text-base font-bold text-primary-foreground sm:text-lg">Crie sua conta</h2>
-                  <p className="mt-1 text-xs text-accent">Preencha seus dados para criar uma nova conta.</p>
+                  <h2 className="text-base font-bold text-foreground sm:text-lg">Crie sua conta</h2>
+                  <p className="mt-1 text-xs text-muted-foreground">Preencha seus dados para criar uma nova conta.</p>
                 </div>
-                <form className="space-y-1.5 [&_label]:gap-0.5 [&_label]:text-xs [&_label]:text-primary-foreground [&_input]:h-8 [&_input]:rounded-md [&_input]:border [&_input]:border-border [&_input]:bg-auth-input [&_input]:text-primary-foreground [&_input]:placeholder:text-accent [&_select]:h-8 [&_select]:rounded-md [&_select]:border [&_select]:border-border [&_select]:bg-auth-input [&_select]:text-primary-foreground [&_.field-icon]:text-accent" onSubmit={submitSignup}>
+                <form className="space-y-1.5 [&_label]:gap-0.5 [&_label]:text-xs [&_input]:h-8 [&_input]:rounded-lg" onSubmit={submitSignup}>
                   <AuthField label="Nome" name="name" icon={<UserRound />} type="text" autoComplete="name" placeholder="Digite seu nome" />
                   <AuthField label="CPF" name="cpf" icon={<IdCard />} type="text" inputMode="numeric" autoComplete="off" placeholder="000.000.000-00" value={cpf} onChange={(event) => setCpf(maskCpf(event.target.value))} maxLength={14} pattern="\d{3}\.\d{3}\.\d{3}-\d{2}" title="Digite os 11 números do CPF" aria-invalid={Boolean(cpfError)} />
-                  {cpfError && <p role="alert" className="text-[11px] font-semibold text-red-300">{cpfError}</p>}
+                  {cpfError && <p role="alert" className="text-[11px] font-semibold text-destructive">{cpfError}</p>}
                   <AuthField label="Telefone" name="phone" icon={<Phone />} type="tel" inputMode="tel" autoComplete="tel" placeholder="(00) 00000-0000" value={phone} onChange={(event) => setPhone(maskPhone(event.target.value))} maxLength={15} />
                   <AuthField label="E-mail" name="email" icon={<Mail />} type="email" autoComplete="email" placeholder="voce@exemplo.com" />
                   <PasswordField label="Senha" name="password" minLength={6} show={showPassword} onToggle={() => setShowPassword((visible) => !visible)} autoComplete="new-password" placeholder="Crie uma senha (mín. 6 caracteres)" />
                   <AuthField label="Data de nascimento" name="birthDate" icon={<CalendarDays />} type="date" autoComplete="bday" dark />
                   <AuthSelect label="Convênio" name="insurance" icon={<ShieldCheck />} options={insurances.filter((item) => item.active).map((item) => item.name)} dark />
-                  <Button type="submit" size="lg" disabled={busy || Boolean(cpfError)} className="h-8 w-full rounded-md border border-border/60 bg-primary text-sm font-semibold text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground">{busy ? "Criando..." : "Criar conta"} <ArrowRight /></Button>
+                  <Button type="submit" size="lg" disabled={busy || Boolean(cpfError)} className="h-9 w-full rounded-xl text-sm font-semibold hover:bg-primary hover:text-primary-foreground">{busy ? "Criando..." : "Criar conta"} <ArrowRight /></Button>
                 </form>
               </div>
             ) : (
@@ -129,9 +130,9 @@ function LoginPage() {
           </div>
         </div>
       </section>
-      <footer className={`mt-auto w-full shrink-0 text-center text-[11px] transition-colors duration-700 ${isSignup ? "py-2 text-accent" : "py-4 text-muted-foreground"}`}>© 2026 Gestão de Consultas. Todos os direitos reservados.</footer>
+      <footer className={`mt-auto w-full shrink-0 text-center text-[11px] transition-colors duration-700 ${isSignup ? "py-2" : "py-4"} text-muted-foreground`}>© 2026 Gestão de Consultas. Todos os direitos reservados.</footer>
 
-      <Modal open={recovery} title="Redefinir senha" description={recoveryEmail ? `Digite o código enviado para ${recoveryEmail} e escolha a nova senha.` : "Informe o e-mail da sua conta. Vamos conferir se ele está cadastrado e enviar um código."} onClose={closeRecovery}>
+      <Modal open={recovery} title="Redefinir senha" description={recoveryEmail ? `Digite o código enviado para ${recoveryEmail} e escolha a nova senha.` : "Informe o e-mail e o CPF da sua conta. Vamos conferir os dados e enviar um código para o seu e-mail."} onClose={closeRecovery}>
         {recoveryEmail ? (
           <form className="grid gap-4 font-display" onSubmit={async (event) => {
             event.preventDefault();
@@ -163,7 +164,7 @@ function LoginPage() {
             const value = String(new FormData(event.currentTarget).get("recoveryEmail") ?? "").trim();
             setBusy(true);
             try {
-              const result = await requestPasswordReset(value);
+              const result = await requestPasswordReset(value, recoveryCpf);
               toast.success("E-mail confirmado", { description: result.message });
               setTestCode(result.testCode ?? "");
               setRecoveryEmail(value.toLowerCase());
@@ -174,6 +175,8 @@ function LoginPage() {
             }
           }}>
             <AuthField label="E-mail" name="recoveryEmail" icon={<Mail />} type="email" autoComplete="email" placeholder="voce@exemplo.com" defaultValue={email} />
+            <AuthField label="CPF (pacientes)" name="recoveryCpf" icon={<IdCard />} type="text" inputMode="numeric" autoComplete="off" placeholder="000.000.000-00" value={recoveryCpf} onChange={(event) => setRecoveryCpf(maskCpf(event.target.value))} maxLength={14} required={false} />
+            <p className="-mt-2 text-[11px] text-muted-foreground">Pacientes precisam do CPF do cadastro. Recepção, médicos e administração podem deixar em branco.</p>
             <Button type="submit" disabled={busy} className="h-10 w-full rounded-xl text-sm font-semibold hover:bg-primary hover:text-primary-foreground">{busy ? "Conferindo..." : "Validar e-mail e enviar código"}</Button>
           </form>
         )}
@@ -182,18 +185,18 @@ function LoginPage() {
   );
 }
 
-/** `dark`: campo no tema azul da tela de cadastro. */
-const darkField = "h-8 rounded-md border border-border bg-auth-input text-primary-foreground";
+/** `dark`: campo compacto da tela de cadastro (mesmas cores do login). */
+const darkField = "h-8 rounded-lg border-2 border-input bg-card text-foreground";
 
 function AuthField({ label, icon, dark = false, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string; icon: React.ReactNode; dark?: boolean }) {
   if (props.type === "date") {
     return (
-      <div className={`grid gap-0.5 text-xs font-semibold ${dark ? "text-primary-foreground" : "gap-1 text-foreground sm:text-sm"}`}>
+      <div className={`grid text-xs font-semibold text-foreground ${dark ? "gap-0.5" : "gap-1 sm:text-sm"}`}>
         {label}
         <DatePicker aria-label={label} name={props.name} required max={isoDate(0)}>{(value) => (
           <span className={`relative flex w-full items-center pl-10 pr-3 text-xs font-normal transition sm:text-sm ${dark ? darkField : "h-10 rounded-xl border-2 border-input bg-card text-foreground"}`}>
-            <span className={`field-icon absolute left-3.5 top-1/2 size-4 -translate-y-1/2 [&>svg]:size-4 ${dark ? "text-accent" : "text-muted-foreground"}`} aria-hidden="true">{icon}</span>
-            {value || <span className={dark ? "text-accent" : "text-muted-foreground"}>dd/mm/aaaa</span>}
+            <span className={`field-icon absolute left-3.5 top-1/2 size-4 -translate-y-1/2 [&>svg]:size-4 text-muted-foreground`} aria-hidden="true">{icon}</span>
+            {value || <span className="text-muted-foreground">dd/mm/aaaa</span>}
           </span>
         )}</DatePicker>
       </div>
@@ -204,7 +207,7 @@ function AuthField({ label, icon, dark = false, ...props }: React.InputHTMLAttri
       {label}
       <span className="relative">
         <span className="field-icon absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground [&>svg]:size-4" aria-hidden="true">{icon}</span>
-        <input {...props} required className="h-10 w-full rounded-xl border-2 border-input bg-card pl-10 pr-3 text-xs font-normal text-foreground outline-none transition placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20 sm:text-sm" />
+        <input {...props} required={props.required ?? true} className="h-10 w-full rounded-xl border-2 border-input bg-card pl-10 pr-3 text-xs font-normal text-foreground outline-none transition placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20 sm:text-sm" />
       </span>
     </label>
   );
@@ -215,8 +218,8 @@ function AuthSelect({ label, icon, options, dark = false, ...props }: React.Sele
     <label className="grid gap-1 text-xs font-semibold text-foreground sm:text-sm">
       {label}
       <span className="relative">
-        <span className={`field-icon absolute left-3.5 top-1/2 z-10 size-4 -translate-y-1/2 [&>svg]:size-4 ${dark ? "text-accent" : "text-muted-foreground"}`} aria-hidden="true">{icon}</span>
-        <SiteSelect {...props} required className={`w-full pl-10 pr-3 text-xs font-normal outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20 sm:text-sm ${dark ? `${darkField} [&_svg]:text-accent` : "h-10 rounded-xl border-2 border-input bg-card text-foreground"}`}>
+        <span className={`field-icon absolute left-3.5 top-1/2 z-10 size-4 -translate-y-1/2 [&>svg]:size-4 text-muted-foreground`} aria-hidden="true">{icon}</span>
+        <SiteSelect {...props} required className={`w-full pl-10 pr-3 text-xs font-normal outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20 sm:text-sm ${dark ? darkField : "h-10 rounded-xl border-2 border-input bg-card text-foreground"}`}>
           {options.map((option) => <option key={option} value={option}>{option}</option>)}
         </SiteSelect>
       </span>
