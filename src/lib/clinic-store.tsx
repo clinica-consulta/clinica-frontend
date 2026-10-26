@@ -5,6 +5,7 @@ import {
   initialsOf,
   isoDate,
   minutesOf,
+  nowTime,
   openStatuses,
   slotRange,
   type AppNotification,
@@ -91,7 +92,7 @@ type ClinicContextValue = ClinicState & {
   /** Cadastro público de paciente. */
   signup: (input: SignupInput) => Promise<void>;
   /** Confere o e-mail e pede o código. Sem envio de e-mail configurado, a API devolve o código em `testCode`. */
-  requestPasswordReset: (email: string) => Promise<{ message: string; testCode?: string }>;
+  requestPasswordReset: (email: string, cpf: string) => Promise<{ message: string; testCode?: string }>;
   resetPassword: (email: string, code: string, newPassword: string) => Promise<void>;
   payAppointment: (id: string, method: PaymentMethod) => Promise<Appointment>;
   /** Recarrega todos os dados da API. */
@@ -285,8 +286,18 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     [state.patients, state.specialties, state.insurances],
   );
 
+  // Relógio que avança a cada 30 s, para os horários de hoje acompanharem a hora atual.
+  const [clock, setClock] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setClock(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   const availableSlots = useCallback(
     (professionalId: string, date: string, ignoreAppointmentId?: string) => {
+      const today = isoDate(0);
+      if (date < today) return [];
+      const now = date === today ? minutesOf(nowTime()) : -1;
       const professional = state.professionals.find((item) => item.id === professionalId);
       if (!professional || !professional.active) return [];
       const weekday = new Date(`${date}T12:00:00`).getDay();
@@ -298,10 +309,12 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         .map((item) => item.time);
       const blocks = state.blocks.filter((item) => item.professionalId === professionalId && item.startDate <= date && item.endDate >= date);
       return slotRange(day.start, day.end)
+        .filter((slot) => minutesOf(slot) > now)
         .filter((slot) => !taken.includes(slot))
         .filter((slot) => !blocks.some((block) => minutesOf(slot) >= minutesOf(block.startTime) && minutesOf(slot) < minutesOf(block.endTime)));
     },
-    [state.appointments, state.professionals, state.blocks],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `clock` recalcula os horários de hoje com o passar do tempo.
+    [state.appointments, state.professionals, state.blocks, clock],
   );
 
   const value = useMemo<ClinicContextValue>(() => {
@@ -360,8 +373,8 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         await api("POST", "/auth/cadastro", { nome: name, cpf, telefone: phone, email, dataNascimento: birthDate, convenio: insurance, senha: password });
       },
 
-      requestPasswordReset: async (email) => {
-        const { mensagem, codigoTeste } = await api<{ mensagem: string; codigoTeste?: string }>("POST", "/auth/recuperar-senha", { email });
+      requestPasswordReset: async (email, cpf) => {
+        const { mensagem, codigoTeste } = await api<{ mensagem: string; codigoTeste?: string }>("POST", "/auth/recuperar-senha", { email, cpf });
         return { message: mensagem, ...(codigoTeste && { testCode: codigoTeste }) };
       },
 
@@ -395,7 +408,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           reminderSentAt: null,
           confirmationReply: state.settings.autoConfirm ? "Confirmou" : "Sem resposta",
           history: [{ at: isoDate(0), text: `Consulta criada (${origin.toLowerCase()})` }],
-          payment: origin === "Recepção" ? { status: "Pendente", amount: state.settings.appointmentPrice, method: "", code: "", paidAt: null } : null,
+          payment: null,
         };
         setState((current) => ({ ...current, appointments: [...current.appointments, appointment] }));
         send(
