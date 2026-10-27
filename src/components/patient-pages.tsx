@@ -401,7 +401,7 @@ export function PatientNotificationsPage() {
       {list.length ? <div className="grid gap-3 md:gap-4 md:p-6">{list.map((item) => {
         const meta = noticeMeta(item.title);
         return (
-          <article key={item.id} onClick={() => { if (!item.read) clinic.markNotificationRead(item.id); }} className={`relative flex cursor-default gap-4 rounded-xl bg-card p-4 ${softShadow} md:items-center md:px-4 md:py-5`}>
+          <article key={item.id} onClick={() => { if (!item.read) clinic.markNotificationRead(item.id); }} className={`relative flex flex-wrap cursor-default gap-4 rounded-xl md:flex-nowrap bg-card p-4 ${softShadow} md:items-center md:px-4 md:py-5`}>
             <span className="grid size-10 shrink-0 place-items-center self-start rounded-lg bg-accent/70 text-foreground md:size-12 [&>svg]:size-[18px] md:[&>svg]:size-5"><Bell /></span>
             <div className="min-w-0 flex-1 pr-4 md:pr-0">
               <p className="flex items-center gap-2 text-[15px] font-bold leading-6 md:text-[17px]">{item.title}{!item.read && <span className="hidden size-2 rounded-full bg-success md:inline-block" />}</p>
@@ -420,7 +420,7 @@ export function PatientNotificationsPage() {
               return charge.payment.status === "Pago"
                 ? <span className="flex shrink-0 items-center gap-1.5 self-center rounded-full bg-success-soft px-3 py-1 text-xs font-semibold text-success-strong"><CheckCheck className="size-3.5" />Pago</span>
                 : charge.status === "Cancelada" ? null
-                : <Button type="button" onClick={(event) => { event.stopPropagation(); clinic.markNotificationRead(item.id); setPaying(charge); }} className="h-9 shrink-0 self-center rounded-lg px-4 text-sm font-semibold"><CreditCard />Pagar {formatMoney(charge.payment.amount)}</Button>;
+                : <Button type="button" onClick={(event) => { event.stopPropagation(); clinic.markNotificationRead(item.id); setPaying(charge); }} className="h-9 w-full shrink-0 self-center rounded-lg px-4 text-sm font-semibold md:w-auto"><CreditCard />Pagar {formatMoney(charge.payment.amount)}</Button>;
             })()}
             <button type="button" onClick={(event) => { event.stopPropagation(); clinic.markNotificationRead(item.id); }} disabled={item.read} className="hidden shrink-0 items-center gap-3 text-xs text-soft-foreground disabled:text-subtle-foreground md:flex">{item.read ? "Lida" : "Marcar lida"}<ChevronRight className="size-4 text-foreground" /></button>
           </article>
