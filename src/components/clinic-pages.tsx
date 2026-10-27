@@ -254,8 +254,8 @@ export function AgendaPage() {
   const dateBar = (
     <div className="flex items-center justify-between gap-3">
       <div className="flex gap-2"><Button variant="ghost" size="icon" className="size-9 rounded-lg bg-soft" onClick={() => shift(-1)} aria-label="Dia anterior"><ChevronLeft /></Button><Button variant="ghost" size="icon" className="size-9 rounded-lg bg-soft" onClick={() => shift(1)} aria-label="Próximo dia"><ChevronRight /></Button></div>
-      <p className="flex items-center gap-1.5 text-base md:text-xl"><CalendarDays className="size-4 md:hidden" /><b className="font-bold">{weekdayName(date)}, {formatDate(date)}</b><span className="text-muted-foreground">•</span><span className="text-muted-foreground md:font-medium">{relativeDay(date)}</span></p>
-      <Button variant="ghost" className="h-9 rounded-lg bg-accent/70 px-4 font-semibold md:bg-soft" onClick={() => setDate(isoDate(0))}>Hoje</Button>
+      <p className="flex min-w-0 items-center gap-1.5 text-sm md:text-xl"><CalendarDays className="size-4 md:hidden" /><b className="font-bold">{weekdayName(date)}, {formatDate(date)}</b><span className="text-muted-foreground">•</span><span className="text-muted-foreground md:font-medium">{relativeDay(date)}</span></p>
+      <Button variant="ghost" className="h-9 shrink-0 rounded-lg bg-accent/70 px-3 font-semibold md:bg-soft md:px-4" onClick={() => setDate(isoDate(0))}>Hoje</Button>
     </div>
   );
 
