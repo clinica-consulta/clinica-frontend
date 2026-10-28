@@ -1,0 +1,3 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { WaitlistPage } from "@/components/clinic-pages";
+export const Route = createFileRoute("/fila-espera")({ head: () => ({ meta: [{ title: "Fila de espera — Gestão de Consultas" }, { name: "description", content: "Preencha horários cancelados usando a fila de espera." }, { property: "og:title", content: "Fila de espera — Gestão de Consultas" }, { property: "og:description", content: "Preencha horários cancelados usando a fila de espera." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }), component: WaitlistPage });
