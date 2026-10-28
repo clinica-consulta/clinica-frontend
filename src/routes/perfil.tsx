@@ -1,0 +1,3 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { ProfilePage } from "@/components/clinic-pages";
+export const Route = createFileRoute("/perfil")({ head: () => ({ meta: [{ title: "Configurações — Gestão de Consultas" }, { name: "description", content: "Gerencie seu perfil e preferências de notificação." }, { property: "og:title", content: "Configurações — Gestão de Consultas" }, { property: "og:description", content: "Gerencie seu perfil e preferências de notificação." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }), component: ProfilePage });
