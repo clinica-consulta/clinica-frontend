@@ -9,7 +9,10 @@ import { EmptyHint, Field, Modal, PageHeader, SearchInput, Section, SelectField,
 import { AppointmentForm } from "@/components/appointment-form";
 import { RescheduleModal } from "@/components/clinic-pages";
 import { formatDate, isoDate, openStatuses, relativeDay, minutesOf, weekdays, type Appointment } from "@/lib/clinic-data";
+import { takeSearch } from "@/lib/search-handoff";
 import { useClinic, useReports } from "@/lib/clinic-store";
+import { handOffSearch } from "@/lib/search-handoff";
+import { printDocument } from "@/lib/export";
 
 import { AppointmentRow, Dot, Notice, NotificationList, usePatientScope, useProfessionalScope } from "@/components/role-shared";
 
@@ -21,6 +24,11 @@ export function ProfessionalDashboardPage() {
   const done = today.filter((item) => item.status === "Realizada");
   const greeting = professional?.name.split(" ").slice(0, 2).join(" ") ?? "";
   const complete = (item: Appointment) => { clinic.setAppointmentStatus(item.id, "Realizada", "Consulta realizada"); toast.success("Consulta registrada como realizada"); };
+  const absent = (item: Appointment) => { clinic.setAppointmentStatus(item.id, "Não compareceu", "Ausência registrada pelo médico"); toast.warning("Ausência registrada"); };
+  const openRecord = (item: Appointment) => { handOffSearch("/profissional/pacientes", clinic.patientById(item.patientId)?.name ?? ""); navigate({ to: "/profissional/pacientes" }); };
+  const [documentFor, setDocumentFor] = useState<string | null>(null);
+  const hour = new Date().getHours();
+  const hello = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
   const stats = [
     { label: "Consultas hoje", value: today.length, detail: `${today.filter((item) => item.status === "Confirmada").length} confirmadas`, icon: <CalendarDays />, dot: "bg-success", accent: true },
     { label: "Em aberto", value: open.length, detail: "Aguardando atendimento", icon: <Clock3 />, dot: "bg-ring", accent: false },
@@ -31,7 +39,7 @@ export function ProfessionalDashboardPage() {
   return <>
     <header className="mb-6">
       <p className="mb-1 hidden text-[11px] font-bold uppercase leading-4 tracking-[1.1px] text-muted-foreground md:block">Área médica</p>
-      <h1 className="text-[28px] font-bold leading-9 tracking-[-0.8px] md:text-[32px] md:uppercase md:leading-10">Bom dia, {greeting}</h1>
+      <h1 className="text-[28px] font-bold leading-9 tracking-[-0.8px] md:text-[32px] md:uppercase md:leading-10">{hello}, {greeting}</h1>
       <p className="mt-1 text-sm leading-5 text-muted-foreground">Acompanhe sua agenda do dia e registre o resultado dos atendimentos.</p>
     </header>
 
@@ -53,7 +61,6 @@ export function ProfessionalDashboardPage() {
       <section className="md:surface md:p-6">
         <div className="flex items-center justify-between pb-3 md:pb-4">
           <h2 className="eyebrow flex items-center gap-2 text-foreground md:text-muted-foreground">Atendimentos de hoje<span className="rounded-full bg-accent px-1.5 text-[11px] text-foreground md:hidden">{open.length}</span></h2>
-          <span className="flex items-center gap-1 text-[13px] font-semibold md:hidden">Filtrar<SlidersHorizontal className="size-3.5" /></span>
         </div>
         {open.length ? <div className="grid gap-3 md:gap-0 md:divide-y md:divide-border/60">{open.map((item) => (
           <article key={item.id}>
@@ -62,6 +69,8 @@ export function ProfessionalDashboardPage() {
               <div className="min-w-0 flex-1"><p className="text-base font-semibold leading-6">{clinic.patientById(item.patientId)?.name}</p><p className="text-xs leading-4 text-muted-foreground">{professional?.name} • {item.specialty} • {relativeDay(item.date)}</p></div>
               <span className="flex items-center gap-2 text-sm font-medium"><span className={`size-2 rounded-full ${item.status === "Confirmada" ? "bg-success" : "bg-foreground"}`} />{item.status}</span>
               <Button onClick={() => complete(item)} className="h-9 rounded-lg bg-strong px-5 text-sm font-semibold hover:bg-strong/90">Realizada</Button>
+              <Button variant="ghost" onClick={() => absent(item)} className="h-9 rounded-lg px-3 text-sm font-medium">Não compareceu</Button>
+              <Button variant="ghost" size="icon" aria-label="Prontuário" title="Prontuário" onClick={() => openRecord(item)} className="size-9 rounded-lg bg-soft"><ClipboardList /></Button>
             </div>
             <div className="surface p-4 md:hidden">
               <div className="flex items-start gap-4">
@@ -71,8 +80,8 @@ export function ProfessionalDashboardPage() {
               </div>
               <div className="mt-4 flex gap-2">
                 <Button onClick={() => complete(item)} className="h-9 flex-1 rounded-lg"><CheckCheck />Realizada</Button>
-                <Button variant="ghost" size="icon" aria-label="Prontuário" className="size-9 rounded-lg bg-soft"><ClipboardList /></Button>
-                <Button variant="ghost" size="icon" aria-label="Mais opções" className="size-9 rounded-lg bg-soft"><MoreVertical /></Button>
+                <Button variant="ghost" onClick={() => absent(item)} className="h-9 rounded-lg bg-soft px-3 font-semibold"><CalendarX2 />Ausente</Button>
+                <Button variant="ghost" size="icon" aria-label="Prontuário" title="Prontuário" onClick={() => openRecord(item)} className="size-9 rounded-lg bg-soft"><ClipboardList /></Button>
               </div>
             </div>
           </article>
@@ -89,12 +98,65 @@ export function ProfessionalDashboardPage() {
           <SummaryNote icon={<ClipboardPlus />} title={`${done.length} consulta(s) realizada(s)`} text="Registros enviados para o histórico do paciente." />
         </div>
         <div className="mt-4 grid gap-2 border-border md:mt-5 md:gap-0 md:border-t md:pt-3">
-          <button type="button" onClick={() => toast.info("Emissão de documentos em breve")} className="flex items-center gap-3 rounded-lg bg-soft/60 p-3 text-left text-sm font-medium md:bg-transparent md:px-0 md:py-2.5"><FileText className="size-4" /><span className="flex-1">Emitir Atestado ou Receita</span><ChevronRight className="size-4" /></button>
-          <button type="button" onClick={() => navigate({ to: "/profissional/agenda" })} className="flex items-center gap-3 rounded-lg bg-soft/60 p-3 text-left text-sm font-medium md:bg-transparent md:px-0 md:py-2.5"><CalendarRange className="size-4" /><span className="flex-1">Ver escala semanal completa</span><ChevronRight className="size-4" /></button>
+          <button type="button" onClick={() => setDocumentFor(open[0]?.patientId ?? mine[0]?.patientId ?? "")} className="flex items-center gap-3 rounded-lg bg-soft/60 p-3 text-left text-sm font-medium md:bg-transparent md:px-0 md:py-2.5"><FileText className="size-4" /><span className="flex-1">Emitir Atestado ou Receita</span><ChevronRight className="size-4" /></button>
+          <button type="button" onClick={() => navigate({ to: "/profissional/disponibilidade" })} className="flex items-center gap-3 rounded-lg bg-soft/60 p-3 text-left text-sm font-medium md:bg-transparent md:px-0 md:py-2.5"><CalendarRange className="size-4" /><span className="flex-1">Ver escala semanal completa</span><ChevronRight className="size-4" /></button>
         </div>
       </section>
     </div>
+    <DocumentModal patientId={documentFor} onClose={() => setDocumentFor(null)} />
   </>;
+}
+
+const documentTypes = {
+  Atestado: (patient: string, doctor: string) => `Atesto, para os devidos fins, que ${patient} esteve em atendimento médico nesta data e necessita de 1 (um) dia de afastamento de suas atividades.\n\n${doctor}`,
+  Receita: (patient: string, doctor: string) => `Paciente: ${patient}\n\nUso oral:\n1. \n\n${doctor}`,
+  "Pedido de exame": (patient: string, doctor: string) => `Paciente: ${patient}\n\nSolicito os exames:\n- \n\n${doctor}`,
+} as const;
+type DocumentType = keyof typeof documentTypes;
+
+/** Médico escreve atestado, receita ou pedido de exame, envia ao paciente (aparece nas notificações dele) e pode imprimir. */
+function DocumentModal({ patientId, onClose }: { patientId: string | null; onClose: () => void }) {
+  const { clinic, professional, mine } = useProfessionalScope();
+  const patients = [...new Set(mine.map((item) => item.patientId))].map(clinic.patientById).filter((item): item is NonNullable<typeof item> => Boolean(item)).sort((a, b) => a.name.localeCompare(b.name));
+  const [chosen, setChosen] = useState("");
+  const [type, setType] = useState<DocumentType>("Atestado");
+  const [text, setText] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const target = patients.find((item) => item.id === (chosen || patientId)) ?? patients[0];
+  const signature = professional ? `${professional.name} · ${professional.crm}` : "";
+  const body = text ?? (target ? documentTypes[type](target.name, signature) : "");
+  const close = () => { setChosen(""); setText(null); setType("Atestado"); onClose(); };
+  const title = `${type} · ${professional?.specialty ?? ""}`;
+
+  async function send() {
+    if (!target) return;
+    setSending(true);
+    try {
+      await clinic.sendDocument({ patientId: target.id, title: type === "Atestado" ? "Atestado médico" : type, text: body });
+      toast.success("Documento enviado", { description: `${target.name} já pode ver e imprimir.` });
+      close();
+    } catch (error) {
+      toast.error("Não foi possível enviar", { description: (error as Error).message });
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return <Modal open={patientId !== null} title="Emitir atestado ou receita" description="O documento vai para as notificações do paciente, que pode imprimir." onClose={close}>
+    {patients.length ? <div className="grid gap-4">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <SelectField label="Paciente" value={target?.id ?? ""} onChange={(event) => { setChosen(event.target.value); setText(null); }} options={patients.map((item) => ({ value: item.id, label: item.name }))} />
+        <SelectField label="Tipo" value={type} onChange={(event) => { setType(event.target.value as DocumentType); setText(null); }} options={Object.keys(documentTypes).map((item) => ({ value: item, label: item }))} />
+      </div>
+      <label className="grid gap-1.5 text-[13px] font-semibold">Texto do documento
+        <textarea value={body} onChange={(event) => setText(event.target.value)} rows={8} className="w-full rounded-lg bg-soft px-3.5 py-2.5 text-sm font-normal outline-none focus:ring-2 focus:ring-ring" />
+      </label>
+      <div className="flex flex-wrap gap-2">
+        <Button disabled={sending || !body.trim()} onClick={() => void send()}><Send />{sending ? "Enviando..." : "Enviar ao paciente"}</Button>
+        <Button variant="ghost" className="bg-soft" disabled={!body.trim()} onClick={() => { if (!printDocument({ clinic: clinic.settings.name, title, body, footer: signature })) toast.error("Libere as janelas pop-up para imprimir"); }}><FileText />Imprimir</Button>
+      </div>
+    </div> : <EmptyHint>Você ainda não tem pacientes. Os documentos são emitidos para quem tem consulta com você.</EmptyHint>}
+  </Modal>;
 }
 
 function SummaryNote({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) {
@@ -136,8 +198,10 @@ export function ProfessionalAgendaPage() {
   const [date, setDate] = useState(isoDate(0));
   const blocks = professional ? clinic.blocks.filter((item) => item.professionalId === professional.id && item.startDate <= date && item.endDate >= date) : [];
   const [detail, setDetail] = useState<Appointment | null>(null);
+  const [onlyOpen, setOnlyOpen] = useState(false);
   const ofDay = mine.filter((item) => item.date === date && item.status !== "Cancelada");
   const list = ofDay
+    .filter((item) => !onlyOpen || openStatuses.includes(item.status))
     .filter((item) => (clinic.patientById(item.patientId)?.name ?? "").toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => a.time.localeCompare(b.time));
   const confirmed = ofDay.filter((item) => item.status === "Confirmada");
@@ -180,7 +244,7 @@ export function ProfessionalAgendaPage() {
 
     {/* Lista desktop */}
     <section className="surface hidden p-6 md:block">
-      <h2 className="pb-2 text-sm font-bold uppercase leading-5">{title}</h2>
+      <div className="flex items-center justify-between pb-2"><h2 className="text-sm font-bold uppercase leading-5">{title}</h2><button type="button" aria-pressed={onlyOpen} onClick={() => setOnlyOpen((value) => !value)} className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-semibold ${onlyOpen ? "bg-strong text-strong-foreground" : "bg-soft"}`}><SlidersHorizontal className="size-3.5" />{onlyOpen ? "Mostrando só em aberto" : "Mostrar só em aberto"}</button></div>
       {blocks.map((block) => <p key={block.id} className="mb-2 text-xs text-warning-strong">Período bloqueado: {block.startTime}–{block.endTime} · {block.reason}</p>)}
       {list.length ? list.map((item) => (
         <div key={item.id} className="flex items-center gap-5 py-4">
@@ -198,7 +262,7 @@ export function ProfessionalAgendaPage() {
 
     {/* Lista mobile */}
     <section className="md:hidden">
-      <div className="flex items-center justify-between pb-3"><h2 className="text-xs font-bold uppercase leading-4 text-soft-foreground">{title}</h2><span className="flex items-center gap-1 text-xs font-semibold"><SlidersHorizontal className="size-3.5" />Filtros</span></div>
+      <div className="flex items-center justify-between pb-3"><h2 className="text-xs font-bold uppercase leading-4 text-soft-foreground">{title}</h2><button type="button" aria-pressed={onlyOpen} onClick={() => setOnlyOpen((value) => !value)} className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold ${onlyOpen ? "bg-strong text-strong-foreground" : ""}`}><SlidersHorizontal className="size-3.5" />{onlyOpen ? "Só em aberto" : "Todos"}</button></div>
       {blocks.map((block) => <p key={block.id} className="mb-2 text-xs text-warning-strong">Período bloqueado: {block.startTime}–{block.endTime} · {block.reason}</p>)}
       {list.length ? <div className="grid gap-3">{list.map((item) => {
         const patient = clinic.patientById(item.patientId);
@@ -260,9 +324,10 @@ const avatarTones = ["bg-primary text-white", "bg-success text-white", "bg-avata
 
 export function ProfessionalPatientsPage() {
   const { clinic, mine } = useProfessionalScope();
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(() => takeSearch("/profissional/pacientes"));
   const [order, setOrder] = useState<"recent" | "name">("recent");
   const [record, setRecord] = useState<string | null>(null);
+  const [documentFor, setDocumentFor] = useState<string | null>(null);
   const ids = [...new Set(mine.map((item) => item.patientId))];
   const rows = ids
     .map((id) => clinic.patientById(id))
@@ -300,6 +365,7 @@ export function ProfessionalPatientsPage() {
           <div><b className="block text-[26px] leading-8">{history.length}</b><span className="text-xs text-muted-foreground">atendimentos</span></div>
           <div><b className="block text-[26px] leading-8">{last ? formatDate(last.date).slice(0, 5) : "—"}</b><span className="text-xs text-muted-foreground">último</span></div>
         </div>
+        <div className="border-t border-border p-4"><Button variant="ghost" onClick={() => setRecord(patient.id)} className="h-9 w-full rounded-lg bg-accent font-semibold hover:bg-accent/80"><ClipboardList />Prontuário</Button></div>
       </div>
       {/* mobile */}
       <div className="md:hidden">
@@ -322,8 +388,10 @@ export function ProfessionalPatientsPage() {
         <p><b>Telefone:</b> {selected.patient.phone}</p>
         <p><b>E-mail:</b> {selected.patient.email}</p>
         <div className="space-y-2">{[...selected.history].sort((a, b) => b.date.localeCompare(a.date)).map((item) => <div key={item.id} className="flex items-center justify-between gap-3 rounded-lg bg-soft px-3 py-2"><span><b>{formatDate(item.date)}</b> · {item.time}<span className="block text-xs text-muted-foreground">{item.notes || item.specialty}</span></span><StatusBadge status={item.status} /></div>)}</div>
+        <Button onClick={() => { setDocumentFor(selected.patient.id); setRecord(null); }}><FileText />Emitir atestado ou receita</Button>
       </div>}
     </Modal>
+    <DocumentModal patientId={documentFor} onClose={() => setDocumentFor(null)} />
   </>;
 }
 

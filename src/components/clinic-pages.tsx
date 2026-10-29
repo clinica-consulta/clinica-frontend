@@ -4,10 +4,12 @@ import { Activity, Lightbulb, BriefcaseMedical, ListFilter, Pencil, Info, LogIn,
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { EmptyHint, Field, Modal, PageHeader, SearchInput, Section, SelectField, StatCard, StatusBadge, TextareaField, Toggle, Toolbar } from "@/components/page-kit";
-import { AppointmentForm } from "@/components/appointment-form";
+import { AppointmentForm, type AppointmentDefaults } from "@/components/appointment-form";
 import { MiniCalendar, SlotPicker } from "@/components/mini-calendar";
 import { appointmentStatuses, formatDate, isoDate, openStatuses, relativeDay, slotRange, weekdayName, formatMoney, hasPassed, type Appointment } from "@/lib/clinic-data";
+import { takeSearch } from "@/lib/search-handoff";
 import { useClinic, useReports } from "@/lib/clinic-store";
+import { maskCpf, maskPhone } from "@/lib/cpf";
 
 function useAppointmentActions() {
   const { setAppointmentStatus, sendReminder, patientById } = useClinic();
@@ -113,9 +115,11 @@ function PendingRecords() {
 
 export function DashboardPage() {
   const { appointments, professionals, sendAllReminders, sendReminder, availableSlots, patientById, professionalById, session } = useClinic();
-  const [newOpen, setNewOpen] = useState(false);
+  const [newOpen, setNewOpen] = useState<AppointmentDefaults | null>(null);
   const active = professionals.filter((item) => item.active);
-  const [proId, setProId] = useState(active[0]?.id ?? "");
+  const [pickedProId, setProId] = useState(active[0]?.id ?? "");
+  // A lista de médicos chega da API depois da primeira tela: sem escolha válida, usa o primeiro ativo.
+  const proId = active.some((item) => item.id === pickedProId) ? pickedProId : active[0]?.id ?? "";
   const [calDate, setCalDate] = useState(isoDate(0));
   const [slot, setSlot] = useState("");
   const today = appointments.filter((item) => item.date === isoDate(0) && item.status !== "Cancelada").sort((a, b) => a.time.localeCompare(b.time));
@@ -132,10 +136,10 @@ export function DashboardPage() {
       <p className="mb-1 hidden text-[11px] font-bold uppercase leading-4 tracking-[1.1px] text-muted-foreground md:block">Visão geral</p>
       <div className="flex items-center justify-between gap-3 md:block">
         <h1 className="text-[26px] font-bold leading-8 tracking-[-0.8px] md:text-[32px] md:leading-10">{greeting()}, {firstName(session?.name)}</h1>
-        <Button onClick={() => setNewOpen(true)} className="h-9 shrink-0 rounded-lg px-3 text-sm font-semibold md:hidden"><Plus />Nova consulta</Button>
+        <Button onClick={() => setNewOpen({})} className="h-9 shrink-0 rounded-lg px-3 text-sm font-semibold md:hidden"><Plus />Nova consulta</Button>
       </div>
       <p className="mt-2 max-w-[260px] text-sm leading-5 text-muted-foreground md:mt-0.5 md:max-w-none">Acompanhe os agendamentos do dia e as confirmações pendentes.</p>
-      <Button onClick={() => setNewOpen(true)} className="mt-6 hidden h-10 rounded-lg px-5 text-sm font-semibold shadow-[0_1px_1px_rgb(0_0_0/5%)] md:inline-flex"><Plus />Nova consulta</Button>
+      <Button onClick={() => setNewOpen({})} className="mt-6 hidden h-10 rounded-lg px-5 text-sm font-semibold shadow-[0_1px_1px_rgb(0_0_0/5%)] md:inline-flex"><Plus />Nova consulta</Button>
     </header>
 
     <PendingRecords />
@@ -184,7 +188,7 @@ export function DashboardPage() {
             </div>
           </div>
         ))}</div> : <div className="p-4 md:p-0"><EmptyHint>Todas as consultas estão confirmadas.</EmptyHint></div>}
-        <div className="hidden pt-6 md:block"><p className="flex items-center gap-3 rounded-lg bg-soft p-3 text-xs leading-[15px] text-muted-foreground"><MessageSquareText className="size-[18px] shrink-0 text-foreground" />Os lembretes automáticos por WhatsApp e SMS são disparados 24h antes do horário marcado.</p></div>
+        <div className="hidden pt-6 md:block"><p className="flex items-center gap-3 rounded-lg bg-soft p-3 text-xs leading-[15px] text-muted-foreground"><MessageSquareText className="size-[18px] shrink-0 text-foreground" />Os lembretes chegam nas notificações do paciente, que confirma ou cancela a presença pelo site.</p></div>
       </section>
     </div>
 
@@ -212,22 +216,24 @@ export function DashboardPage() {
           {slots.length ? <SlotPicker slots={slots} value={chosen} onChange={setSlot} /> : <EmptyHint>Nenhum horário disponível nesta data.</EmptyHint>}
           {chosen && <div className="hidden pt-4 md:block"><div className="flex items-center justify-between gap-4 rounded-xl bg-soft/40 p-4">
             <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-lg bg-success-soft/50 text-success"><CalendarCheck className="size-[18px]" /></span><div><p className="text-sm font-bold leading-5">Horário de {chosen} reservado para marcação</p><p className="text-xs leading-4 text-muted-foreground">Duração estimada: 30 minutos • {doctor?.name}</p></div></div>
-            <Button onClick={() => setNewOpen(true)} className="rounded-lg bg-strong px-4 text-sm font-semibold hover:bg-strong/90"><CalendarCheck2 />Agendar neste horário</Button>
+            <Button onClick={() => setNewOpen({ professionalId: proId, date: calDate, time: chosen })} className="rounded-lg bg-strong px-4 text-sm font-semibold hover:bg-strong/90"><CalendarCheck2 />Agendar neste horário</Button>
           </div></div>}
         </div>
       </div>
     </section>
-    <Modal open={newOpen} title="Nova consulta" description="Busque o paciente pelo CPF e agende em nome dele (presencial ou por telefone)." onClose={() => setNewOpen(false)}><AppointmentForm onDone={() => setNewOpen(false)} /></Modal>
+    <Modal open={Boolean(newOpen)} title="Nova consulta" description="Busque o paciente pelo CPF e agende em nome dele (presencial ou por telefone)." onClose={() => setNewOpen(null)}><AppointmentForm defaults={newOpen ?? {}} onDone={() => setNewOpen(null)} /></Modal>
   </>;
 }
 
 export function AgendaPage() {
   const { appointments, professionals, patientById, professionalById, availableSlots, waitlist, setAppointmentStatus } = useClinic();
   const [date, setDate] = useState(isoDate(0));
-  const [newOpen, setNewOpen] = useState(false);
+  const [newOpen, setNewOpen] = useState<AppointmentDefaults | null>(null);
   const [manage, setManage] = useState<Appointment | null>(null);
   const [doctor, setDoctor] = useState("Todos");
-  const allActive = professionals.filter((item) => item.active);
+  const [specialty, setSpecialty] = useState("Todas");
+  const { activeSpecialties } = useClinic();
+  const allActive = professionals.filter((item) => item.active && (specialty === "Todas" || item.specialty === specialty));
   const active = allActive.filter((item) => doctor === "Todos" || item.id === doctor);
   const weekday = new Date(`${date}T12:00:00`).getDay();
   const hours = useMemo(() => {
@@ -260,8 +266,9 @@ export function AgendaPage() {
   );
 
   return <>
-    <PageHeader eyebrow="Organização diária" title="Agenda" description="Visualize a agenda diária dos médicos e a disponibilidade de horários." action="Agendar consulta" onAction={() => setNewOpen(true)} />
+    <PageHeader eyebrow="Organização diária" title="Agenda" description="Visualize a agenda diária dos médicos e a disponibilidade de horários." action="Agendar consulta" onAction={() => setNewOpen({ date })} />
 
+    <SelectField label="Especialidade" value={specialty} onChange={(event) => { setSpecialty(event.target.value); setDoctor("Todos"); }} options={[{ value: "Todas", label: "Todas as especialidades" }, ...activeSpecialties.map((item) => ({ value: item, label: item }))]} className="mb-3 max-w-xs" />
     <div className="horizontal-nav -mx-4 mb-4 flex gap-2 overflow-x-auto px-4 md:mx-0 md:mb-6 md:px-0" role="tablist" aria-label="Filtrar por médico">
       <button type="button" onClick={() => setDoctor("Todos")} className={`flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-semibold shadow-[0_1px_1px_rgb(0_0_0/5%)] ${doctor === "Todos" ? "bg-primary text-primary-foreground" : "bg-card"}`}><UsersRound className="size-4 md:hidden" />Todos os médicos<span className="rounded-full bg-white/15 px-1.5 text-[11px] md:hidden">{allActive.length}</span></button>
       {allActive.map((item) => <button type="button" key={item.id} onClick={() => setDoctor(item.id)} className={`flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-semibold shadow-[0_1px_1px_rgb(0_0_0/5%)] ${doctor === item.id ? "bg-primary text-primary-foreground" : "bg-card"}`}><span className="grid size-6 place-items-center rounded-full bg-accent text-[10px] font-bold text-foreground md:hidden">{item.name.replace(/^Dra?\.\s/, "").split(" ").map((p) => p[0]).slice(0, 2).join("")}</span>{item.name}<span className="text-xs font-normal opacity-70 md:hidden">• {item.specialty}</span></button>)}
@@ -284,7 +291,7 @@ export function AgendaPage() {
                 {item ? <button type="button" onClick={() => setManage(item)} className="flex size-full flex-col justify-center rounded-lg bg-accent/70 px-3 text-left shadow-[0_1px_2px_rgb(0_0_0/6%)]">
                   <span className="flex items-center justify-between gap-2"><b className="truncate text-sm font-bold">{patientById(item.patientId)?.name}</b><span className="scale-[.8] origin-right"><StatusBadge status={item.status} /></span></span>
                   <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><Clock3 className="size-3.5" />{item.time} - {endOf(item.time)} • {item.notes || "Consulta"}</span>
-                </button> : open ? <button type="button" aria-label={`Agendar ${hour} com ${pro.name}`} onClick={() => setNewOpen(true)} className="size-full rounded-lg transition hover:bg-soft" /> : null}
+                </button> : open ? <button type="button" aria-label={`Agendar ${hour} com ${pro.name}`} onClick={() => setNewOpen({ professionalId: pro.id, date, time: hour })} className="size-full rounded-lg transition hover:bg-soft" /> : null}
               </div>;
             }),
           ])}
@@ -315,22 +322,22 @@ export function AgendaPage() {
                 <div className="flex items-start gap-2"><div className="min-w-0 flex-1"><p className="flex flex-wrap items-center gap-2 text-base font-bold leading-5">{patientById(item.patientId)?.name}<span className="scale-90 origin-left"><StatusBadge status={item.status} /></span></p><p className="mt-0.5 text-[13px] text-muted-foreground">{professionalById(item.professionalId)?.name} • {item.specialty}</p></div><Button variant="ghost" size="icon" className="size-8 rounded-lg bg-card" aria-label="Gerenciar" onClick={() => setManage(item)}><MoreVertical /></Button></div>
                 <div className="mt-3 flex items-center justify-between border-t border-input/50 pt-3 text-xs"><span className="text-muted-foreground">Convênio: <b className="font-semibold text-foreground">{patientById(item.patientId)?.insurance}</b></span>{item.status !== "Realizada" && <button type="button" onClick={() => { setAppointmentStatus(item.id, "Confirmada", "Check-in realizado na recepção"); toast.success("Check-in realizado"); }} className="flex items-center gap-1 rounded-md bg-strong px-2.5 py-1 font-semibold text-strong-foreground"><LogIn className="size-3.5" />Check-in</button>}</div>
               </article>)}
-              {freeRooms > 0 && !items.length && <button type="button" onClick={() => setNewOpen(true)} className="surface flex items-center gap-3 p-4 text-left"><span className="grid size-7 place-items-center rounded-md bg-accent/70"><Plus className="size-4" /></span><span className="min-w-0 flex-1"><b className="block text-[15px] font-semibold leading-5">Horário vago</b><span className="text-[13px] text-muted-foreground">Disponível em {freeRooms} consultório{freeRooms > 1 ? "s" : ""}</span></span><span className="rounded-full bg-success-soft/70 px-2 py-0.5 text-[11px] font-semibold text-success">Livre</span></button>}
+              {freeRooms > 0 && !items.length && <button type="button" onClick={() => setNewOpen({ professionalId: active.find((pro) => availableSlots(pro.id, date).includes(hour))?.id ?? "", date, time: hour })} className="surface flex items-center gap-3 p-4 text-left"><span className="grid size-7 place-items-center rounded-md bg-accent/70"><Plus className="size-4" /></span><span className="min-w-0 flex-1"><b className="block text-[15px] font-semibold leading-5">Horário vago</b><span className="text-[13px] text-muted-foreground">Disponível em {freeRooms} consultório{freeRooms > 1 ? "s" : ""}</span></span><span className="rounded-full bg-success-soft/70 px-2 py-0.5 text-[11px] font-semibold text-success">Livre</span></button>}
             </div>
           </div>;
         }) : <EmptyHint>Nenhum médico atende nesta data.</EmptyHint>}
       </div>
-      {nextUp && <div className="mt-6 flex gap-3 rounded-xl bg-soft p-4"><span className="grid size-10 shrink-0 place-items-center rounded-lg bg-strong text-strong-foreground"><BriefcaseMedical className="size-5" /></span><div><p className="text-sm font-bold">Dica de Atendimento</p><p className="text-xs leading-4 text-muted-foreground">Próximo paciente de {professionalById(nextUp.professionalId)?.name}: {patientById(nextUp.patientId)?.name} às {nextUp.time}. {nextUp.reminderSentAt ? "Lembrete já enviado por WhatsApp." : "Lembrete ainda não enviado."}</p></div></div>}
+      {nextUp && <div className="mt-6 flex gap-3 rounded-xl bg-soft p-4"><span className="grid size-10 shrink-0 place-items-center rounded-lg bg-strong text-strong-foreground"><BriefcaseMedical className="size-5" /></span><div><p className="text-sm font-bold">Dica de Atendimento</p><p className="text-xs leading-4 text-muted-foreground">Próximo paciente de {professionalById(nextUp.professionalId)?.name}: {patientById(nextUp.patientId)?.name} às {nextUp.time}. {nextUp.reminderSentAt ? "Lembrete já enviado." : "Lembrete ainda não enviado."}</p></div></div>}
     </div>
 
-    <Modal open={newOpen} title="Agendar consulta" onClose={() => setNewOpen(false)}><AppointmentForm onDone={() => setNewOpen(false)} /></Modal>
+    <Modal open={Boolean(newOpen)} title="Agendar consulta" onClose={() => setNewOpen(null)}><AppointmentForm defaults={newOpen ?? {}} onDone={() => setNewOpen(null)} /></Modal>
     <ManageModal appointment={manage} onClose={() => setManage(null)} />
   </>;
 }
 
 export function ConsultasPage() {
   const { appointments, professionals, activeSpecialties, patientById, professionalById } = useClinic();
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(() => takeSearch("/consultas"));
   const [status, setStatus] = useState("Todos");
   const [professional, setProfessional] = useState("Todos");
   const [specialty, setSpecialty] = useState("Todas");
@@ -429,8 +436,8 @@ export function ConsultasPage() {
 }
 
 export function PacientesPage() {
-  const { patients, appointments, insurances, activeSpecialties, checkEligibility, professionalById, addPatient, updatePatient } = useClinic();
-  const [search, setSearch] = useState("");
+  const { patients, appointments, insurances, activeSpecialties, checkEligibility, professionalById, addPatient, updatePatient, togglePatientStatus } = useClinic();
+  const [search, setSearch] = useState(() => takeSearch("/pacientes"));
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [historyOf, setHistoryOf] = useState<string | null>(null);
@@ -513,12 +520,14 @@ export function PacientesPage() {
     <Modal open={formOpen || Boolean(patient)} title={patient ? "Editar paciente" : "Novo paciente"} onClose={() => { setFormOpen(false); setEditing(null); }}>
       <form className="grid gap-4 sm:grid-cols-2" onSubmit={submit}>
         <Field label="Nome completo" name="name" required defaultValue={patient?.name ?? ""} />
-        <Field label="CPF" name="cpf" required defaultValue={patient?.cpf ?? ""} placeholder="000.000.000-00" />
-        <Field label="Telefone" name="phone" required defaultValue={patient?.phone ?? ""} placeholder="(00) 00000-0000" />
+        <Field label="CPF" name="cpf" required defaultValue={patient?.cpf ?? ""} placeholder="000.000.000-00" inputMode="numeric" maxLength={14} onChange={(event) => { event.target.value = maskCpf(event.target.value); }} />
+        <Field label="Telefone" name="phone" required defaultValue={patient?.phone ?? ""} placeholder="(00) 00000-0000" inputMode="tel" maxLength={15} onChange={(event) => { event.target.value = maskPhone(event.target.value); }} />
         <Field label="E-mail" name="email" type="email" required defaultValue={patient?.email ?? ""} />
         <Field label="Data de nascimento" name="birthDate" type="date" required defaultValue={patient?.birthDate ?? ""} />
         <SelectField label="Convênio" name="insurance" defaultValue={patient?.insurance ?? "Particular"} options={insurances.map((item) => ({ value: item.name, label: item.name }))} />
-        <div className="sm:col-span-2"><Button type="submit">{patient ? "Salvar alterações" : "Cadastrar paciente"}</Button></div>
+        <div className="flex flex-wrap gap-2 sm:col-span-2"><Button type="submit">{patient ? "Salvar alterações" : "Cadastrar paciente"}</Button>
+          {patient?.status === "Ativo" && <Button type="button" variant="ghost" className="bg-soft" onClick={() => { togglePatientStatus(patient.id); toast.success("Cadastro desativado", { description: "O histórico de consultas continua guardado." }); setEditing(null); }}>Desativar cadastro</Button>}
+        </div>
       </form>
     </Modal>
 
@@ -543,6 +552,8 @@ export function PacientesPage() {
 export function WaitlistPage() {
   const { waitlist, patients, activeSpecialties, patientById, addToWaitlist, inviteFromWaitlist, removeFromWaitlist } = useClinic();
   const [open, setOpen] = useState(false);
+  const [booking, setBooking] = useState<AppointmentDefaults | null>(null);
+  const book = (patientId: string, specialty: string) => setBooking({ cpf: patientById(patientId)?.cpf ?? "", specialty });
   const queue = waitlist;
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -599,6 +610,7 @@ export function WaitlistPage() {
             <span className="grid size-10 shrink-0 place-items-center rounded-full bg-avatar text-base font-semibold text-white">{index + 1}</span>
             <div className="min-w-0 flex-1"><p className="flex flex-wrap items-center gap-2 text-base font-semibold">{name}{priorityPill}{statusPill}</p><p className="mt-1 flex items-center gap-2 text-[13px] text-muted-foreground">{item.specialty}<span className="size-1 rounded-full bg-input" />{item.preference}<span className="size-1 rounded-full bg-input" />desde {formatDate(item.createdAt)}</p></div>
             <Button disabled={invitedItem} onClick={() => offer(item.id)} className="h-9 rounded-lg px-4 text-sm font-semibold">{invitedItem ? <><Check />Convite enviado</> : <><Phone />Oferecer horário</>}</Button>
+            <Button variant="ghost" onClick={() => book(item.patientId, item.specialty)} className="h-9 rounded-lg bg-card px-4 text-sm font-semibold"><CalendarCheck />Agendar</Button>
             <Button variant="ghost" size="icon" onClick={() => remove(item.id)} aria-label="Remover"><X /></Button>
           </div>
           <div className="surface p-4 md:hidden">
@@ -607,13 +619,14 @@ export function WaitlistPage() {
               <div className="min-w-0 flex-1"><p className="flex flex-wrap items-center gap-2 text-base font-semibold">{name}{item.priority === "Alta" ? priorityPill : pill("Normal", "info")}</p><div className="mt-1">{statusPill}</div><p className="mt-1 text-xs text-muted-foreground">{item.specialty} • {item.preference} • desde {formatDate(item.createdAt)}</p></div>
               <Button variant="ghost" size="icon" className="size-7" onClick={() => remove(item.id)} aria-label="Remover"><X /></Button>
             </div>
-            <div className="mt-3 flex gap-2"><Button disabled={invitedItem} onClick={() => offer(item.id)} className="h-10 flex-1 rounded-lg text-[15px] font-semibold">{invitedItem ? <><Check />Convite enviado</> : <><Phone />Oferecer horário</>}</Button><Button variant="ghost" size="icon" className="h-10 w-9 rounded-lg bg-soft" aria-label="Mais opções"><MoreHorizontal /></Button></div>
+            <div className="mt-3 flex gap-2"><Button disabled={invitedItem} onClick={() => offer(item.id)} className="h-10 flex-1 rounded-lg text-[15px] font-semibold">{invitedItem ? <><Check />Convite enviado</> : <><Phone />Oferecer horário</>}</Button><Button variant="ghost" className="h-10 rounded-lg bg-soft px-3 font-semibold" onClick={() => book(item.patientId, item.specialty)}><CalendarCheck />Agendar</Button></div>
           </div>
         </article>;
       })}</div> : <EmptyHint>A fila de espera está vazia.</EmptyHint>}
       <div className="mt-8 hidden items-center justify-between text-xs text-muted-foreground md:flex"><span className="flex items-center gap-1.5 text-[13px]"><ShieldCheck className="size-4 text-success" />Critério de ordenação inteligente: Prioridade Clínica e Data de Solicitação.</span><span>Mostrando {ordered.length} de {queue.length} pacientes</span></div>
     </section>
     <div className="mt-4 flex items-center gap-3 rounded-xl bg-accent/70 p-4 md:hidden"><span className="grid size-10 shrink-0 place-items-center rounded-lg bg-card"><Lightbulb className="size-5" /></span><div><p className="text-sm font-bold">Dica de Recepcionista</p><p className="text-xs leading-4 text-muted-foreground">Pacientes com status "Alta" têm desistências prioritárias na especialidade.</p></div></div>
+    <Modal open={Boolean(booking)} title="Agendar paciente da fila" description="Depois de agendar, remova o paciente da fila." onClose={() => setBooking(null)}><AppointmentForm defaults={booking ?? {}} onDone={() => setBooking(null)} /></Modal>
     <Modal open={open} title="Adicionar à fila" onClose={() => setOpen(false)}>
       <form className="grid gap-4" onSubmit={submit}>
         <SelectField label="Paciente" name="patientId" options={patients.map((item) => ({ value: item.id, label: item.name }))} />
@@ -665,13 +678,15 @@ function firstName(name = "") {
 
 export function ProfilePage() {
   const { settings, updateSettings, session, updateMyAccount } = useClinic();
-  const [reminders, setReminders] = useState(true);
+  const notesKey = `gestao-consultas-anotacoes-${session?.email ?? ""}`;
+  const [notes, setNotes] = useState(() => { try { return window.localStorage.getItem(notesKey) ?? ""; } catch { return ""; } });
 
   async function saveProfile(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     try {
       await updateMyAccount({ name: String(data.get("name") ?? ""), phone: String(data.get("phone") ?? "") });
+      try { window.localStorage.setItem(notesKey, notes); } catch { /* armazenamento indisponível */ }
       toast.success("Perfil atualizado", { description: "Suas alterações foram salvas." });
     } catch (error) {
       toast.error("Não foi possível salvar", { description: (error as Error).message });
@@ -685,15 +700,14 @@ export function ProfilePage() {
         <form key={session?.name} className="grid gap-4 sm:grid-cols-2" onSubmit={saveProfile}>
           <Field label="Nome completo" name="name" defaultValue={session?.name} required />
           <Field label="E-mail" defaultValue={session?.email} disabled />
-          <Field label="Telefone" name="phone" defaultValue={session?.phone} />
+          <Field label="Telefone" name="phone" defaultValue={session?.phone} inputMode="tel" maxLength={15} onChange={(event) => { event.target.value = maskPhone(event.target.value); }} />
           <Field label="Perfil de acesso" defaultValue="Recepção / Equipe de marcação" disabled />
-          <TextareaField label="Observações internas" className="sm:col-span-2" placeholder="Anotações da recepção" />
+          <TextareaField label="Anotações (ficam salvas neste computador)" className="sm:col-span-2" placeholder="Anotações da recepção" value={notes} onChange={(event) => setNotes(event.target.value)} />
           <div className="sm:col-span-2"><Button type="submit">Salvar alterações</Button></div>
         </form>
       </Section>
       <Section title="Confirmações">
         <div className="space-y-4">
-          <Toggle label="Lembretes de confirmação" description="Avisos enviados antes de cada consulta" checked={reminders} onChange={(value) => { setReminders(value); toast.success(value ? "Lembretes ativados" : "Lembretes desativados"); }} />
           <Toggle label="Confirmação automática" description="Consultas já criadas como confirmadas" checked={settings.autoConfirm} onChange={(value) => { updateSettings({ autoConfirm: value }); toast.success(value ? "Confirmação automática ativada" : "Confirmação automática desativada"); }} />
           <SelectField label="Antecedência do lembrete" value={String(settings.reminderHours)} onChange={(event) => { updateSettings({ reminderHours: Number(event.target.value) }); toast.success("Antecedência atualizada"); }} options={[{ value: "12", label: "12 horas" }, { value: "24", label: "24 horas" }, { value: "48", label: "48 horas" }]} />
         </div>
