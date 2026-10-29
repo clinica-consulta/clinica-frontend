@@ -1,7 +1,10 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
-import { Bell, CalendarDays, LockKeyhole, LogOut, Search, ShieldCheck, UserRound } from "lucide-react";
+import { Bell, CalendarDays, LockKeyhole, LogOut, ShieldCheck, UserRound } from "lucide-react";
 import { AccountModal } from "@/components/account-modal";
+import { HeaderSearch } from "@/components/header-search";
+import { InfoLinks } from "@/components/info-links";
+import { useSearchVersion } from "@/lib/search-handoff";
 import { LoadingScreen } from "@/components/loading-screen";
 import logo from "@/assets/logo-claro.png";
 import { roleFromPath, roleProfiles, type RoleProfile } from "@/lib/role-data";
@@ -14,6 +17,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathRole = roleFromPath(pathname);
   const { logout, session, hydrated, notificationsFor, profile: myProfile } = useClinic();
   const [accountOpen, setAccountOpen] = useState(false);
+  const searchVersion = useSearchVersion();
   const navigate = useNavigate();
   const ready = hydrated;
   const role = session?.role ?? pathRole;
@@ -61,11 +65,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               </span>
             </Link>
 
-            <label className="relative hidden min-w-0 max-w-[448px] flex-1 lg:block">
-              <span className="sr-only">Buscar</span>
-              <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-sidebar-muted" />
-              <input className="h-[38px] w-full rounded-lg bg-sidebar-accent pl-10 pr-4 text-sm text-sidebar-foreground outline-none placeholder:text-sidebar-muted focus:ring-2 focus:ring-sidebar-ring/40" placeholder={profile.search} />
-            </label>
+            <HeaderSearch role={profile.role} placeholder={profile.search} />
 
             <div className="ml-auto flex shrink-0 items-center gap-4 lg:gap-6">
               {profile.role === "professional" ? (
@@ -104,7 +104,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Link to="/" onClick={logout} aria-label="Sair" className="grid size-10 shrink-0 place-items-center rounded-full text-sidebar-foreground transition hover:bg-sidebar-accent"><LogOut className="size-[18px]" /></Link>
       </header>
 
-      <main className="mx-auto w-full max-w-[1280px] flex-1 px-4 pb-24 pt-5 md:p-8">{children}</main>
+      <main key={searchVersion} className="mx-auto w-full max-w-[1280px] flex-1 px-4 pb-24 pt-5 md:p-8">{children}</main>
 
       {/* Rodapé desktop */}
       {profile.role === "professional" ? (
@@ -112,11 +112,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="mx-auto flex max-w-[1280px] items-center justify-between gap-6 px-8 text-[13px] leading-5 text-muted-foreground">
             <span className="flex items-center gap-1.5"><LockKeyhole className="size-3.5" />{profile.footer}</span>
             <div className="flex shrink-0 items-center gap-4">
-              <a href="#" className="hover:text-foreground">Privacidade</a>
-              <span aria-hidden className="size-1 rounded-full bg-input" />
-              <a href="#" className="hover:text-foreground">Termos de Uso</a>
-              <span aria-hidden className="size-1 rounded-full bg-input" />
-              <a href="#" className="hover:text-foreground">Suporte</a>
+              <InfoLinks topics={["privacy", "terms", "support"]} separator={<span aria-hidden className="size-1 rounded-full bg-input" />} />
             </div>
           </div>
         </footer>
@@ -129,9 +125,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
           <div className="flex shrink-0 items-center gap-6">
             {profile.role === "patient" && <span className="flex items-center gap-1 text-xs font-medium text-success"><ShieldCheck className="size-3.5" />Ambiente Seguro &amp; Criptografado</span>}
-            <a href="#" className="hover:text-foreground">Privacidade</a>
-            {profile.role !== "patient" && <a href="#" className="hover:text-foreground">Termos de Uso</a>}
-            <a href="#" className="hover:text-foreground">Suporte</a>
+            <InfoLinks topics={profile.role === "patient" ? ["privacy", "support"] : ["privacy", "terms", "support"]} />
           </div>
         </div>
       </footer>
