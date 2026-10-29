@@ -27,7 +27,8 @@ function LoginPage() {
   const [recoveryEmail, setRecoveryEmail] = useState<string | null>(null);
   const [testCode, setTestCode] = useState("");
   const [recoveryCpf, setRecoveryCpf] = useState("");
-  const closeRecovery = () => { setRecovery(false); setRecoveryEmail(null); setTestCode(""); setRecoveryCpf(""); };
+  const [resetCode, setResetCode] = useState("");
+  const closeRecovery = () => { setRecovery(false); setRecoveryEmail(null); setTestCode(""); setRecoveryCpf(""); setResetCode(""); };
   const [busy, setBusy] = useState(false);
   const [cpf, setCpf] = useState("");
   const [phone, setPhone] = useState("");
@@ -152,11 +153,11 @@ function LoginPage() {
             }
           }}>
             {testCode && <p className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">Envio de e-mail não configurado na API. Código de teste: <b className="text-sm tracking-[2px] text-foreground">{testCode}</b></p>}
-            <AuthField label="Código de 6 dígitos" name="code" icon={<KeyRound />} type="text" inputMode="numeric" autoComplete="one-time-code" placeholder="000000" maxLength={6} pattern="\d{6}" title="Digite os 6 números do código" />
+            <AuthField label="Código de 6 dígitos" name="code" icon={<KeyRound />} type="text" inputMode="numeric" autoComplete="one-time-code" placeholder="000000" value={resetCode} onChange={(event) => setResetCode(event.target.value.replace(/\D/g, "").slice(0, 6))} maxLength={6} pattern="\d{6}" title="Digite os 6 números do código" />
             <PasswordField label="Nova senha" name="newPassword" minLength={6} show={showPassword} onToggle={() => setShowPassword((visible) => !visible)} autoComplete="new-password" placeholder="Mínimo 6 caracteres" />
             <PasswordField label="Repita a nova senha" name="confirmPassword" minLength={6} show={showPassword} onToggle={() => setShowPassword((visible) => !visible)} autoComplete="new-password" placeholder="Digite de novo" />
             <Button type="submit" disabled={busy} className="h-10 w-full rounded-xl text-sm font-semibold hover:bg-primary hover:text-primary-foreground">Salvar nova senha</Button>
-            <button type="button" onClick={() => { setRecoveryEmail(null); setTestCode(""); }} className="text-xs font-semibold text-muted-foreground underline underline-offset-2">Usar outro e-mail</button>
+            <button type="button" onClick={() => { setRecoveryEmail(null); setTestCode(""); setResetCode(""); }} className="text-xs font-semibold text-muted-foreground underline underline-offset-2">Usar outro e-mail</button>
           </form>
         ) : (
           <form className="grid gap-4 font-display" onSubmit={async (event) => {
