@@ -9,14 +9,33 @@ import { EmptyHint, Field, Modal, PageHeader, SearchInput, Section, SelectField,
 import { AppointmentForm } from "@/components/appointment-form";
 import { RescheduleModal } from "@/components/clinic-pages";
 import { formatDate, isoDate, openStatuses, relativeDay, weekdays, type Appointment } from "@/lib/clinic-data";
+import { takeSearch } from "@/lib/search-handoff";
 import { useClinic, useReports } from "@/lib/clinic-store";
+import { downloadCsv } from "@/lib/export";
 
 import { AppointmentRow, Dot, Notice, NotificationList, usePatientScope, useProfessionalScope } from "@/components/role-shared";
 
 export function AdminDashboardPage() {
-  const { patients, professionals, appointments, staff, specialties, session } = useClinic();
+  const { patients, professionals, appointments, staff, specialties, session, refresh, patientById, professionalById } = useClinic();
   const reports = useReports();
   const navigate = useNavigate();
+  const [reportOpen, setReportOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const reload = async () => { setRefreshing(true); await refresh(); setRefreshing(false); toast.success("Dados atualizados"); };
+  const appointmentRows = () => [...appointments].sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`));
+  const exportAppointments = () => {
+    downloadCsv(`consultas-${isoDate(0)}.csv`, ["Código", "Data", "Hora", "Paciente", "Médico", "Especialidade", "Status", "Canal", "Pagamento"], appointmentRows().map((item) => [item.code, formatDate(item.date), item.time, patientById(item.patientId)?.name ?? "", professionalById(item.professionalId)?.name ?? "", item.specialty, item.status, item.channel, item.payment ? `${item.payment.status} ${item.payment.amount}` : ""]));
+    toast.success("Planilha de consultas baixada");
+  };
+  const exportLog = () => {
+    const rows = appointmentRows().flatMap((item) => item.history.map((entry) => [formatDate(entry.at.slice(0, 10)), `#${item.code}`, patientById(item.patientId)?.name ?? "", entry.text]));
+    downloadCsv(`registro-de-alteracoes-${isoDate(0)}.csv`, ["Data", "Consulta", "Paciente", "Alteração"], rows);
+    toast.success("Registro de alterações baixado");
+  };
+  const bySpecialty = specialties.map((spec) => {
+    const list = appointments.filter((item) => item.specialty === spec.name);
+    return { name: spec.name, doctors: professionals.filter((pro) => pro.active && pro.specialty === spec.name).length, total: list.length, done: list.filter((item) => item.status === "Realizada").length, canceled: list.filter((item) => item.status === "Cancelada").length, noShow: list.filter((item) => item.status === "Não compareceu").length };
+  }).sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
   const monthly = appointments.filter((item) => item.date.slice(0, 7) === isoDate(0).slice(0, 7)).length;
   const todayCount = appointments.filter((item) => item.date === isoDate(0)).length;
   const activePros = professionals.filter((item) => item.active);
@@ -39,21 +58,21 @@ export function AdminDashboardPage() {
         <div className="flex items-center justify-between gap-3"><h1 className="text-[28px] font-bold uppercase leading-9 tracking-[-0.8px] md:text-[32px] md:leading-10">Visão geral</h1><span className="rounded-full bg-soft px-2 py-0.5 text-xs font-medium capitalize text-muted-foreground md:hidden">{monthLabel.slice(0, 3)} {year}</span></div>
         <p className="mt-0.5 text-xs leading-5 text-muted-foreground md:text-sm"><span className="md:hidden">Acompanhe usuários, médicos e indicadores da clínica.</span><span className="hidden md:inline">Acompanhe usuários, médicos, especialidades e indicadores da clínica.</span></p>
       </div>
-      <div className="hidden items-center gap-3 md:flex"><span className="flex items-center gap-1.5 rounded-full bg-accent/70 px-3 py-1 text-xs font-medium"><span className="size-1.5 rounded-full bg-success" />Sistema Operacional</span><RefreshCw className="size-4 text-muted-foreground" /></div>
+      <div className="hidden items-center gap-3 md:flex"><span className="flex items-center gap-1.5 rounded-full bg-accent/70 px-3 py-1 text-xs font-medium"><span className="size-1.5 rounded-full bg-success" />Sistema Operacional</span><button type="button" onClick={() => void reload()} disabled={refreshing} aria-label="Atualizar dados" title="Atualizar dados" className="grid size-8 place-items-center rounded-lg text-muted-foreground hover:bg-soft hover:text-foreground"><RefreshCw className={`size-4 ${refreshing ? "animate-spin" : ""}`} /></button></div>
     </header>
 
     <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
       <article className="surface p-4 md:flex md:gap-4 md:p-6">
         <span className="order-2 ml-auto grid size-8 place-items-center rounded-lg bg-accent/70 md:order-none md:ml-0 md:size-12 md:rounded-xl md:bg-soft [&>svg]:size-4 md:[&>svg]:size-5 float-right"><UsersRound /></span>
-        <div><p className="text-sm leading-5">Usuários</p><p className="mt-3 flex items-baseline gap-1.5 text-[32px] font-bold leading-10 md:mt-0">{patients.length + professionals.length + staff.length}<span className="hidden rounded-full bg-success-soft/70 px-1.5 text-xs font-medium text-success md:inline">+2 este mês</span></p><p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground md:text-[13px]"><span className="size-1.5 rounded-full bg-success-soft md:bg-input" />{patients.length} pacientes<span className="hidden md:inline">cadastrados</span></p></div>
+        <div><p className="text-sm leading-5">Usuários</p><p className="mt-3 flex items-baseline gap-1.5 text-[32px] font-bold leading-10 md:mt-0">{patients.length + professionals.length + staff.length}<span className="hidden rounded-full bg-success-soft/70 px-1.5 text-xs font-medium text-success md:inline">{staff.length} da equipe</span></p><p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground md:text-[13px]"><span className="size-1.5 rounded-full bg-success-soft md:bg-input" />{patients.length} pacientes<span className="hidden md:inline">cadastrados</span></p></div>
       </article>
       <article className="surface p-4 md:flex md:gap-4 md:p-6">
         <span className="float-right grid size-8 place-items-center rounded-lg bg-success-soft text-success md:size-12 md:rounded-xl [&>svg]:size-4 md:[&>svg]:size-5"><Stethoscope /></span>
-        <div><p className="text-sm leading-5">Médicos ativos</p><p className="mt-3 flex items-baseline gap-1.5 text-[32px] font-bold leading-10 md:mt-0">{activePros.length}<span className="hidden text-xs font-medium text-ring md:inline">100% disponíveis</span></p><p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground md:text-[13px]"><span className="size-1.5 rounded-full bg-success" />{activeSpecs.length} <span className="md:hidden">esp. ativas</span><span className="hidden md:inline">especialidades ativas</span></p></div>
+        <div><p className="text-sm leading-5">Médicos ativos</p><p className="mt-3 flex items-baseline gap-1.5 text-[32px] font-bold leading-10 md:mt-0">{activePros.length}<span className="hidden text-xs font-medium text-ring md:inline">de {professionals.length} cadastrados</span></p><p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground md:text-[13px]"><span className="size-1.5 rounded-full bg-success" />{activeSpecs.length} <span className="md:hidden">esp. ativas</span><span className="hidden md:inline">especialidades ativas</span></p></div>
       </article>
       <article className="surface col-span-2 flex items-center gap-4 p-4 md:col-span-1 md:items-start md:p-6">
         <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-accent/60 md:size-12 md:bg-soft [&>svg]:size-5"><CalendarDays /></span>
-        <div className="flex-1"><p className="text-sm leading-5">Consultas no mês</p><p className="flex items-baseline gap-2 text-[32px] font-bold leading-10">{monthly}<span className="text-xs font-normal text-muted-foreground"><span className="md:hidden">{reports.attendance}% de presença</span><span className="hidden md:inline">agendadas hoje</span></span></p><p className="hidden items-center gap-1.5 text-[13px] text-muted-foreground md:flex"><span className="size-1.5 rounded-full bg-success" /><b className="font-medium text-success">{reports.attendance}% de presença</b> média global</p></div>
+        <div className="flex-1"><p className="text-sm leading-5">Consultas no mês</p><p className="flex items-baseline gap-2 text-[32px] font-bold leading-10">{monthly}<span className="text-xs font-normal text-muted-foreground"><span className="md:hidden">{reports.attendance}% de presença</span><span className="hidden md:inline">{todayCount} hoje</span></span></p><p className="hidden items-center gap-1.5 text-[13px] text-muted-foreground md:flex"><span className="size-1.5 rounded-full bg-success" /><b className="font-medium text-success">{reports.attendance}% de presença</b> média global</p></div>
         <span className="rounded-full bg-soft px-2.5 py-1 text-xs font-medium md:hidden">Em curso</span>
         <span className="sr-only">{todayCount} consultas hoje</span>
       </article>
@@ -75,13 +94,14 @@ export function AdminDashboardPage() {
           </div>
         ))}
       </div>
-      <div className="hidden items-center justify-between bg-soft/50 px-6 py-2.5 text-xs md:flex"><span className="flex items-center gap-1.5 text-muted-foreground"><BadgeCheck className="size-4 text-success" />Estatísticas atualizadas automaticamente a cada consulta confirmada</span><button type="button" className="flex items-center gap-1 font-semibold">Ver relatório analítico completo<ArrowRight className="size-3.5" /></button></div>
+      <div className="hidden items-center justify-between bg-soft/50 px-6 py-2.5 text-xs md:flex"><span className="flex items-center gap-1.5 text-muted-foreground"><BadgeCheck className="size-4 text-success" />Estatísticas atualizadas automaticamente a cada consulta confirmada</span><button type="button" onClick={() => setReportOpen(true)} className="flex items-center gap-1 font-semibold">Ver relatório analítico completo<ArrowRight className="size-3.5" /></button></div>
     </section>
 
     <p className="mb-3 mt-6 text-xs font-bold uppercase tracking-wide text-muted-foreground md:hidden">Ações rápidas</p>
     <div className="grid grid-cols-2 gap-3 md:hidden">
       <Button onClick={() => navigate({ to: "/administrador/profissionais" })} className="h-12 rounded-xl bg-avatar text-[15px] hover:bg-avatar/90"><Stethoscope />Gerenciar Médicos</Button>
       <Button variant="ghost" onClick={() => navigate({ to: "/administrador/usuarios" })} className="h-12 rounded-xl bg-card text-[15px] shadow-[0_1px_1px_rgb(0_0_0/5%)]"><UsersRound />Ver Usuários</Button>
+      <Button variant="ghost" onClick={() => setReportOpen(true)} className="col-span-2 h-12 rounded-xl bg-card text-[15px] shadow-[0_1px_1px_rgb(0_0_0/5%)]"><BarChart3 />Relatório completo</Button>
     </div>
 
     <div className="mt-6 hidden gap-4 md:grid md:grid-cols-3">
@@ -94,18 +114,35 @@ export function AdminDashboardPage() {
         <div className="flex items-center justify-between"><h3 className="eyebrow text-foreground">Configurações de agendamento</h3><SlidersHorizontal className="size-4" /></div>
         <p className="mt-3 text-[15px] font-semibold">Agendas abertas para {new Intl.DateTimeFormat("pt-BR", { month: "long" }).format(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1)).replace(/^./, (c) => c.toUpperCase())}</p>
         <p className="mt-1 text-xs leading-4 text-muted-foreground">As grades horárias para os próximos 30 dias já se encontram sincronizadas com o portal de autoatendimento ao paciente.</p>
-        <div className="mt-3 flex flex-1 flex-wrap content-start gap-1.5">{activeSpecs.map((spec, index) => <span key={spec.id} className="h-fit rounded bg-accent/60 px-1.5 py-0.5 text-xs">{spec.name} ({["Manhã", "Tarde", "Integral"][index % 3]})</span>)}</div>
+        <div className="mt-3 flex flex-1 flex-wrap content-start gap-1.5">{activeSpecs.map((spec) => <span key={spec.id} className="h-fit rounded bg-accent/60 px-1.5 py-0.5 text-xs">{spec.name} ({activePros.filter((pro) => pro.specialty === spec.name).length})</span>)}</div>
         <div className="-mx-6 mt-4 flex items-center justify-between bg-soft/50 px-6 py-3 text-xs"><span className="text-muted-foreground">Turnos configurados</span><button type="button" onClick={() => navigate({ to: "/administrador/agendas" })} className="font-semibold">Ajustar horários</button></div>
       </article>
       <article className="relative flex flex-col overflow-hidden rounded-xl bg-strong p-6 text-strong-foreground">
         <span className="absolute -bottom-10 -right-10 size-36 rounded-full bg-white/5" />
         <div className="flex items-center justify-between"><h3 className="text-[11px] font-bold uppercase tracking-[0.55px] text-sidebar-muted">Integridade e backup</h3><span className="size-2 rounded-full bg-success-soft" /></div>
         <p className="mt-3 text-[17px] font-semibold">Ambiente Clínico Protegido</p>
-        <p className="mt-1.5 text-xs leading-4 text-sidebar-muted">Todos os registros de pacientes e prontuários estão salvaguardados com criptografia de ponta a ponta (AES-256).</p>
-        <div className="mt-3 flex items-center gap-2.5 rounded-md bg-white/5 px-2.5 py-2"><Shield className="size-4" /><span><b className="block text-xs font-semibold">Último backup: Hoje, 04:00</b><span className="text-[10px] text-sidebar-muted">Auditoria LGPD conforme</span></span></div>
-        <div className="relative mt-auto flex items-center justify-between pt-6 text-xs"><span className="text-sidebar-muted">Sessão: {session?.name}</span><button type="button" onClick={() => toast.success("Log exportado")} className="rounded-md bg-success-soft px-4 py-1 font-semibold text-success-strong">Exportar Log</button></div>
+        <p className="mt-1.5 text-xs leading-4 text-sidebar-muted">Acesso só com login, senhas guardadas criptografadas e cada perfil vê apenas o que precisa.</p>
+        <div className="mt-3 flex items-center gap-2.5 rounded-md bg-white/5 px-2.5 py-2"><Shield className="size-4" /><span><b className="block text-xs font-semibold">Dados no MongoDB Atlas (nuvem)</b><span className="text-[10px] text-sidebar-muted">Toda alteração de consulta fica registrada</span></span></div>
+        <div className="relative mt-auto flex items-center justify-between pt-6 text-xs"><span className="text-sidebar-muted">Sessão: {session?.name}</span><button type="button" onClick={exportLog} className="rounded-md bg-success-soft px-4 py-1 font-semibold text-success-strong">Exportar Log</button></div>
       </article>
     </div>
+
+    <Modal open={reportOpen} title="Relatório da clínica" description={`${reports.total} consultas registradas · ${reports.attendance}% de presença`} onClose={() => setReportOpen(false)}>
+      <div className="grid grid-cols-2 gap-2 text-center text-sm sm:grid-cols-4">
+        {[["Realizadas", reports.done], ["Faltas", reports.noShow], ["Canceladas", reports.canceled], ["No mês", monthly]].map(([label, value]) => <div key={label} className="rounded-lg bg-soft p-3"><b className="block text-xl">{value}</b><span className="text-xs text-muted-foreground">{label}</span></div>)}
+      </div>
+      <h3 className="mb-2 mt-5 text-sm font-bold">Últimos 7 dias</h3>
+      <div className="flex h-24 items-end gap-2">{reports.perDay.map((day) => {
+        const top = Math.max(...reports.perDay.map((item) => item.total), 1);
+        return <div key={day.date} className="flex flex-1 flex-col items-center gap-1"><span className="text-[11px] font-semibold">{day.total}</span><span className="w-full rounded-t bg-strong" style={{ height: `${Math.max((day.total / top) * 64, 2)}px` }} /><span className="text-[10px] text-muted-foreground">{formatDate(day.date).slice(0, 5)}</span></div>;
+      })}</div>
+      <h3 className="mb-2 mt-5 text-sm font-bold">Por especialidade</h3>
+      <div className="overflow-x-auto"><table className="w-full text-left text-xs">
+        <thead className="text-muted-foreground"><tr><th className="py-1.5 pr-2">Especialidade</th><th className="px-2">Médicos</th><th className="px-2">Consultas</th><th className="px-2">Realizadas</th><th className="px-2">Faltas</th><th className="pl-2">Canceladas</th></tr></thead>
+        <tbody>{bySpecialty.map((row) => <tr key={row.name} className="border-t border-border"><td className="py-1.5 pr-2 font-semibold">{row.name}</td><td className="px-2">{row.doctors}</td><td className="px-2">{row.total}</td><td className="px-2">{row.done}</td><td className="px-2">{row.noShow}</td><td className="pl-2">{row.canceled}</td></tr>)}</tbody>
+      </table></div>
+      <div className="mt-5 flex flex-wrap gap-2"><Button onClick={exportAppointments}><FileText />Baixar planilha de consultas</Button><Button variant="ghost" className="bg-soft" onClick={exportLog}>Baixar registro de alterações</Button></div>
+    </Modal>
   </>;
 }
 
@@ -173,13 +210,15 @@ const USERS_PAGE = 4;
 export function AdminUsersPage() {
   const { staff, patients, professionals, addStaff, updateStaff, togglePatientStatus, toggleProfessional } = useClinic();
   const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const editingStaff = staff.find((item) => item.id === editingId) ?? null;
+  const [search, setSearch] = useState(() => takeSearch("/administrador/usuarios"));
   const [role, setRole] = useState("Todos");
   const [page, setPage] = useState(0);
   const all = [
-    ...staff.map((item) => ({ key: `s-${item.id}`, name: item.name, email: item.email, role: roleLabel(item.role), detail: "", admin: item.role === "admin", status: item.status as string, toggle: () => { updateStaff(item.id, { status: item.status === "Ativo" ? "Inativo" : "Ativo" }); toast.success("Acesso atualizado"); } })),
-    ...professionals.map((item) => ({ key: `m-${item.id}`, name: item.name, email: item.email, role: "Médico", detail: item.specialty, admin: false, status: item.active ? "Ativo" : "Inativo", toggle: () => { toggleProfessional(item.id); toast.success("Acesso atualizado"); } })),
-    ...patients.map((item) => ({ key: `p-${item.id}`, name: item.name, email: item.email, role: "Paciente", detail: "", admin: false, status: item.status as string, toggle: () => { togglePatientStatus(item.id); toast.success("Acesso atualizado"); } })),
+    ...staff.map((item) => ({ key: `s-${item.id}`, name: item.name, email: item.email, role: roleLabel(item.role), detail: "", admin: item.role === "admin", status: item.status as string, edit: () => setEditingId(item.id) as void, toggle: () => { updateStaff(item.id, { status: item.status === "Ativo" ? "Inativo" : "Ativo" }); toast.success("Acesso atualizado"); } })),
+    ...professionals.map((item) => ({ key: `m-${item.id}`, name: item.name, email: item.email, role: "Médico", detail: item.specialty, admin: false, status: item.active ? "Ativo" : "Inativo", edit: undefined as (() => void) | undefined, toggle: () => { toggleProfessional(item.id); toast.success("Acesso atualizado"); } })),
+    ...patients.map((item) => ({ key: `p-${item.id}`, name: item.name, email: item.email, role: "Paciente", detail: "", admin: false, status: item.status as string, edit: undefined as (() => void) | undefined, toggle: () => { togglePatientStatus(item.id); toast.success("Acesso atualizado"); } })),
   ];
   const rows = all
     .filter((item) => (role === "Todos" ? true : item.role === role))
@@ -209,35 +248,35 @@ export function AdminUsersPage() {
       <div className="mb-3 flex items-center justify-between"><p className="eyebrow">Usuários cadastrados ({rows.length})</p><span className="flex items-center gap-1.5 text-[11px] font-semibold text-success"><span className="size-1.5 rounded-full bg-success" />{actives} Ativos</span></div>
       {visible.length ? <div className="space-y-3">{visible.map((item) => <article key={item.key} className="surface p-4">
         <div className="flex items-start gap-3"><Initials name={item.name} className={`size-11 text-base ${avatarTone(item, true)}`} /><div className="min-w-0 flex-1 pt-1"><b className="flex items-center gap-1.5 text-[15px] font-semibold leading-5"><span className="truncate">{item.name}</span>{item.admin && <ShieldCheck className="size-3.5 shrink-0 text-muted-foreground" />}</b><p className="truncate text-[13px] text-muted-foreground">{item.email}</p></div><Pill status={item.status} /></div>
-        <div className="mt-3 flex items-center justify-between gap-3"><span className="flex min-w-0 items-center gap-1.5 truncate text-xs text-muted-foreground [&>svg]:size-3.5 [&>svg]:shrink-0">{roleIcon(item.role)}{item.role}{item.detail && <> • {item.detail}</>}</span><button type="button" onClick={item.toggle} className={`h-8 shrink-0 rounded-lg px-3.5 text-sm font-semibold ${item.status === "Ativo" ? "bg-accent text-foreground" : "bg-strong text-strong-foreground"}`}>{item.status === "Ativo" ? "Desativar" : "Ativar"}</button></div>
+        <div className="mt-3 flex items-center justify-between gap-3"><span className="flex min-w-0 items-center gap-1.5 truncate text-xs text-muted-foreground [&>svg]:size-3.5 [&>svg]:shrink-0">{roleIcon(item.role)}{item.role}{item.detail && <> • {item.detail}</>}</span><span className="flex shrink-0 gap-2">{item.edit && <button type="button" onClick={item.edit} className="h-8 rounded-lg bg-soft px-3 text-sm font-semibold">Editar</button>}<button type="button" onClick={item.toggle} className={`h-8 shrink-0 rounded-lg px-3.5 text-sm font-semibold ${item.status === "Ativo" ? "bg-accent text-foreground" : "bg-strong text-strong-foreground"}`}>{item.status === "Ativo" ? "Desativar" : "Ativar"}</button></span></div>
       </article>)}</div> : <EmptyHint>Nenhum usuário encontrado.</EmptyHint>}
     </div>
 
     {/* Desktop */}
     <section className="surface hidden p-6 md:block">
       <div className="mb-6 flex items-center justify-between pt-4"><h2 className="flex items-center gap-2 text-[15px] font-semibold uppercase tracking-[0.2px]">Usuários cadastrados<span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium">{rows.length}</span></h2><span className="flex items-center gap-4 text-xs text-muted-foreground"><span className="flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-success" />{actives} Ativos</span>{pending > 0 && <span className="flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-destructive" />{pending} Pendente{pending > 1 ? "s" : ""}</span>}</span></div>
-      {visible.length ? <div className="space-y-2">{visible.map((item) => <div key={item.key} className="grid grid-cols-[minmax(0,1fr)_132px_118px_92px] items-center gap-4 rounded-lg bg-soft px-4 py-4">
+      {visible.length ? <div className="space-y-2">{visible.map((item) => <div key={item.key} className="grid grid-cols-[minmax(0,1fr)_132px_118px_170px] items-center gap-4 rounded-lg bg-soft px-4 py-4">
         <div className="flex min-w-0 items-center gap-4"><Initials name={item.name} className={`size-10 text-sm ${avatarTone(item)}`} /><div className="min-w-0"><b className="flex items-center gap-1 text-sm font-semibold leading-5"><span className="truncate">{item.name}</span>{item.admin && <ShieldCheck className="size-4 shrink-0 text-success" />}</b><p className="truncate text-[13px] text-muted-foreground">{item.email}</p></div></div>
         <span className="text-[15px] text-muted-foreground">{item.role}</span>
         <DotStatus status={item.status} />
-        <button type="button" onClick={item.toggle} className={`h-8 justify-self-end rounded-md px-4 text-sm font-semibold shadow-[0_1px_2px_rgb(0_0_0/6%)] ${item.status === "Ativo" ? "bg-card text-foreground" : "bg-success text-white"}`}>{item.status === "Ativo" ? "Desativar" : "Ativar"}</button>
+        <span className="flex justify-self-end gap-2">{item.edit && <button type="button" onClick={item.edit} className="h-8 rounded-md px-3 text-sm font-semibold hover:bg-card">Editar</button>}<button type="button" onClick={item.toggle} className={`h-8 rounded-md px-4 text-sm font-semibold shadow-[0_1px_2px_rgb(0_0_0/6%)] ${item.status === "Ativo" ? "bg-card text-foreground" : "bg-success text-white"}`}>{item.status === "Ativo" ? "Desativar" : "Ativar"}</button></span>
       </div>)}</div> : <EmptyHint>Nenhum usuário encontrado.</EmptyHint>}
       <div className="mt-8 flex items-center justify-between text-xs text-muted-foreground"><span>Exibindo {visible.length} de {rows.length} usuários registrados</span><span className="flex items-center gap-3"><button type="button" aria-label="Página anterior" disabled={current === 0} onClick={() => setPage(current - 1)} className="grid size-8 place-items-center rounded-md bg-soft disabled:opacity-40"><ChevronLeft className="size-4" /></button><b className="font-semibold text-foreground">Página {current + 1}</b><button type="button" aria-label="Próxima página" disabled={current >= pages - 1} onClick={() => setPage(current + 1)} className="grid size-8 place-items-center rounded-md bg-accent text-foreground disabled:opacity-40"><ChevronRight className="size-4" /></button></span></div>
     </section>
     {pages > 1 && <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground md:hidden"><span>Exibindo {visible.length} de {rows.length}</span><span className="flex items-center gap-3"><button type="button" aria-label="Página anterior" disabled={current === 0} onClick={() => setPage(current - 1)} className="grid size-8 place-items-center rounded-md bg-card disabled:opacity-40"><ChevronLeft className="size-4" /></button><b className="font-semibold text-foreground">Página {current + 1}</b><button type="button" aria-label="Próxima página" disabled={current >= pages - 1} onClick={() => setPage(current + 1)} className="grid size-8 place-items-center rounded-md bg-accent disabled:opacity-40"><ChevronRight className="size-4" /></button></span></div>}
 
-    <Modal open={open} title="Novo usuário interno" description="Cadastre equipe de recepção e administradores." onClose={() => setOpen(false)}>
-      <form className="grid gap-4" onSubmit={(event) => {
+    <Modal open={open || Boolean(editingStaff)} title={editingStaff ? "Editar usuário interno" : "Novo usuário interno"} description={editingStaff ? editingStaff.email : "Cadastre equipe de recepção e administradores. A senha inicial é 123456 e a pessoa troca no primeiro acesso, clicando no próprio nome."} onClose={() => { setOpen(false); setEditingId(null); }}>
+      <form key={editingStaff?.id ?? "novo"} className="grid gap-4" onSubmit={(event) => {
         event.preventDefault();
         const data = new FormData(event.currentTarget);
-        addStaff({ name: String(data.get("name") ?? ""), email: String(data.get("email") ?? ""), role: String(data.get("role") ?? "receptionist") as "receptionist" | "admin", status: "Ativo" });
-        toast.success("Usuário cadastrado");
-        setOpen(false);
+        const payload = { name: String(data.get("name") ?? ""), email: String(data.get("email") ?? ""), role: String(data.get("role") ?? "receptionist") as "receptionist" | "admin" };
+        if (editingStaff) { updateStaff(editingStaff.id, payload); toast.success("Usuário atualizado"); setEditingId(null); }
+        else { addStaff({ ...payload, status: "Ativo" }); toast.success("Usuário cadastrado", { description: "Senha inicial: 123456" }); setOpen(false); }
       }}>
-        <Field label="Nome completo" name="name" required />
-        <Field label="E-mail" name="email" type="email" required />
-        <SelectField label="Perfil de acesso" name="role" options={[{ value: "receptionist", label: "Recepção / Equipe de marcação" }, { value: "admin", label: "Administrador" }]} />
-        <Button type="submit">Cadastrar usuário</Button>
+        <Field label="Nome completo" name="name" defaultValue={editingStaff?.name ?? ""} required />
+        <Field label="E-mail" name="email" type="email" defaultValue={editingStaff?.email ?? ""} required />
+        <SelectField label="Perfil de acesso" name="role" defaultValue={editingStaff?.role ?? "receptionist"} options={[{ value: "receptionist", label: "Recepção / Equipe de marcação" }, { value: "admin", label: "Administrador" }]} />
+        <Button type="submit">{editingStaff ? "Salvar alterações" : "Cadastrar usuário"}</Button>
       </form>
     </Modal>
   </>;
@@ -250,16 +289,21 @@ function StatStrip({ items }: { items: { icon: ReactNode; label: string; value: 
 }
 
 export function AdminProfessionalsPage() {
-  const { professionals, appointments, specialties, activeSpecialties, addProfessional, updateProfessional, toggleProfessional, deleteProfessional } = useClinic();
+  const { professionals, appointments, specialties, activeSpecialties, addProfessional, updateProfessional, toggleProfessional, deleteProfessional, session } = useClinic();
+  // Só a administração exclui médicos; a recepção pode cadastrar, editar e desativar.
+  const canDelete = session?.role === "admin";
   const [open, setOpen] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(() => takeSearch("/administrador/profissionais") || takeSearch("/medicos"));
   const current = professionals.find((item) => item.id === editing) ?? null;
   const actives = professionals.filter((item) => item.active).length;
   const countFor = (id: string) => appointments.filter((item) => item.professionalId === id).length;
-  const filtered = professionals.filter((item) => `${item.name} ${item.crm} ${item.specialty}`.toLowerCase().includes(search.toLowerCase()));
+  const [specialtyFilter, setSpecialtyFilter] = useState("Todas");
+  const filtered = professionals
+    .filter((item) => specialtyFilter === "Todas" || item.specialty === specialtyFilter)
+    .filter((item) => `${item.name} ${item.crm} ${item.specialty}`.toLowerCase().includes(search.toLowerCase()));
   const toggle = (id: string, active: boolean) => { toggleProfessional(id); toast.success(active ? "Médico desativado (histórico preservado)" : "Médico ativado"); };
   const plural = (value: number, one: string, many: string) => `${value} ${value === 1 ? one : many}`;
   const toRemove = professionals.find((item) => item.id === removing) ?? null;
@@ -288,7 +332,7 @@ export function AdminProfessionalsPage() {
   }
 
   return <>
-    <AdminHeader eyebrow="Equipe clínica" dot eyebrowClass="text-foreground md:text-success" title="Gestão de médicos" description="Cadastre, edite, desative ou exclua médicos sem apagar o histórico de consultas." badge={<span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium">{actives} ativos</span>} action="Novo médico" onAction={() => setOpen(true)} mobileBlockAction />
+    <AdminHeader eyebrow="Equipe clínica" dot eyebrowClass="text-foreground md:text-success" title="Gestão de médicos" description={canDelete ? "Cadastre, edite, desative ou exclua médicos sem apagar o histórico de consultas." : "Cadastre, edite ou desative médicos sem apagar o histórico de consultas."} badge={<span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium">{actives} ativos</span>} action="Novo médico" onAction={() => setOpen(true)} mobileBlockAction />
 
     <StatStrip items={[
       { icon: <UserCheck />, label: "Ativos", value: plural(actives, "profissional", "profissionais") },
@@ -297,7 +341,10 @@ export function AdminProfessionalsPage() {
       { icon: <Shapes />, label: "Especialidades", value: plural(specialties.length, "cadastrada", "cadastradas") },
     ]} />
 
-    <SearchInput placeholder="Buscar por nome, CRM ou especialidade..." value={search} onChange={setSearch} className="mb-4 block md:hidden [&_input]:h-12 [&_input]:ring-0" />
+    <div className="mb-4 grid gap-3 md:mb-6 md:grid-cols-[minmax(0,448px)_260px]">
+      <SearchInput placeholder="Buscar por nome, CRM ou especialidade..." value={search} onChange={setSearch} className="block [&_input]:h-12 [&_input]:ring-0" />
+      <SelectField label="" aria-label="Filtrar por especialidade" value={specialtyFilter} onChange={(event) => setSpecialtyFilter(event.target.value)} options={[{ value: "Todas", label: "Todas as especialidades" }, ...specialties.map((item) => ({ value: item.name, label: item.name }))]} className="[&_button]:h-12" />
+    </div>
 
     {filtered.length ? <div className="grid gap-4 md:grid-cols-2 md:gap-6 lg:grid-cols-3">{filtered.map((professional) => <article key={professional.id} className="surface p-4 md:p-6">
       {/* Mobile */}
@@ -306,7 +353,7 @@ export function AdminProfessionalsPage() {
         <p className="mt-4 flex items-center gap-2 truncate text-[13px] text-muted-foreground"><Mail className="size-4 shrink-0" />{professional.email}</p>
         <div className="mt-2 flex items-center justify-between rounded-lg bg-soft px-3 py-2.5 text-sm font-semibold"><span className="flex items-center gap-2"><CalendarCheck className="size-4" />Consultas registradas</span><b className="font-bold">{countFor(professional.id)}</b></div>
         <Button variant="ghost" onClick={() => setEditing(professional.id)} className="mt-4 h-11 w-full rounded-lg bg-accent text-[15px] font-semibold hover:bg-accent/80"><Pencil />Editar dados</Button>
-        <div className="mt-2 flex items-center justify-center gap-6"><button type="button" onClick={() => toggle(professional.id, professional.active)} className="flex h-9 items-center gap-1.5 text-sm font-medium"><Ban className="size-4" />{professional.active ? "Desativar médico" : "Ativar médico"}</button><button type="button" onClick={() => setRemoving(professional.id)} className="flex h-9 items-center gap-1.5 text-sm font-medium text-destructive"><Trash2 className="size-4" />Excluir</button></div>
+        <div className="mt-2 flex items-center justify-center gap-6"><button type="button" onClick={() => toggle(professional.id, professional.active)} className="flex h-9 items-center gap-1.5 text-sm font-medium"><Ban className="size-4" />{professional.active ? "Desativar médico" : "Ativar médico"}</button>{canDelete && <button type="button" onClick={() => setRemoving(professional.id)} className="flex h-9 items-center gap-1.5 text-sm font-medium text-destructive"><Trash2 className="size-4" />Excluir</button>}</div>
       </div>
       {/* Desktop */}
       <div className="hidden md:block">
@@ -316,7 +363,7 @@ export function AdminProfessionalsPage() {
         <p className="mt-1 truncate text-[13px] text-muted-foreground">{professional.email}</p>
         <div className="mt-6 border-t border-border pt-6 text-sm text-muted-foreground"><b className="mr-2 font-bold text-foreground">{countFor(professional.id)}</b>consultas registradas</div>
         <Button variant="ghost" onClick={() => setEditing(professional.id)} className="mt-6 h-9 w-full rounded-lg bg-accent text-sm font-semibold hover:bg-accent/80">Editar dados</Button>
-        <div className="mt-2 flex items-center justify-center gap-6"><button type="button" onClick={() => toggle(professional.id, professional.active)} className="h-8 text-xs font-medium text-muted-foreground hover:text-foreground">{professional.active ? "Desativar" : "Ativar"}</button><button type="button" onClick={() => setRemoving(professional.id)} className="flex h-8 items-center gap-1 text-xs font-medium text-destructive hover:opacity-80"><Trash2 className="size-3.5" />Excluir</button></div>
+        <div className="mt-2 flex items-center justify-center gap-6"><button type="button" onClick={() => toggle(professional.id, professional.active)} className="h-8 text-xs font-medium text-muted-foreground hover:text-foreground">{professional.active ? "Desativar" : "Ativar"}</button>{canDelete && <button type="button" onClick={() => setRemoving(professional.id)} className="flex h-8 items-center gap-1 text-xs font-medium text-destructive hover:opacity-80"><Trash2 className="size-3.5" />Excluir</button>}</div>
       </div>
     </article>)}</div> : <EmptyHint>Nenhum médico encontrado.</EmptyHint>}
 
@@ -358,7 +405,7 @@ export function AdminSpecialtiesPage() {
   const { specialties, professionals, appointments, insurances, addSpecialty, updateSpecialty, toggleSpecialty } = useClinic();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(() => takeSearch("/administrador/especialidades"));
   const current = specialties.find((item) => item.id === editing) ?? null;
   const actives = specialties.filter((item) => item.active).length;
   const rows = specialties.filter((item) => item.name.toLowerCase().includes(search.toLowerCase())).map((item) => ({
@@ -547,10 +594,12 @@ export function AdminSettingsPage() {
     <div className="grid gap-4 md:gap-6 lg:grid-cols-[minmax(0,1fr)_390px] lg:items-start">
       <section className="surface p-6">
         <CardTitle icon={<Building2 />} action={<><span className="rounded-full bg-success-soft px-2 py-0.5 text-[11px] font-medium text-success-strong md:hidden">Ativa</span><span className="hidden rounded bg-soft px-2 py-1 text-[11px] font-medium md:inline">ID: CLI-2026-SP</span></>}>Dados da clínica</CardTitle>
-        <form className="grid gap-4 md:grid-cols-2 md:gap-x-4 md:gap-y-4 md:pt-4" onSubmit={(event) => {
+        <form key={`${settings.name}-${settings.appointmentPrice}`} className="grid gap-4 md:grid-cols-2 md:gap-x-4 md:gap-y-4 md:pt-4" onSubmit={(event) => {
           event.preventDefault();
           const data = new FormData(event.currentTarget);
-          updateSettings({ name: String(data.get("name") ?? ""), cnpj: String(data.get("cnpj") ?? ""), phone: String(data.get("phone") ?? ""), email: String(data.get("email") ?? "") });
+          const price = Number(String(data.get("price") ?? "").replace(",", "."));
+          if (!Number.isFinite(price) || price < 0) { toast.error("Valor da consulta inválido"); return; }
+          updateSettings({ name: String(data.get("name") ?? ""), cnpj: String(data.get("cnpj") ?? ""), phone: String(data.get("phone") ?? ""), email: String(data.get("email") ?? ""), appointmentPrice: price });
           setSavedAt(new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" }).format(new Date()));
           toast.success("Configurações salvas", { description: "Os dados da clínica foram atualizados." });
         }}>
@@ -558,6 +607,7 @@ export function AdminSettingsPage() {
           <SoftField label="CNPJ" name="cnpj" defaultValue={settings.cnpj} required icon={<IdCard />} />
           <SoftField label="Telefone" name="phone" defaultValue={settings.phone} required icon={<Phone />} />
           <SoftField label="E-mail" name="email" type="email" defaultValue={settings.email} required icon={<Mail />} />
+          <SoftField label="Valor da consulta particular (R$)" name="price" inputMode="decimal" defaultValue={String(settings.appointmentPrice ?? 150).replace(".", ",")} required icon={<BadgeCheck />} />
           <div className="mt-2 flex flex-col gap-3 md:col-span-2 md:mt-4 md:flex-row md:items-center md:justify-between">
             <Button type="submit" className="h-12 rounded-lg bg-strong px-6 text-[15px] font-semibold hover:bg-strong/90"><Save />Salvar alterações</Button>
             <span className="hidden text-xs italic text-muted-foreground md:inline">{savedAt ? `Última sincronização: hoje às ${savedAt}` : "Dados sincronizados com o portal do paciente"}</span>
