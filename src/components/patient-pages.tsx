@@ -11,7 +11,9 @@ import { AppointmentForm } from "@/components/appointment-form";
 import { RescheduleModal } from "@/components/clinic-pages";
 import { formatDate, formatMoney, hasPassed, isoDate, openStatuses, relativeDay, weekdayName, weekdays, type Appointment } from "@/lib/clinic-data";
 import { PaymentModal } from "@/components/payment-modal";
+import { takeSearch } from "@/lib/search-handoff";
 import { useClinic, useReports } from "@/lib/clinic-store";
+import { printDocument } from "@/lib/export";
 
 import { AppointmentRow, Dot, Notice, NotificationList, usePatientScope, useProfessionalScope } from "@/components/role-shared";
 
@@ -21,13 +23,21 @@ export function PatientDashboardPage() {
   const [reschedule, setReschedule] = useState<Appointment | null>(null);
   const [detail, setDetail] = useState<Appointment | null>(null);
   const [paying, setPaying] = useState<Appointment | null>(null);
+  const [canceling, setCanceling] = useState<Appointment | null>(null);
+  const [allHistory, setAllHistory] = useState(false);
+  const [docsOpen, setDocsOpen] = useState(false);
+  const documents = clinic.notificationsFor("patient").filter((item) => item.action === "documento");
+  const plan = clinic.insurances.find((item) => item.name === patient?.insurance);
+  const coverage = !plan || !plan.active || !plan.covered.length ? "cobre todas as especialidades" : `cobre ${plan.covered.join(", ")}`;
+  const place = `${clinic.settings.name || "Clínica"} · atendimento presencial`;
   // Consulta cujo horário já passou sai de "Próximas" e vai para o histórico.
   const upcoming = mine.filter((item) => openStatuses.includes(item.status) && !hasPassed(item)).sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`));
   const history = mine.filter((item) => !openStatuses.includes(item.status) || hasPassed(item)).sort((a, b) => `${b.date}${b.time}`.localeCompare(`${a.date}${a.time}`));
   const historyStatus = (item: Appointment) => (openStatuses.includes(item.status) ? "Aguardando registro" : item.status);
   const pendingConfirm = upcoming.filter((item) => item.confirmationReply !== "Confirmou").length;
   const confirm = (item: Appointment) => { clinic.setAppointmentStatus(item.id, "Confirmada", "Paciente confirmou presença"); toast.success("Consulta confirmada"); };
-  const cancel = (item: Appointment) => { clinic.setAppointmentStatus(item.id, "Cancelada", "Consulta cancelada pelo paciente"); toast.warning("Consulta cancelada"); };
+  const cancel = (item: Appointment) => setCanceling(item);
+  const confirmCancel = () => { if (!canceling) return; clinic.setAppointmentStatus(canceling.id, "Cancelada", "Consulta cancelada pelo paciente"); toast.warning("Consulta cancelada", { description: "O horário foi liberado na agenda." }); setCanceling(null); };
   const doctorName = (item: Appointment) => clinic.professionalById(item.professionalId)?.name ?? "";
 
   return <>
@@ -52,7 +62,7 @@ export function PatientDashboardPage() {
             <div className="min-w-0 flex-1">
               <p className="flex items-center gap-2 text-base font-bold leading-6">{patient?.name}<span className="rounded bg-accent px-2 py-0.5 text-[11px] font-semibold text-accent-foreground">Presencial</span></p>
               <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground"><span className="font-medium text-foreground">{doctorName(item)}</span><Dot />{item.specialty}<Dot /><span className="flex items-center gap-1 font-medium text-success"><CalendarCheck className="size-3.5" />{relativeDay(item.date)}</span></p>
-              <p className="mt-1.5 flex items-center gap-1 text-xs text-subtle-foreground"><MapPin className="size-3.5" />Unidade Jardins — Sala 402, 4º Andar</p>
+              <p className="mt-1.5 flex items-center gap-1 text-xs text-subtle-foreground"><MapPin className="size-3.5" />{place}</p>
             </div>
             <StatusBadge status={item.status} />
             <div className="flex shrink-0 items-center gap-2">
@@ -85,9 +95,9 @@ export function PatientDashboardPage() {
     <section className="mt-6 md:surface md:mt-8 md:overflow-hidden">
       <div className="flex items-center justify-between gap-2 px-1 pb-3 md:bg-soft/60 md:px-6 md:py-3.5">
         <h2 className="eyebrow flex items-center gap-1.5 text-foreground md:text-muted-foreground"><History className="hidden size-4 text-foreground md:block" />Histórico ({history.length})</h2>
-        <button type="button" className="flex items-center gap-0.5 text-xs font-medium text-foreground md:text-[13px] md:font-semibold">Ver todas<ChevronRight className="size-3.5" /></button>
+        {history.length > 5 && <button type="button" onClick={() => setAllHistory((value) => !value)} className="flex items-center gap-0.5 text-xs font-medium text-foreground md:text-[13px] md:font-semibold">{allHistory ? "Ver menos" : `Ver todas (${history.length})`}<ChevronRight className={`size-3.5 transition ${allHistory ? "-rotate-90" : ""}`} /></button>}
       </div>
-      {history.length ? <div className="divide-y divide-border/60 rounded-xl bg-card shadow-[0_1px_1px_rgb(0_0_0/5%)] md:rounded-none md:shadow-none">{history.map((item) => (
+      {history.length ? <div className="divide-y divide-border/60 rounded-xl bg-card shadow-[0_1px_1px_rgb(0_0_0/5%)] md:rounded-none md:shadow-none">{(allHistory ? history : history.slice(0, 5)).map((item) => (
         <div key={item.id} className="flex items-center gap-4 px-4 py-4 md:gap-6 md:px-6">
           <b className="w-12 shrink-0 text-lg font-bold md:w-[62px] md:text-[17px]">{item.time}</b>
           <div className="min-w-0 flex-1"><p className="truncate text-base font-semibold leading-5 md:text-sm">{patient?.name}</p><p className="truncate text-[13px] text-muted-foreground"><span className="md:hidden">{doctorName(item)} · {item.specialty}</span><span className="hidden items-center gap-2 md:flex">{doctorName(item)}<Dot />{item.specialty}<Dot />{formatDate(item.date)}</span></p><p className="text-xs text-subtle-foreground md:hidden">{formatDate(item.date)}</p></div>
@@ -101,12 +111,13 @@ export function PatientDashboardPage() {
 
     <div className="mt-6 hidden gap-4 md:mt-8 md:grid md:grid-cols-3">
       {[
-        { icon: <BriefcaseMedical />, title: "Receitas e Exames", text: "Acesse laudos laboratoriais e prescrições digitais emitidas pelos especialistas." },
-        { icon: <Syringe />, title: "Vacinação e Prevenção", text: "Acompanhe seu calendário imunológico e campanhas preventivas ativas." },
-        { icon: <Headset />, title: "Central de Ajuda", text: "Dúvidas sobre preparo de exames ou horários de atendimento clínico." },
-      ].map((card) => <article key={card.title} className="surface flex gap-4 p-4"><span className="grid size-9 shrink-0 place-items-center rounded-lg bg-soft text-foreground [&>svg]:size-[18px]">{card.icon}</span><div><p className="text-sm font-bold leading-5">{card.title}</p><p className="mt-1 text-xs leading-4 text-muted-foreground">{card.text}</p></div></article>)}
+        { icon: <BriefcaseMedical />, title: `Atestados e receitas${documents.length ? ` (${documents.length})` : ""}`, text: "Veja e imprima os documentos que seus médicos enviaram.", onClick: () => setDocsOpen(true) },
+        { icon: <Bell />, title: "Avisos da clínica", text: "Confirmações, lembretes, pagamentos e alterações das suas consultas.", onClick: () => navigate({ to: "/paciente/notificacoes" }) },
+        { icon: <Headset />, title: "Central de Ajuda", text: "Dúvidas sobre preparo de exames ou horários de atendimento clínico.", onClick: () => toast.info("Central de atendimento", { description: `Ligue ${clinic.settings.phone || "para a clínica"} ou escreva para ${clinic.settings.email || "a recepção"}.` }) },
+      ].map((card) => <button type="button" key={card.title} onClick={card.onClick} className="surface flex gap-4 p-4 text-left transition hover:bg-soft/60"><span className="grid size-9 shrink-0 place-items-center rounded-lg bg-soft text-foreground [&>svg]:size-[18px]">{card.icon}</span><div><p className="text-sm font-bold leading-5">{card.title}</p><p className="mt-1 text-xs leading-4 text-muted-foreground">{card.text}</p></div></button>)}
     </div>
-    <div className="mt-6 flex items-center gap-3 rounded-xl bg-success-soft/50 p-4 md:hidden"><span className="grid size-10 shrink-0 place-items-center rounded-full bg-success-soft text-success"><ShieldCheck className="size-5" /></span><div><p className="text-sm font-bold leading-5">Elegibilidade confirmada</p><p className="text-xs leading-4 text-muted-foreground">Plano {patient?.insurance ?? "Particular"} cobre consultas com coparticipação zero.</p></div></div>
+    <button type="button" onClick={() => setDocsOpen(true)} className="surface mt-6 flex w-full items-center gap-3 p-4 text-left md:hidden"><span className="grid size-10 shrink-0 place-items-center rounded-lg bg-soft"><BriefcaseMedical className="size-5" /></span><span className="min-w-0 flex-1"><b className="block text-sm">Atestados e receitas{documents.length ? ` (${documents.length})` : ""}</b><span className="text-xs text-muted-foreground">Documentos enviados pelos seus médicos</span></span><ChevronRight className="size-4" /></button>
+    <div className="mt-3 flex items-center gap-3 rounded-xl bg-success-soft/50 p-4 md:hidden"><span className="grid size-10 shrink-0 place-items-center rounded-full bg-success-soft text-success"><ShieldCheck className="size-5" /></span><div><p className="text-sm font-bold leading-5">Seu convênio: {patient?.insurance ?? "Particular"}</p><p className="text-xs leading-4 text-muted-foreground">{patient?.insurance === "Particular" ? `Consulta particular: ${formatMoney(clinic.settings.appointmentPrice)}, paga pelo site depois do atendimento.` : `O plano ${coverage}.`}</p></div></div>
 
     <RescheduleModal appointment={reschedule} onClose={() => setReschedule(null)} />
     <Modal open={Boolean(detail)} title="Dados da consulta" description={detail ? `${detail.specialty} · ${formatDate(detail.date)} às ${detail.time}` : ""} onClose={() => setDetail(null)}>
@@ -123,10 +134,29 @@ export function PatientDashboardPage() {
       </div>}
     </Modal>
     <PaymentModal appointment={paying} onClose={() => setPaying(null)} />
+    <Modal open={Boolean(canceling)} title="Cancelar consulta?" description={canceling ? `${canceling.specialty} com ${doctorName(canceling)} · ${formatDate(canceling.date)} às ${canceling.time}` : ""} onClose={() => setCanceling(null)}>
+      <p className="text-sm text-muted-foreground">O horário volta a ficar livre para outros pacientes. Se quiser só mudar a data, use Remarcar.</p>
+      <div className="mt-5 flex flex-wrap justify-end gap-2"><Button variant="ghost" className="bg-soft" onClick={() => setCanceling(null)}>Manter consulta</Button><Button variant="destructive" onClick={confirmCancel}><CircleX />Cancelar consulta</Button></div>
+    </Modal>
+    <DocumentsModal open={docsOpen} onClose={() => setDocsOpen(false)} />
   </>;
 }
 
-
+/** Atestados e receitas que os médicos enviaram ao paciente. */
+function DocumentsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const clinic = useClinic();
+  const documents = clinic.notificationsFor("patient").filter((item) => item.action === "documento");
+  const print = (item: (typeof documents)[number]) => {
+    if (!item.read) clinic.markNotificationRead(item.id);
+    if (!printDocument({ clinic: clinic.settings.name, title: item.title, body: item.text, footer: `Emitido em ${formatDate(item.createdAt)}` })) toast.error("Libere as janelas pop-up para imprimir");
+  };
+  return <Modal open={open} title="Atestados e receitas" description="Documentos enviados pelos seus médicos." onClose={onClose}>
+    {documents.length ? <div className="space-y-2">{documents.map((item) => <div key={item.id} className="rounded-lg bg-soft p-3">
+      <div className="flex items-start justify-between gap-3"><div className="min-w-0"><b className="block text-sm">{item.title}</b><span className="text-xs text-muted-foreground">{formatDate(item.createdAt)}</span></div><Button size="sm" onClick={() => print(item)}><FileText />Imprimir</Button></div>
+      <p className="mt-2 line-clamp-3 whitespace-pre-wrap text-xs text-muted-foreground">{item.text}</p>
+    </div>)}</div> : <EmptyHint>Nenhum documento por enquanto. Quando um médico enviar um atestado ou receita, ele aparece aqui.</EmptyHint>}
+  </Modal>;
+}
 
 /* ---------------------------------------------------------------- Agendar consulta */
 
@@ -201,10 +231,10 @@ export function PatientBookingPage() {
 }
 
 function PatientBookingForm({ patientId }: { patientId: string }) {
-  const { professionals, activeSpecialties, createAppointment, availableSlots, checkEligibility, patientById } = useClinic();
+  const { professionals, activeSpecialties, createAppointment, availableSlots, checkEligibility, patientById, settings } = useClinic();
   const navigate = useNavigate();
   const patient = patientById(patientId);
-  const [specialty, setSpecialty] = useState(activeSpecialties[0] ?? "");
+  const [specialty, setSpecialty] = useState(() => takeSearch("/paciente/agendar") || activeSpecialties[0] || "");
   const activeSpecialty = activeSpecialties.includes(specialty) ? specialty : activeSpecialties[0] ?? "";
   const eligible = useMemo(() => professionals.filter((item) => item.active && item.specialty === activeSpecialty), [professionals, activeSpecialty]);
   const [professionalId, setProfessionalId] = useState(eligible[0]?.id ?? "");
@@ -263,7 +293,7 @@ function PatientBookingForm({ patientId }: { patientId: string }) {
               <span className="grid size-11 shrink-0 place-items-center rounded-full bg-avatar text-sm font-bold text-white md:size-12">{professional.initials}</span>
               <div className="min-w-0 flex-1">
                 <p className="flex items-center gap-1.5 text-[15px] font-bold leading-5">{professional.name}<BadgeCheck className="size-4 shrink-0 text-success" /></p>
-                <p className="truncate text-xs leading-5 text-muted-foreground md:text-[13px]"><span className="md:hidden">{professional.crm} · {professional.specialty}</span><span className="hidden md:inline">Especialista em {professional.specialty} • {professional.crm} • Unidade Jardins</span></p>
+                <p className="truncate text-xs leading-5 text-muted-foreground md:text-[13px]"><span className="md:hidden">{professional.crm} · {professional.specialty}</span><span className="hidden md:inline">Especialista em {professional.specialty} • {professional.crm}</span></p>
               </div>
               {eligibility.ok && <span className={`hidden shrink-0 items-center gap-1.5 rounded-lg bg-card px-3 py-1.5 text-xs font-medium md:flex ${softShadow}`}><CircleCheck className="size-4 text-success" />Credenciamento pleno</span>}
             </div>}
@@ -325,8 +355,8 @@ function PatientBookingForm({ patientId }: { patientId: string }) {
     <div className="mt-8 hidden gap-4 md:grid md:grid-cols-3">
       {[
         { icon: <IdCard />, title: "Documentação Necessária", text: "Leve documento original com foto e sua carteirinha física ou digital no app." },
-        { icon: <MapPin />, title: "Local do Atendimento", text: "Unidade Jardins — Sala 402, 4º Andar. Estacionamento no local." },
-        { icon: <BellRing />, title: "Lembretes Automáticos", text: "Enviaremos confirmações por SMS e WhatsApp antes da consulta." },
+        { icon: <MapPin />, title: "Local do Atendimento", text: `${settings.name || "Clínica"}${settings.phone ? ` · ${settings.phone}` : ""}. Chegue 15 minutos antes do horário.` },
+        { icon: <BellRing />, title: "Lembretes", text: "O lembrete chega nas suas notificações. Confirme a presença por lá ou na tela inicial." },
       ].map((item) => <article key={item.title} className="surface flex gap-4 p-4"><span className="grid size-9 shrink-0 place-items-center rounded-lg bg-soft text-foreground [&>svg]:size-[18px]">{item.icon}</span><div><p className="text-sm font-bold leading-5">{item.title}</p><p className="mt-1 text-xs leading-4 text-muted-foreground">{item.text}</p></div></article>)}
     </div>
 
@@ -346,6 +376,7 @@ function PatientBookingForm({ patientId }: { patientId: string }) {
 
 function noticeMeta(title: string) {
   const t = title.toLowerCase();
+  if (t.includes("atestado") || t.includes("receita")) return { tag: "Documento", tone: "text-info", icon: <FileText /> };
   if (t.includes("pagamento")) return { tag: "Pagamento", tone: "text-info", icon: <CreditCard /> };
   if (t.includes("lembrete")) return { tag: "Requer Ação", tone: "text-foreground", icon: <AlarmClock /> };
   if (t.includes("fila") || t.includes("oferecid")) return { tag: "Fila Prioritária", tone: "text-info", icon: <Clock3 /> };
@@ -414,6 +445,11 @@ export function PatientNotificationsPage() {
               </p>
             </div>
             {!item.read && <span className="absolute right-4 top-5 size-2 rounded-full bg-success md:hidden" />}
+            {item.action === "documento" && <Button type="button" onClick={(event) => {
+              event.stopPropagation();
+              clinic.markNotificationRead(item.id);
+              if (!printDocument({ clinic: clinic.settings.name, title: item.title, body: item.text, footer: `Emitido em ${formatDate(item.createdAt)}` })) toast.error("Libere as janelas pop-up para imprimir");
+            }} className="h-9 w-full shrink-0 self-center rounded-lg px-4 text-sm font-semibold md:w-auto"><FileText />Imprimir</Button>}
             {(() => {
               const charge = item.action === "pagamento" ? clinic.appointments.find((appointment) => appointment.id === item.appointmentId) : undefined;
               if (!charge?.payment) return null;

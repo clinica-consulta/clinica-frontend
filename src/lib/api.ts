@@ -188,7 +188,7 @@ export const fromApi = {
     audience: ((doc.publico as string[]) ?? []).map(fromApiRole).filter(Boolean),
     read: Boolean(doc.lida),
     appointmentId: doc.consulta ? str(doc.consulta) : null,
-    action: doc.acao === "pagamento" ? "pagamento" : "",
+    action: doc.acao === "pagamento" || doc.acao === "documento" ? doc.acao : "",
   }),
   staff: (doc: Doc): StaffUser => ({ id: doc.id, name: str(doc.nome), email: str(doc.email), role: fromApiRole(str(doc.tipo)), status: doc.status as StaffUser["status"] }),
   settings: (doc: Doc): ClinicSettings => rename(doc, invert(settingsFields)) as ClinicSettings,
