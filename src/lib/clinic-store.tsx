@@ -129,6 +129,8 @@ type ClinicContextValue = ClinicState & {
   addStaff: (input: Omit<StaffUser, "id" | "status"> & { status?: StaffUser["status"] }) => void;
   updateStaff: (id: string, changes: Partial<StaffUser>) => void;
   notify: (input: { title: string; text: string; audience: UserRole[] }) => void;
+  /** Médico envia atestado ou receita para um paciente; aparece nas notificações dele. */
+  sendDocument: (input: { patientId: string; title: string; text: string }) => Promise<void>;
   notificationsFor: (role: UserRole) => AppNotification[];
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: (role: UserRole) => void;
@@ -587,6 +589,11 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
 
       notify: ({ title, text, audience }) => {
         send(api("POST", "/notificacoes", { titulo: title, texto: text, publico: audience.map(toApiRole) }), "Não foi possível enviar o aviso");
+      },
+
+      sendDocument: async ({ patientId, title, text }) => {
+        await api("POST", "/notificacoes", { titulo: title, texto: text, publico: ["paciente"], paciente: patientId, acao: "documento" });
+        await refresh();
       },
 
       notificationsFor: (role) => state.notifications.filter((item) => item.audience.includes(role)),
