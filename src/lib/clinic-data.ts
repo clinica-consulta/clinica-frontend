@@ -117,7 +117,8 @@ export type AppNotification = {
   read: boolean;
   /** Consulta ligada ao aviso, quando houver. */
   appointmentId: string | null;
-  action: "" | "pagamento";
+  /** "pagamento": consulta a pagar; "documento": atestado ou receita enviados pelo médico. */
+  action: "" | "pagamento" | "documento";
 };
 
 export type StaffUser = {
