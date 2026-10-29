@@ -19,3 +19,15 @@
 - [x] Desativar paciente, médico ou especialidade preserva o histórico
 - [x] Removidos check-in digital, formulário de pré-atendimento e relatórios da recepção (fora do escopo)
 - [x] Fila de espera mantida por decisão do usuário
+
+## Revisão geral (concluída)
+- [x] Busca do topo procura pacientes, médicos, usuários e especialidades e abre a tela já filtrada
+- [x] Privacidade, Termos de Uso e Suporte do rodapé abrem com o conteúdo e o contato da clínica
+- [x] Clicar num horário vago (agenda e painel da recepção) abre o agendamento com médico, data e hora preenchidos
+- [x] Filtro por especialidade na agenda e na lista de médicos
+- [x] Fila de espera: botão para agendar o paciente direto da fila
+- [x] Recepção pode desativar o cadastro de um paciente; CPF e telefone com máscara
+- [x] Administração: relatório completo, planilhas de consultas e do registro de alterações, botão de atualizar, edição de usuários internos e valor da consulta particular
+- [x] Médico: emite atestado, receita ou pedido de exame, envia ao paciente e imprime; prontuário também no computador; registro de ausência no painel
+- [x] Paciente: atestados e receitas para imprimir, confirmação antes de cancelar, "Ver todas" no histórico, busca abre o agendamento na especialidade
+- [x] Textos que prometiam recursos inexistentes (WhatsApp, backup, criptografia AES) trocados pelo que o sistema faz de verdade
