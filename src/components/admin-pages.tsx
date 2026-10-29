@@ -2,7 +2,7 @@ import { SiteSelect } from "@/components/site-select";
 import { DatePicker } from "@/components/date-picker";
 import { useState, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Activity, ArrowRight, BadgeCheck, BarChart3, RefreshCw, Shield, TrendingUp, UserX, Bell, BriefcaseMedical, CalendarRange, CheckCheck, ClipboardList, ClipboardPlus, FileText, HeartPulse, Info, MoreVertical, SlidersHorizontal, ChevronRight, CircleX, Eye, Headset, History, MapPin, Plus, Syringe, CalendarCheck, CalendarClock, CalendarDays, Check, CheckCircle2, CircleAlert, Clock3, Lock, ShieldCheck, Stethoscope, Tags, UserCheck, UsersRound, X, Ban, Building2, CalendarOff, CalendarX2, ChevronDown, ChevronLeft, Contact, IdCard, LayoutList, LockKeyhole, Mail, Pencil, Phone, Save, Shapes, ShieldPlus, UserPlus, UserRound } from "lucide-react";
+import { Activity, ArrowRight, BadgeCheck, BarChart3, RefreshCw, Shield, TrendingUp, UserX, Bell, BriefcaseMedical, CalendarRange, CheckCheck, ClipboardList, ClipboardPlus, FileText, HeartPulse, Info, MoreVertical, SlidersHorizontal, ChevronRight, CircleX, Eye, Headset, History, MapPin, Plus, Syringe, CalendarCheck, CalendarClock, CalendarDays, Check, CheckCircle2, CircleAlert, Clock3, Lock, ShieldCheck, Stethoscope, Tags, UserCheck, UsersRound, X, Ban, Building2, CalendarOff, CalendarX2, ChevronDown, ChevronLeft, Contact, IdCard, LayoutList, LockKeyhole, Mail, Pencil, Phone, Save, Shapes, ShieldPlus, UserPlus, UserRound, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { EmptyHint, Field, Modal, PageHeader, SearchInput, Section, SelectField, StatCard, StatusBadge, Toggle, Toolbar } from "@/components/page-kit";
@@ -250,8 +250,10 @@ function StatStrip({ items }: { items: { icon: ReactNode; label: string; value: 
 }
 
 export function AdminProfessionalsPage() {
-  const { professionals, appointments, specialties, activeSpecialties, addProfessional, updateProfessional, toggleProfessional } = useClinic();
+  const { professionals, appointments, specialties, activeSpecialties, addProfessional, updateProfessional, toggleProfessional, deleteProfessional } = useClinic();
   const [open, setOpen] = useState(false);
+  const [removing, setRemoving] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const current = professionals.find((item) => item.id === editing) ?? null;
@@ -260,6 +262,16 @@ export function AdminProfessionalsPage() {
   const filtered = professionals.filter((item) => `${item.name} ${item.crm} ${item.specialty}`.toLowerCase().includes(search.toLowerCase()));
   const toggle = (id: string, active: boolean) => { toggleProfessional(id); toast.success(active ? "Médico desativado (histórico preservado)" : "Médico ativado"); };
   const plural = (value: number, one: string, many: string) => `${value} ${value === 1 ? one : many}`;
+  const toRemove = professionals.find((item) => item.id === removing) ?? null;
+  const removeCount = toRemove ? countFor(toRemove.id) : 0;
+
+  async function confirmRemove() {
+    if (!toRemove) return;
+    setDeleting(true);
+    const ok = await deleteProfessional(toRemove.id);
+    setDeleting(false);
+    if (ok) { toast.success("Médico excluído"); setRemoving(null); }
+  }
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -276,7 +288,7 @@ export function AdminProfessionalsPage() {
   }
 
   return <>
-    <AdminHeader eyebrow="Equipe clínica" dot eyebrowClass="text-foreground md:text-success" title="Gestão de médicos" description="Cadastre, edite e desative médicos sem apagar o histórico de consultas." badge={<span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium">{actives} ativos</span>} action="Novo médico" onAction={() => setOpen(true)} mobileBlockAction />
+    <AdminHeader eyebrow="Equipe clínica" dot eyebrowClass="text-foreground md:text-success" title="Gestão de médicos" description="Cadastre, edite, desative ou exclua médicos sem apagar o histórico de consultas." badge={<span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium">{actives} ativos</span>} action="Novo médico" onAction={() => setOpen(true)} mobileBlockAction />
 
     <StatStrip items={[
       { icon: <UserCheck />, label: "Ativos", value: plural(actives, "profissional", "profissionais") },
@@ -294,7 +306,7 @@ export function AdminProfessionalsPage() {
         <p className="mt-4 flex items-center gap-2 truncate text-[13px] text-muted-foreground"><Mail className="size-4 shrink-0" />{professional.email}</p>
         <div className="mt-2 flex items-center justify-between rounded-lg bg-soft px-3 py-2.5 text-sm font-semibold"><span className="flex items-center gap-2"><CalendarCheck className="size-4" />Consultas registradas</span><b className="font-bold">{countFor(professional.id)}</b></div>
         <Button variant="ghost" onClick={() => setEditing(professional.id)} className="mt-4 h-11 w-full rounded-lg bg-accent text-[15px] font-semibold hover:bg-accent/80"><Pencil />Editar dados</Button>
-        <button type="button" onClick={() => toggle(professional.id, professional.active)} className="mx-auto mt-2 flex h-9 items-center gap-1.5 text-sm font-medium"><Ban className="size-4" />{professional.active ? "Desativar médico" : "Ativar médico"}</button>
+        <div className="mt-2 flex items-center justify-center gap-6"><button type="button" onClick={() => toggle(professional.id, professional.active)} className="flex h-9 items-center gap-1.5 text-sm font-medium"><Ban className="size-4" />{professional.active ? "Desativar médico" : "Ativar médico"}</button><button type="button" onClick={() => setRemoving(professional.id)} className="flex h-9 items-center gap-1.5 text-sm font-medium text-destructive"><Trash2 className="size-4" />Excluir</button></div>
       </div>
       {/* Desktop */}
       <div className="hidden md:block">
@@ -304,7 +316,7 @@ export function AdminProfessionalsPage() {
         <p className="mt-1 truncate text-[13px] text-muted-foreground">{professional.email}</p>
         <div className="mt-6 border-t border-border pt-6 text-sm text-muted-foreground"><b className="mr-2 font-bold text-foreground">{countFor(professional.id)}</b>consultas registradas</div>
         <Button variant="ghost" onClick={() => setEditing(professional.id)} className="mt-6 h-9 w-full rounded-lg bg-accent text-sm font-semibold hover:bg-accent/80">Editar dados</Button>
-        <button type="button" onClick={() => toggle(professional.id, professional.active)} className="mx-auto mt-2 block h-8 text-xs font-medium text-muted-foreground hover:text-foreground">{professional.active ? "Desativar" : "Ativar"}</button>
+        <div className="mt-2 flex items-center justify-center gap-6"><button type="button" onClick={() => toggle(professional.id, professional.active)} className="h-8 text-xs font-medium text-muted-foreground hover:text-foreground">{professional.active ? "Desativar" : "Ativar"}</button><button type="button" onClick={() => setRemoving(professional.id)} className="flex h-8 items-center gap-1 text-xs font-medium text-destructive hover:opacity-80"><Trash2 className="size-3.5" />Excluir</button></div>
       </div>
     </article>)}</div> : <EmptyHint>Nenhum médico encontrado.</EmptyHint>}
 
@@ -313,6 +325,19 @@ export function AdminProfessionalsPage() {
       <div className="min-w-0 flex-1"><b className="block text-sm font-bold leading-5 md:text-[15px] md:font-semibold"><span className="md:hidden">Histórico Preservado</span><span className="hidden md:inline">Histórico protegido e auditado</span></b><p className="text-xs leading-4 text-muted-foreground md:text-[13px]"><span className="md:hidden">Ao desativar um médico da equipe, os agendamentos anteriores e relatórios clínicos permanecem acessíveis no arquivo central.</span><span className="hidden md:inline">Desativar um médico remove-o da nova agenda de marcação, mantendo todos os prontuários anteriores intactos.</span></p></div>
       <button type="button" onClick={() => toast.info("Políticas de desativação", { description: "Médicos inativos saem da agenda de marcação; consultas e prontuários anteriores continuam disponíveis." })} className="hidden shrink-0 items-center gap-1 text-sm font-semibold md:flex">Políticas de desativação<ArrowRight className="size-4" /></button>
     </aside>
+
+    <Modal open={Boolean(toRemove)} title="Excluir médico" onClose={() => setRemoving(null)}>
+      {toRemove && (removeCount > 0
+        ? <div className="grid gap-4 text-sm">
+            <p><b>{toRemove.name}</b> tem {plural(removeCount, "consulta registrada", "consultas registradas")}. Para não apagar o histórico dos pacientes, ele não pode ser excluído.</p>
+            <p className="text-muted-foreground">Você pode desativá-lo: ele sai da agenda de marcação e perde o acesso ao sistema, mas o histórico continua guardado.</p>
+            <div className="flex flex-wrap gap-2">{toRemove.active && <Button onClick={() => { toggle(toRemove.id, true); setRemoving(null); }}><Ban />Desativar médico</Button>}<Button variant="ghost" className="bg-soft" onClick={() => setRemoving(null)}>Voltar</Button></div>
+          </div>
+        : <div className="grid gap-4 text-sm">
+            <p>Excluir <b>{toRemove.name}</b> ({toRemove.specialty})? O cadastro, o login e os bloqueios de agenda dele serão apagados. Isso não pode ser desfeito.</p>
+            <div className="flex flex-wrap gap-2"><Button variant="destructive" disabled={deleting} onClick={() => void confirmRemove()}><Trash2 />{deleting ? "Excluindo…" : "Excluir médico"}</Button><Button variant="ghost" className="bg-soft" onClick={() => setRemoving(null)}>Cancelar</Button></div>
+          </div>)}
+    </Modal>
 
     <Modal open={open || Boolean(current)} title={current ? "Editar médico" : "Novo médico"} onClose={() => { setOpen(false); setEditing(null); }}>
       <form className="grid gap-4 sm:grid-cols-2" onSubmit={submit}>
