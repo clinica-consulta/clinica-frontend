@@ -113,6 +113,8 @@ type ClinicContextValue = ClinicState & {
   addProfessional: (input: Omit<Professional, "id" | "initials" | "color" | "active" | "availability">) => Professional;
   updateProfessional: (id: string, changes: Partial<Professional>) => void;
   toggleProfessional: (id: string) => void;
+  /** Exclui o médico na API. Retorna false (com aviso) se a API recusar, por exemplo quando há consultas. */
+  deleteProfessional: (id: string) => Promise<boolean>;
   setAvailability: (id: string, weekday: number, day: Availability[number]) => void;
   addSpecialty: (name: string) => void;
   updateSpecialty: (id: string, name: string) => void;
@@ -501,6 +503,19 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       toggleProfessional: (id) => {
         patchList("professionals", id, (item) => ({ ...item, active: !item.active }));
         send(api("PATCH", `/profissionais/${id}/status`));
+      },
+
+      deleteProfessional: async (id) => {
+        try {
+          await api("DELETE", `/profissionais/${id}`);
+          setState((current) => ({ ...current, professionals: current.professionals.filter((item) => item.id !== id) }));
+          return true;
+        } catch (error) {
+          toast.error("Não foi possível excluir o médico", { description: (error as Error).message });
+          return false;
+        } finally {
+          void refresh();
+        }
       },
 
       setAvailability: (id, weekday, day) => {
