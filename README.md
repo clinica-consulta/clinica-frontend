@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🩺 Gestão de Consultas · Interface web
+# Gestão de Consultas · Interface web
 
 **Agendamento de consultas simples, acessível e pensado para todas as idades**
 
@@ -18,32 +18,32 @@ Projeto Integrador · SENAI
 
 ---
 
-## 📖 Sobre o projeto
+## Sobre o projeto
 
 A **Gestão de Consultas** é a plataforma web de uma clínica médica para marcar consultas, organizar a agenda dos médicos e acompanhar os pacientes do cadastro ao pós-atendimento. A proposta é que qualquer pessoa, inclusive idosos, consiga **agendar uma consulta em poucos passos**, vendo na hora os horários vagos, e que a equipe da clínica tenha tudo o que precisa em um só lugar para **reduzir faltas** e evitar horários duplicados.
 
 Este repositório é a **interface web**. Os dados e as regras de negócio vêm da [API da Gestão de Consultas](https://github.com/clinica-consulta/clinica-backend).
 
-## 🎯 Objetivos
+## Objetivos
 
 - Agendamento rápido, com especialidade, médico, data e horário em um fluxo guiado.
 - Telas com letras legíveis, botões grandes e boa leitura no celular e no computador.
 - Uma área própria para cada perfil, com apenas as ações que fazem sentido para ele.
 - Menos faltas, com confirmação de presença, lembretes e avisos.
 
-## 👥 Áreas do sistema
+## Áreas do sistema
 
 O site tem uma tela de acesso única. Depois do login, cada pessoa cai na área do seu perfil.
 
 ```mermaid
 flowchart TD
-    L[Tela de acesso<br/>login · cadastro · recuperar senha] --> P[🧑 Paciente]
-    L --> R[🗂️ Recepção]
-    L --> M[🩺 Profissional de saúde]
-    L --> A[⚙️ Administrador]
+    L[Tela de acesso<br/>login · cadastro · recuperar senha] --> P[Paciente]
+    L --> R[Recepção]
+    L --> M[Profissional de saúde]
+    L --> A[Administrador]
 ```
 
-### 🧑 Paciente
+### Paciente
 | Tela | O que oferece |
 |---|---|
 | **Início** | Próximas consultas com status e código, confirmação de presença, remarcação, cancelamento com confirmação e histórico das consultas passadas com "Ver todas" |
@@ -51,7 +51,7 @@ flowchart TD
 | **Notificações** | Avisos da clínica, lembretes, atestados e receitas para abrir e imprimir, e pagamento simulado da consulta particular por Pix, cartão de crédito ou débito depois do atendimento |
 | **Meu perfil** | Dados cadastrais, contato e convênio |
 
-### 🗂️ Recepção
+### Recepção
 | Tela | O que oferece |
 |---|---|
 | **Dashboard** | Indicadores e atendimentos do dia; clicar em um horário vago abre o agendamento já preenchido |
@@ -63,7 +63,7 @@ flowchart TD
 | **Horários e bloqueios** | Expedientes dos médicos e bloqueio de horários ou períodos |
 | **Notificações** | Avisos da equipe e envio de avisos a pacientes e médicos |
 
-### 🩺 Profissional de saúde
+### Profissional de saúde
 | Tela | O que oferece |
 |---|---|
 | **Início** | Consultas do dia e registro de atendimento realizado ou ausência |
@@ -72,7 +72,7 @@ flowchart TD
 | **Meus horários** | Expediente e bloqueios em modo somente leitura |
 | **Notificações** | Avisos da clínica |
 
-### ⚙️ Administrador
+### Administrador
 | Tela | O que oferece |
 |---|---|
 | **Visão geral** | Indicadores da clínica, relatório completo, planilhas de consultas e do registro de alterações prontas para abrir no Excel e botão de atualizar os dados |
@@ -82,17 +82,17 @@ flowchart TD
 | **Agendas e horários** | Expediente semanal de cada médico e bloqueios |
 | **Configurações** | Dados da clínica, convênios com as especialidades cobertas e valor da consulta particular |
 
-## ✨ Recursos em todas as áreas
+## Recursos em todas as áreas
 
-- 🔎 **Busca no topo**: procura pacientes, médicos, usuários e especialidades e abre a tela certa já filtrada; para o paciente, leva direto ao agendamento da especialidade.
-- 👤 **Minha conta**: ao clicar no próprio nome, cada pessoa edita nome e telefone e troca a senha.
-- 🔐 **Recuperação de senha** com código de 6 dígitos enviado por e-mail e confirmação de CPF.
-- 🔔 **Notificações** com contador de não lidas e opção de marcar todas como lidas.
-- 📱 **Responsivo**: menu lateral no computador e barra inferior no celular.
-- 📄 **Rodapé** com Privacidade, Termos de Uso e Suporte com o contato da clínica.
+- **Busca no topo**: procura pacientes, médicos, usuários e especialidades e abre a tela certa já filtrada; para o paciente, leva direto ao agendamento da especialidade.
+- **Minha conta**: ao clicar no próprio nome, cada pessoa edita nome e telefone e troca a senha.
+- **Recuperação de senha** com código de 6 dígitos enviado por e-mail e confirmação de CPF.
+- **Notificações** com contador de não lidas e opção de marcar todas como lidas.
+- **Responsivo**: menu lateral no computador e barra inferior no celular.
+- **Rodapé** com Privacidade, Termos de Uso e Suporte com o contato da clínica.
 - ⏳ **Tela de carregamento** e mensagem de boas-vindas após o login.
 
-## 📐 Como a interface aplica as regras da clínica
+## Como a interface aplica as regras da clínica
 
 | Situação | O que a pessoa vê |
 |---|---|
@@ -104,7 +104,7 @@ flowchart TD
 | Paciente, médico ou especialidade desativados | Somem das opções de agendamento, mas o histórico continua visível |
 | Médico com consultas | Não pode ser excluído, só desativado |
 
-## 🏗️ Tecnologias
+## Tecnologias
 
 | Camada | Tecnologia |
 |---|---|
@@ -125,10 +125,11 @@ src/
 └── assets/        Logo e imagens
 ```
 
-## 🚀 Versões
+## Versões
 
 | Versão | Destaques |
 |---|---|
+| [1.2.2](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.2.2) | Documentação profissional e padronização de issues, labels e cards |
 | [1.2.1](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.2.1) | Documentação do projeto e padronização do git flow |
 | [1.2.0](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.2.0) | Revisão geral: busca no topo, rodapé, agendamento preenchido, relatórios e documentos médicos |
 | [1.1.1](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.1.1) | Campo do código de redefinição aceita só 6 números |
@@ -136,7 +137,37 @@ src/
 | [1.0.1](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.0.1) | Hotfix de segurança do TanStack Start |
 | [1.0.0](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.0.0) | Interface completa dos quatro perfis integrada à API |
 
-## 🌿 Fluxo de trabalho (Git Flow)
+## Gestão do projeto
+
+Cada funcionalidade e cada tarefa é uma issue, acompanhada no [quadro do projeto](https://github.com/orgs/clinica-consulta/projects/3).
+
+**Títulos.** Seguem o formato `[MÓDULO-NN-FE] Descrição`, por exemplo `[PCT-02-FE] Agendamento de consulta`. O sufixo `FE` indica o repositório. Cada módulo tem um épico, `[EP-MÓDULO]`, que reúne suas tarefas como sub-issues e mostra o progresso.
+
+| Módulo | Escopo |
+|---|---|
+| `UI` | Identidade visual, navegação e acessibilidade |
+| `AUTH` | Acesso e conta do usuário |
+| `PLT` | Plataforma, integração e qualidade |
+| `PCT` | Portal do paciente |
+| `REC` | Área da recepção |
+| `PRO` | Área do profissional de saúde |
+| `ADM` | Área da administração |
+| `REL` | Relatórios e planilhas |
+| `DOC` | Documentos médicos |
+
+**Labels.**
+
+| Label | Uso |
+|---|---|
+| `priority:P0`, `P1`, `P2` | Prioridade: crítica, alta e normal |
+| `release:vX.Y.Z` | Versão em que a tarefa foi ou será entregue; `release:backlog` quando ainda não há versão |
+| `squad:*` | Área responsável: backend, frontend, database, cloud, quality ou product |
+| `type:*` | Natureza: epic, task, bug, hotfix ou docs |
+| `S0` a `S3` | Estimativa de tamanho, do menor ao maior |
+
+**Milestones.** Há um milestone por versão. O milestone Backlog guarda as ideias ainda sem versão definida.
+
+## Fluxo de trabalho (Git Flow)
 
 ```mermaid
 gitGraph
@@ -174,7 +205,7 @@ gitGraph
 
 - Versões seguem o [versionamento semântico](https://semver.org/lang/pt-BR/): `MAIOR.MENOR.CORREÇÃO`.
 - Commits seguem o padrão `tipo: descrição` com os tipos `feat`, `fix`, `docs`, `test` e `chore`.
-- Cada funcionalidade tem uma issue com labels de tipo, área, perfil e módulo, e fica no milestone da versão em que foi entregue.
+- Cada tarefa tem uma issue, com o padrão descrito em Gestão do projeto, e fica no milestone da versão em que foi entregue.
 
 ---
 
