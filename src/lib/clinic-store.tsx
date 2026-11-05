@@ -95,6 +95,12 @@ type ClinicContextValue = ClinicState & {
   requestPasswordReset: (email: string, cpf: string) => Promise<{ message: string; testCode?: string }>;
   resetPassword: (email: string, code: string, newPassword: string) => Promise<void>;
   payAppointment: (id: string, method: PaymentMethod) => Promise<Appointment>;
+  /** Pagamento on-line ativo na API (Mercado Pago) ou null quando só há o modo simulado. */
+  onlinePayment: () => Promise<{ gateway: string | null; test: boolean }>;
+  /** Gera o link do checkout do Mercado Pago para a consulta. */
+  startCheckout: (id: string) => Promise<{ url: string; test: boolean }>;
+  /** Confere no Mercado Pago se o pagamento da consulta foi aprovado. */
+  verifyPayment: (id: string) => Promise<Appointment>;
   /** Recarrega todos os dados da API. */
   refresh: () => Promise<void>;
   patientById: (id: string) => Patient | undefined;
@@ -388,6 +394,19 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
 
       payAppointment: async (id, method) => {
         const doc = await api<Doc>("POST", `/consultas/${id}/pagamento`, { metodo: method });
+        await refresh();
+        return fromApi.appointment(doc);
+      },
+      onlinePayment: async () => {
+        const config = await api<{ gateway: string | null; teste: boolean }>("GET", "/pagamentos/config");
+        return { gateway: config.gateway, test: config.teste };
+      },
+      startCheckout: async (id) => {
+        const result = await api<{ url: string; teste: boolean }>("POST", `/consultas/${id}/pagamento/checkout`);
+        return { url: result.url, test: result.teste };
+      },
+      verifyPayment: async (id) => {
+        const doc = await api<Doc>("POST", `/consultas/${id}/pagamento/verificar`);
         await refresh();
         return fromApi.appointment(doc);
       },

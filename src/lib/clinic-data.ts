@@ -92,6 +92,10 @@ export type AppointmentPayment = {
   method: string;
   code: string;
   paidAt: string | null;
+  /** "Mercado Pago" quando a cobrança foi gerada no gateway; "Recepção" quando paga no balcão. */
+  gateway: string;
+  /** Link do checkout do Mercado Pago, quando já gerado. */
+  checkoutUrl: string;
 };
 
 export function formatMoney(value: number) {
