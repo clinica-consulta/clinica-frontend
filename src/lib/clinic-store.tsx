@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import {
+  appointmentPhase,
   defaultSettings,
   initialsOf,
   isoDate,
@@ -112,6 +113,8 @@ type ClinicContextValue = ClinicState & {
   rescheduleAppointment: (id: string, date: string, time: string) => boolean;
   /** Só um lembrete por consulta: devolve false se já foi enviado. */
   sendReminder: (id: string) => boolean;
+  /** Lembra o paciente particular do pagamento pendente (no máximo um a cada 24 horas). Devolve false se a API recusar. */
+  sendPaymentReminder: (id: string) => Promise<boolean>;
   sendAllReminders: () => number;
   addPatient: (input: Omit<Patient, "id" | "initials" | "status"> & { status?: Patient["status"] }) => Patient;
   updatePatient: (id: string, changes: Partial<Patient>) => void;
@@ -303,6 +306,15 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     return () => window.clearInterval(timer);
   }, []);
 
+  // A API encerra sozinha a consulta 1 hora após o horário: quando alguma passa desse ponto, busca o resultado.
+  const lastSync = useRef(0);
+  useEffect(() => {
+    if (!roleRef.current || Date.now() - lastSync.current < 60_000) return;
+    if (!state.appointments.some((item) => openStatuses.includes(item.status) && appointmentPhase(item, clock) === "encerrada")) return;
+    lastSync.current = Date.now();
+    void refresh();
+  }, [clock, state.appointments, refresh]);
+
   const availableSlots = useCallback(
     (professionalId: string, date: string, ignoreAppointmentId?: string) => {
       const today = isoDate(0);
@@ -470,15 +482,27 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       },
 
       sendReminder: (id) => {
-        if (state.appointments.find((item) => item.id === id)?.reminderSentAt) return false;
+        const target = state.appointments.find((item) => item.id === id);
+        if (!target || target.reminderSentAt || appointmentPhase(target) !== "antes") return false;
         patchList("appointments", id, (item) => withLog({ ...item, reminderSentAt: isoDate(0) }, "Lembrete de confirmação enviado"));
         send(api("POST", `/consultas/${id}/lembrete`), "Não foi possível enviar o lembrete");
         return true;
       },
 
+      sendPaymentReminder: async (id) => {
+        try {
+          const updated = fromApi.appointment(await api<Doc>("POST", `/consultas/${id}/pagamento/lembrete`));
+          patchList("appointments", id, () => updated);
+          return true;
+        } catch (error) {
+          toast.error("Lembrete de pagamento não enviado", { description: (error as Error).message });
+          return false;
+        }
+      },
+
       sendAllReminders: () => {
         const pending = state.appointments.filter(
-          (item) => openStatuses.includes(item.status) && item.confirmationReply === "Sem resposta" && item.date >= isoDate(0) && !item.reminderSentAt,
+          (item) => item.status !== "Confirmada" && item.confirmationReply === "Sem resposta" && appointmentPhase(item) === "antes" && !item.reminderSentAt,
         );
         if (pending.length) {
           setState((current) => ({

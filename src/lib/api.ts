@@ -126,7 +126,7 @@ function localDate(value: unknown) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-type ApiPayment = { status?: string | null; valor?: number; metodo?: string; codigo?: string; pagoEm?: string | null; gateway?: string; situacaoGateway?: string };
+type ApiPayment = { status?: string | null; valor?: number; metodo?: string; codigo?: string; pagoEm?: string | null; gateway?: string; situacaoGateway?: string; lembreteEm?: string | null };
 
 function paymentFrom(value: unknown): AppointmentPayment | null {
   const payment = value as ApiPayment | undefined;
@@ -137,6 +137,7 @@ function paymentFrom(value: unknown): AppointmentPayment | null {
     method: payment.metodo ?? "",
     code: payment.codigo ?? "",
     paidAt: payment.pagoEm ?? null,
+    reminderSentAt: payment.lembreteEm ?? null,
     gateway: payment.gateway ?? "",
     gatewayStatus: payment.situacaoGateway ?? "",
   };
@@ -190,7 +191,7 @@ export const fromApi = {
     audience: ((doc.publico as string[]) ?? []).map(fromApiRole).filter(Boolean),
     read: Boolean(doc.lida),
     appointmentId: doc.consulta ? str(doc.consulta) : null,
-    action: doc.acao === "pagamento" || doc.acao === "documento" ? doc.acao : "",
+    action: doc.acao === "pagamento" || doc.acao === "documento" || doc.acao === "remarcar" ? doc.acao : "",
   }),
   staff: (doc: Doc): StaffUser => ({ id: doc.id, name: str(doc.nome), email: str(doc.email), role: fromApiRole(str(doc.tipo)), status: doc.status as StaffUser["status"] }),
   settings: (doc: Doc): ClinicSettings => rename(doc, invert(settingsFields)) as ClinicSettings,

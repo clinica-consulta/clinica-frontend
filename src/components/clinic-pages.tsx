@@ -6,24 +6,29 @@ import { Button } from "@/components/ui/button";
 import { EmptyHint, Field, Modal, PageHeader, SearchInput, Section, SelectField, StatCard, StatusBadge, TextareaField, Toggle, Toolbar } from "@/components/page-kit";
 import { AppointmentForm, type AppointmentDefaults } from "@/components/appointment-form";
 import { MiniCalendar, SlotPicker } from "@/components/mini-calendar";
-import { appointmentStatuses, formatDate, isoDate, openStatuses, relativeDay, slotRange, weekdayName, formatMoney, hasPassed, type Appointment } from "@/lib/clinic-data";
+import { appointmentPhase, appointmentStatuses, attendanceDeadline, formatDate, isoDate, nextPaymentReminderAt, openStatuses, relativeDay, slotRange, weekdayName, formatMoney, type Appointment, type AppointmentPhase } from "@/lib/clinic-data";
 import { takeSearch } from "@/lib/search-handoff";
 import { useClinic, useReports } from "@/lib/clinic-store";
 import { maskCpf, maskPhone } from "@/lib/cpf";
 
 function useAppointmentActions() {
-  const { setAppointmentStatus, sendReminder, patientById } = useClinic();
+  const { setAppointmentStatus, sendReminder, sendPaymentReminder, patientById } = useClinic();
+  const name = (item: Appointment) => patientById(item.patientId)?.name ?? "Paciente";
   return {
-    confirm: (item: Appointment) => { setAppointmentStatus(item.id, "Confirmada", "Consulta confirmada"); toast.success("Consulta confirmada", { description: `${patientById(item.patientId)?.name} · ${item.time}` }); },
-    complete: (item: Appointment) => { setAppointmentStatus(item.id, "Realizada", "Consulta registrada como realizada"); toast.success("Consulta registrada como realizada"); },
-    noShow: (item: Appointment) => { setAppointmentStatus(item.id, "Não compareceu", "Ausência registrada"); toast.warning("Ausência registrada"); },
-    cancel: (item: Appointment) => { setAppointmentStatus(item.id, "Cancelada", "Consulta cancelada e horário liberado"); toast.warning("Consulta cancelada", { description: `Horário ${item.time} liberado · ${formatDate(item.date)}` }); },
+    confirm: (item: Appointment) => { setAppointmentStatus(item.id, "Confirmada", "Consulta confirmada pela recepção"); toast.success("Consulta confirmada", { description: `${name(item)} · ${formatDate(item.date)} às ${item.time}` }); },
+    complete: (item: Appointment) => { setAppointmentStatus(item.id, "Realizada", "Consulta registrada como realizada"); toast.success("Consulta registrada como realizada", { description: patientById(item.patientId)?.insurance === "Particular" ? "O pagamento foi liberado para o paciente." : undefined }); },
+    noShow: (item: Appointment) => { setAppointmentStatus(item.id, "Não compareceu", "Ausência registrada"); toast.warning("Ausência registrada", { description: `${name(item)} recebeu um convite para agendar outro dia.` }); },
+    cancel: (item: Appointment) => { setAppointmentStatus(item.id, "Cancelada", "Consulta cancelada e horário liberado"); toast.warning("Consulta cancelada", { description: `Horário ${item.time} de ${formatDate(item.date)} liberado na agenda.` }); },
     remind: (item: Appointment) => {
-      if (!sendReminder(item.id)) { toast.error("Lembrete já enviado", { description: "Cada consulta recebe só um lembrete." }); return; }
-      toast.success("Lembrete enviado", { description: `${patientById(item.patientId)?.name} recebeu o pedido de confirmação.` });
+      if (!sendReminder(item.id)) { toast.error("Lembrete não enviado", { description: "Cada consulta recebe um único lembrete, antes do horário marcado." }); return; }
+      toast.success("Lembrete enviado", { description: `${name(item)} recebeu o pedido de confirmação.` });
+    },
+    remindPayment: async (item: Appointment) => {
+      if (await sendPaymentReminder(item.id)) toast.success("Lembrete de pagamento enviado", { description: `Aviso enviado a ${name(item)} no portal e por e-mail.` });
     },
   };
 }
+
 
 export function RescheduleModal({ appointment, onClose }: { appointment: Appointment | null; onClose: () => void }) {
   const { availableSlots, rescheduleAppointment } = useClinic();
@@ -48,63 +53,105 @@ export function RescheduleModal({ appointment, onClose }: { appointment: Appoint
   );
 }
 
+/** Aviso exibido no topo do "Gerenciar consulta" conforme o momento da consulta. */
+function phaseNotice(item: Appointment, phase: AppointmentPhase) {
+  if (phase === "antes") return null;
+  if (phase === "atendimento") return { tone: "bg-warning/15", text: `Horário em andamento. Registre se a consulta foi realizada ou se o paciente não compareceu até as ${attendanceDeadline(item)}; depois disso ela é encerrada automaticamente.` };
+  if (openStatuses.includes(item.status)) return { tone: "bg-muted/60", text: "Esta consulta está sendo encerrada automaticamente. Em instantes o resultado aparece aqui." };
+  return { tone: "bg-muted/60", text: `Consulta encerrada como "${item.status}". Não é mais possível alterá-la.` };
+}
+
+function formatDateTime(date: Date) {
+  return date.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+}
+
 export function ManageModal({ appointment, onClose }: { appointment: Appointment | null; onClose: () => void }) {
   const actions = useAppointmentActions();
-  const { patientById, professionalById } = useClinic();
+  const { appointments, patientById, professionalById } = useClinic();
   const [reschedule, setReschedule] = useState<Appointment | null>(null);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [sending, setSending] = useState(false);
   if (!appointment) return null;
-  const patient = patientById(appointment.patientId);
-  const open = openStatuses.includes(appointment.status);
-  const passed = open && hasPassed(appointment);
-  // Cada ação aparece uma única vez: some depois de feita e nada sobra quando a consulta já foi encerrada.
-  const canConfirm = open && !passed && appointment.status !== "Confirmada";
-  const canRemind = open && !passed && appointment.status !== "Confirmada" && !appointment.reminderSentAt;
+  // Sempre a versão mais recente da consulta (ela pode mudar com o modal aberto).
+  const item = appointments.find((entry) => entry.id === appointment.id) ?? appointment;
+  const patient = patientById(item.patientId);
+  const phase = appointmentPhase(item);
+  const notice = phaseNotice(item, phase);
+  const payment = item.payment;
+  const nextReminder = nextPaymentReminderAt(payment);
+  const canRemindPayment = phase === "encerrada" && payment?.status === "Pendente" && item.status !== "Cancelada";
+  const close = () => { setConfirmCancel(false); onClose(); };
+  const paymentText = payment
+    ? `${payment.status} · ${formatMoney(payment.amount)}${payment.method ? ` · ${payment.method}` : ""}${payment.status === "Pendente" && payment.gatewayStatus === "aguardando confirmação" ? " · aguardando compensação" : ""}`
+    : patient?.insurance === "Particular" ? "liberado quando a consulta for registrada como realizada" : "coberto pelo convênio";
+
   return (
     <>
-      <Modal open={Boolean(appointment) && !reschedule} title="Gerenciar consulta" description={`${patient?.name} · ${professionalById(appointment.professionalId)?.name} · ${relativeDay(appointment.date)} às ${appointment.time}`} onClose={onClose}>
-        {passed && <p className="mb-3 rounded-md bg-warning/15 p-3 text-xs sm:text-sm">O horário desta consulta já passou. Registre se foi realizada ou se o paciente não compareceu.</p>}
-        {open ? <div className="grid gap-3 sm:grid-cols-2">
-          {canConfirm && <Button onClick={() => { actions.confirm(appointment); onClose(); }}><Check />Confirmar</Button>}
-          {canRemind && <Button variant="outline" onClick={() => { actions.remind(appointment); onClose(); }}><Send />Enviar lembrete</Button>}
-          {!passed && <Button variant="outline" onClick={() => setReschedule(appointment)}><CalendarClock />Remarcar</Button>}
-          <Button variant="outline" onClick={() => { actions.complete(appointment); onClose(); }}><CheckCircle2 />Registrar realizada</Button>
-          <Button variant="outline" onClick={() => { actions.noShow(appointment); onClose(); }}><CircleAlert />Registrar ausência</Button>
-          <Button variant="outline" onClick={() => { actions.cancel(appointment); onClose(); }}><X />Cancelar consulta</Button>
-        </div> : <p className="rounded-md bg-muted/60 p-3 text-xs sm:text-sm">Consulta já registrada como <b>{appointment.status}</b>. Não há ações pendentes.</p>}
+      <Modal open={Boolean(appointment) && !reschedule} title="Gerenciar consulta" description={`#${item.code || "…"} · ${patient?.name} · ${professionalById(item.professionalId)?.name} · ${relativeDay(item.date)} às ${item.time}`} onClose={close}>
+        <div className="mb-3 flex items-center gap-2"><StatusBadge status={item.status} />{phase === "atendimento" && <span className="rounded-full bg-warning/20 px-2 py-0.5 text-[11px] font-semibold">Em atendimento</span>}</div>
+        {notice && <p className={`mb-3 rounded-md p-3 text-xs sm:text-sm ${notice.tone}`}>{notice.text}</p>}
+
+        {phase === "antes" && (confirmCancel
+          ? <div className="grid gap-3 rounded-md border border-destructive/40 p-3 text-xs sm:text-sm">
+              <p>Cancelar a consulta de <b>{patient?.name}</b> em {formatDate(item.date)} às {item.time}? O horário volta a ficar livre na agenda.</p>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="destructive" onClick={() => { actions.cancel(item); close(); }}><X />Sim, cancelar</Button>
+                <Button variant="outline" onClick={() => setConfirmCancel(false)}>Voltar</Button>
+              </div>
+            </div>
+          : <div className="grid gap-3 sm:grid-cols-2">
+              {item.status !== "Confirmada" && <Button onClick={() => { actions.confirm(item); close(); }}><Check />Confirmar</Button>}
+              {item.status !== "Confirmada" && !item.reminderSentAt && <Button variant="outline" onClick={() => { actions.remind(item); close(); }}><Send />Enviar lembrete</Button>}
+              <Button variant="outline" onClick={() => setReschedule(item)}><CalendarClock />Remarcar</Button>
+              <Button variant="outline" onClick={() => setConfirmCancel(true)}><X />Cancelar consulta</Button>
+            </div>)}
+
+        {phase === "atendimento" && <div className="grid gap-3 sm:grid-cols-2">
+          <Button onClick={() => { actions.complete(item); close(); }}><CheckCircle2 />Registrar realizada</Button>
+          <Button variant="outline" onClick={() => { actions.noShow(item); close(); }}><CircleAlert />Registrar ausência</Button>
+        </div>}
+
+        {canRemindPayment && <div className="flex flex-col gap-2 rounded-md border border-border p-3 text-xs sm:flex-row sm:items-center sm:justify-between sm:text-sm">
+          <span>Pagamento de <b>{formatMoney(payment.amount)}</b> pendente.{payment.reminderSentAt ? ` Último lembrete em ${formatDateTime(new Date(payment.reminderSentAt))}.` : ""}</span>
+          <Button variant="outline" disabled={Boolean(nextReminder) || sending} onClick={async () => { setSending(true); await actions.remindPayment(item); setSending(false); }}>
+            <Send />{nextReminder ? `Novo lembrete a partir de ${formatDateTime(nextReminder)}` : "Lembrar pagamento"}
+          </Button>
+        </div>}
+
         <div className="mt-4 rounded-md bg-muted/60 p-3 text-xs sm:text-sm">
           <b className="block">Dados da consulta</b>
-          <p className="mt-1 text-muted-foreground">Especialidade: {appointment.specialty}</p>
+          <p className="mt-1 text-muted-foreground">Especialidade: {item.specialty}</p>
           <p className="text-muted-foreground">Convênio do paciente: {patient?.insurance ?? "—"}</p>
-          <p className="text-muted-foreground">Canal do agendamento: {appointment.channel}</p>
-          <p className="text-muted-foreground">Resposta do paciente: {appointment.confirmationReply}</p>
-          <p className="text-muted-foreground">Lembrete: {appointment.reminderSentAt ? formatDate(appointment.reminderSentAt) : "não enviado"}</p>
-          <p className="text-muted-foreground">Pagamento: {appointment.payment ? `${appointment.payment.status} · ${formatMoney(appointment.payment.amount)}${appointment.payment.method ? ` · ${appointment.payment.method}` : ""}` : patient?.insurance === "Particular" ? "liberado quando a consulta for marcada como realizada" : "coberto pelo convênio"}</p>
+          <p className="text-muted-foreground">Canal do agendamento: {item.channel}</p>
+          <p className="text-muted-foreground">Resposta do paciente: {item.confirmationReply}</p>
+          <p className="text-muted-foreground">Lembrete de confirmação: {item.reminderSentAt ? `enviado em ${formatDate(item.reminderSentAt)}` : "não enviado"}</p>
+          <p className="text-muted-foreground">Pagamento: {paymentText}</p>
         </div>
         <div className="mt-3 rounded-md border border-border p-3 text-xs sm:text-sm">
           <b className="flex items-center gap-2"><History className="size-4" />Alterações registradas</b>
-          <ul className="mt-2 space-y-1 text-muted-foreground">{appointment.history.length ? appointment.history.map((entry, index) => <li key={`${entry.at}-${index}`}>{formatDate(entry.at)} · {entry.text}</li>) : <li>Nenhuma alteração registrada.</li>}</ul>
+          <ul className="mt-2 space-y-1 text-muted-foreground">{item.history.length ? item.history.map((entry, index) => <li key={`${entry.at}-${index}`}>{formatDate(entry.at)} · {entry.text}</li>) : <li>Nenhuma alteração registrada.</li>}</ul>
         </div>
       </Modal>
-      <RescheduleModal appointment={reschedule} onClose={() => { setReschedule(null); onClose(); }} />
+      <RescheduleModal appointment={reschedule} onClose={() => { setReschedule(null); close(); }} />
     </>
   );
 }
 
-/** Consultas em aberto cujo horário já passou: a recepção registra se foi realizada ou não. */
+/** Consultas no horário de atendimento (até 1 hora depois do horário marcado): a recepção registra o resultado. */
 function PendingRecords() {
   const { appointments, patientById, professionalById } = useClinic();
   const actions = useAppointmentActions();
   const [manage, setManage] = useState<Appointment | null>(null);
-  const list = appointments.filter((item) => openStatuses.includes(item.status) && hasPassed(item)).sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`));
+  const list = appointments.filter((item) => appointmentPhase(item) === "atendimento").sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`));
   if (!list.length) return null;
   return <>
     <section className="surface mb-6 border-l-4 border-warning p-4 md:p-6">
-      <h2 className="flex items-center gap-2 text-sm font-bold"><Clock3 className="size-4" />Horário já passou: registre o atendimento ({list.length})</h2>
-      <p className="mt-1 text-xs text-muted-foreground">Marque se a consulta foi realizada ou se o paciente não compareceu. Pacientes particulares recebem o pagamento liberado assim que a consulta é marcada como realizada.</p>
+      <h2 className="flex items-center gap-2 text-sm font-bold"><Clock3 className="size-4" />Em atendimento: registre o resultado ({list.length})</h2>
+      <p className="mt-1 text-xs text-muted-foreground">Marque se a consulta foi realizada ou se o paciente não compareceu. Sem registro, 1 hora após o horário a consulta é encerrada automaticamente: confirmada vira realizada; sem confirmação, ausência.</p>
       <div className="mt-3 divide-y divide-border/60">{list.map((item) => {
         const patient = patientById(item.patientId);
         return <div key={item.id} className="flex flex-col gap-2 py-3 md:flex-row md:items-center md:justify-between">
-          <div className="min-w-0"><p className="truncate text-sm font-semibold">{patient?.name} <span className="font-normal text-muted-foreground">· {patient?.insurance}</span></p><p className="text-xs text-muted-foreground">{weekdayName(item.date)}, {formatDate(item.date)} às {item.time} · {professionalById(item.professionalId)?.name} · {item.specialty}</p></div>
+          <div className="min-w-0"><p className="truncate text-sm font-semibold">{patient?.name} <span className="font-normal text-muted-foreground">· {patient?.insurance}</span></p><p className="text-xs text-muted-foreground">{item.time} · {professionalById(item.professionalId)?.name} · {item.specialty} · encerra às {attendanceDeadline(item)}</p></div>
           <div className="flex shrink-0 flex-wrap gap-2">
             <Button size="sm" onClick={() => actions.complete(item)}><CheckCircle2 />Realizada</Button>
             <Button size="sm" variant="outline" onClick={() => actions.noShow(item)}><CircleAlert />Não compareceu</Button>
@@ -116,6 +163,7 @@ function PendingRecords() {
     <ManageModal appointment={manage} onClose={() => setManage(null)} />
   </>;
 }
+
 
 export function DashboardPage() {
   const { appointments, professionals, sendAllReminders, sendReminder, availableSlots, patientById, professionalById, session } = useClinic();
@@ -129,8 +177,8 @@ export function DashboardPage() {
   const today = appointments.filter((item) => item.date === isoDate(0) && item.status !== "Cancelada").sort((a, b) => a.time.localeCompare(b.time));
   const confirmed = today.filter((item) => item.status === "Confirmada").length;
   const ready = today.length ? Math.round((confirmed / today.length) * 100) : 0;
-  // Some da lista assim que a consulta é confirmada ou recebe o lembrete: cada ação é feita uma única vez.
-  const pending = appointments.filter((item) => item.confirmationReply === "Sem resposta" && item.status !== "Confirmada" && !item.reminderSentAt && openStatuses.includes(item.status) && item.date >= isoDate(0)).sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`));
+  // Só consultas antes do horário, sem confirmação e sem lembrete: somem assim que uma das duas ações é feita.
+  const pending = appointments.filter((item) => item.confirmationReply === "Sem resposta" && item.status !== "Confirmada" && !item.reminderSentAt && appointmentPhase(item) === "antes").sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`));
   const slots = proId ? availableSlots(proId, calDate) : [];
   const chosen = slots.includes(slot) ? slot : slots[0] ?? "";
   const doctor = professionalById(proId);
