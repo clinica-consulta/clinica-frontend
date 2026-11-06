@@ -337,6 +337,7 @@ O projeto resultou em uma interface publicada, integrada à API e utilizada pelo
 
 | Versão | Entregas |
 |---|---|
+| [1.3.0](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.3.0) | Pagamento da consulta particular pelo Stripe dentro do site (Pix, cartão e boleto) e documentação no formato acadêmico |
 | [1.2.2](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.2.2) | Documentação profissional e padronização de issues, labels e cards |
 | [1.2.1](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.2.1) | Documentação do projeto e padronização do Git Flow |
 | [1.2.0](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.2.0) | Revisão geral: busca no topo, rodapé, agendamento preenchido, relatórios e documentos médicos |
@@ -344,8 +345,6 @@ O projeto resultou em uma interface publicada, integrada à API e utilizada pelo
 | [1.1.0](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.1.0) | Exclusão de médico pelo administrador |
 | [1.0.1](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.0.1) | Correção de segurança do TanStack Start |
 | [1.0.0](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.0.0) | Interface completa dos quatro perfis integrada à API |
-
-Em desenvolvimento: pagamento da consulta particular pelo Stripe dentro do site (Pix, cartão e boleto).
 
 ---
 
