@@ -592,7 +592,7 @@ export function PacientesPage() {
         <Field label="CPF" name="cpf" required defaultValue={patient?.cpf ?? ""} placeholder="000.000.000-00" inputMode="numeric" maxLength={14} onChange={(event) => { event.target.value = maskCpf(event.target.value); }} />
         <Field label="Telefone" name="phone" required defaultValue={patient?.phone ?? ""} placeholder="(00) 00000-0000" inputMode="tel" maxLength={15} onChange={(event) => { event.target.value = maskPhone(event.target.value); }} />
         <Field label="E-mail" name="email" type="email" required defaultValue={patient?.email ?? ""} />
-        <Field label="Data de nascimento" name="birthDate" type="date" required defaultValue={patient?.birthDate ?? ""} />
+        <Field label="Data de nascimento" name="birthDate" type="date" typed required max={isoDate(0)} defaultValue={patient?.birthDate ?? ""} />
         <SelectField label="Convênio" name="insurance" value={formInsurance} onChange={(event) => setInsuranceChoice(event.target.value)} options={insurances.filter((item) => item.active || item.name === patient?.insurance).map((item) => ({ value: item.name, label: item.name }))} />
         <InsuranceCardFields insurance={formInsurance} card={formInsurance === patient?.insurance ? patient?.card : undefined} renderField={(field) => <Field key={`${formInsurance}-${field.name}`} {...field} />} />
         <div className="flex flex-wrap gap-2 sm:col-span-2"><Button type="submit">{patient ? "Salvar alterações" : "Cadastrar paciente"}</Button>

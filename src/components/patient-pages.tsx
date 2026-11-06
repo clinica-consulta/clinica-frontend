@@ -1,5 +1,5 @@
 import { SiteSelect } from "@/components/site-select";
-import { DatePicker } from "@/components/date-picker";
+import { DateInput, DatePicker } from "@/components/date-picker";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Activity, ArrowRight, BadgeCheck, BarChart3, RefreshCw, Shield, TrendingUp, UserX, Bell, BriefcaseMedical, CalendarRange, CheckCheck, ClipboardList, ClipboardPlus, FileText, HeartPulse, Info, MoreVertical, SlidersHorizontal, ChevronRight, CircleX, Eye, Headset, History, MapPin, Plus, Syringe, CalendarCheck, CalendarClock, CalendarDays, Check, CheckCircle2, CircleAlert, Clock3, Lock, ShieldCheck, Stethoscope, Tags, UserCheck, UsersRound, X } from "lucide-react";
@@ -525,10 +525,12 @@ export function PatientNotificationsPage() {
 
 function ProfileInput({ label, icon, className = "", ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string; icon?: React.ReactNode }) {
   if (props.type === "date") {
+    // Data digitada (dd/mm/aaaa) ou escolhida no calendário.
     return (
-      <div className={`grid min-w-0 gap-2 text-[13px] font-semibold leading-[18px] text-foreground ${className}`}>{label}
-        <DatePicker aria-label={label} name={props.name} defaultValue={props.defaultValue as string | undefined} required={props.required} min={props.min as string | undefined} max={(props.max as string | undefined) ?? isoDate(0)} className="flex h-11 w-full items-center justify-between rounded-lg bg-soft px-3.5 text-[15px] font-normal text-foreground" />
-      </div>
+      <label className={`grid min-w-0 gap-2 text-[13px] font-semibold leading-[18px] text-foreground ${className}`}>{label}
+        <DateInput name={String(props.name ?? "")} aria-label={label} defaultValue={props.defaultValue as string | undefined} required={props.required} min={props.min as string | undefined} max={(props.max as string | undefined) ?? isoDate(0)}
+          className="h-11 w-full min-w-0 rounded-lg bg-soft px-3.5 text-[15px] font-normal text-foreground outline-none placeholder:text-subtle-foreground focus:ring-2 focus:ring-ring" />
+      </label>
     );
   }
   return (

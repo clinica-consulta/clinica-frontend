@@ -1,5 +1,5 @@
 import { SiteSelect } from "@/components/site-select";
-import { DatePicker } from "@/components/date-picker";
+import { DateInput } from "@/components/date-picker";
 import { showWelcomeToast } from "@/components/welcome-toast";
 import { cardFromForm, isoDate } from "@/lib/clinic-data";
 import { InsuranceCardFields } from "@/components/insurance-card-fields";
@@ -196,16 +196,13 @@ const darkField = "h-8 rounded-lg border-2 border-input bg-card text-foreground"
 
 function AuthField({ label, icon, dark = false, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string; icon: React.ReactNode; dark?: boolean }) {
   if (props.type === "date") {
+    // Data digitada (dd/mm/aaaa) ou escolhida no calendário.
     return (
-      <div className={`grid text-xs font-semibold text-foreground ${dark ? "gap-0.5" : "gap-1 sm:text-sm"}`}>
+      <label className={`grid text-xs font-semibold text-foreground ${dark ? "gap-0.5" : "gap-1 sm:text-sm"}`}>
         {label}
-        <DatePicker aria-label={label} name={props.name} required min={props.min as string | undefined} max={(props.max as string | undefined) ?? isoDate(0)}>{(value) => (
-          <span className={`relative flex w-full items-center pl-10 pr-3 text-xs font-normal transition sm:text-sm ${dark ? darkField : "h-10 rounded-xl border-2 border-input bg-card text-foreground"}`}>
-            <span className={`field-icon absolute left-3.5 top-1/2 size-4 -translate-y-1/2 [&>svg]:size-4 text-muted-foreground`} aria-hidden="true">{icon}</span>
-            {value || <span className="text-muted-foreground">dd/mm/aaaa</span>}
-          </span>
-        )}</DatePicker>
-      </div>
+        <DateInput name={String(props.name ?? "")} aria-label={label} required={props.required ?? true} defaultValue={props.defaultValue as string | undefined} min={props.min as string | undefined} max={(props.max as string | undefined) ?? isoDate(0)} icon={icon}
+          className={`w-full pl-10 text-xs font-normal outline-none transition placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20 sm:text-sm ${dark ? darkField : "h-10 rounded-xl border-2 border-input bg-card text-foreground"}`} />
+      </label>
     );
   }
   return (

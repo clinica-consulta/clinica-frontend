@@ -1,5 +1,5 @@
 import { SiteSelect } from "@/components/site-select";
-import { DatePicker } from "@/components/date-picker";
+import { DateInput, DatePicker } from "@/components/date-picker";
 import { type ReactNode } from "react";
 import { CalendarPlus, Download, Plus, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -54,7 +54,15 @@ export function EmptyHint({ children }: { children: ReactNode }) { return <div c
 const fieldLabel = "grid min-w-0 gap-1.5 text-xs font-medium leading-4 text-muted-foreground md:text-[13px] md:font-semibold md:leading-[18px] md:text-foreground";
 const fieldControl = "h-10 min-w-0 rounded-lg bg-card px-3.5 text-sm font-normal text-foreground shadow-[0_1px_2px_rgb(0_0_0/6%)] outline-none ring-1 ring-border/60 focus:ring-ring disabled:bg-muted";
 
-export function Field({ label, className = "", ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string }) {
+/** `typed`: data que se digita (dd/mm/aaaa), para datas longe de hoje, como nascimento e validade. */
+export function Field({ label, className = "", typed = false, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string; typed?: boolean }) {
+  if (props.type === "date" && typed) {
+    return (
+      <label className={`${fieldLabel} ${className}`}>{label}
+        <DateInput name={String(props.name ?? "")} aria-label={label} defaultValue={props.defaultValue as string | undefined} required={props.required} min={props.min as string | undefined} max={props.max as string | undefined} className={`${fieldControl} w-full placeholder:text-subtle-foreground`} />
+      </label>
+    );
+  }
   if (props.type === "date") {
     const { value, defaultValue, onChange, name, min, max, required } = props;
     return (
