@@ -6,29 +6,28 @@ import { Button } from "@/components/ui/button";
 import { EmptyHint, Field, Modal, PageHeader, SearchInput, Section, SelectField, StatCard, StatusBadge, TextareaField, Toggle, Toolbar } from "@/components/page-kit";
 import { AppointmentForm, type AppointmentDefaults } from "@/components/appointment-form";
 import { MiniCalendar, SlotPicker } from "@/components/mini-calendar";
-import { appointmentPhase, appointmentStatuses, attendanceDeadline, formatDate, isoDate, nextPaymentReminderAt, openStatuses, relativeDay, slotRange, weekdayName, formatMoney, type Appointment, type AppointmentPhase } from "@/lib/clinic-data";
+import { appointmentPhase, appointmentStatuses, attendanceDeadline, cardFromForm, formatDate, isPrivateInsurance, isoDate, nextPaymentReminderAt, openStatuses, relativeDay, slotRange, weekdayName, formatMoney, type Appointment, type AppointmentPhase, type Patient } from "@/lib/clinic-data";
 import { takeSearch } from "@/lib/search-handoff";
 import { useClinic, useReports } from "@/lib/clinic-store";
 import { maskCpf, maskPhone } from "@/lib/cpf";
+import { InsuranceCardFields } from "@/components/insurance-card-fields";
 
 function useAppointmentActions() {
   const { setAppointmentStatus, sendReminder, sendPaymentReminder, patientById } = useClinic();
   const name = (item: Appointment) => patientById(item.patientId)?.name ?? "Paciente";
   return {
-    confirm: (item: Appointment) => { setAppointmentStatus(item.id, "Confirmada", "Consulta confirmada pela recepção"); toast.success("Consulta confirmada", { description: `${name(item)} · ${formatDate(item.date)} às ${item.time}` }); },
-    complete: (item: Appointment) => { setAppointmentStatus(item.id, "Realizada", "Consulta registrada como realizada"); toast.success("Consulta registrada como realizada", { description: patientById(item.patientId)?.insurance === "Particular" ? "O pagamento foi liberado para o paciente." : undefined }); },
-    noShow: (item: Appointment) => { setAppointmentStatus(item.id, "Não compareceu", "Ausência registrada"); toast.warning("Ausência registrada", { description: `${name(item)} recebeu um convite para agendar outro dia.` }); },
+    complete: (item: Appointment) => { setAppointmentStatus(item.id, "Realizada", "Consulta registrada como realizada pela recepção"); toast.success("Consulta registrada como realizada", { description: patientById(item.patientId)?.insurance === "Particular" ? "O pagamento foi liberado para o paciente." : undefined }); },
+    noShow: (item: Appointment) => { setAppointmentStatus(item.id, "Não compareceu", "Registrado pela recepção: a consulta não aconteceu"); toast.warning("Registrado: a consulta não aconteceu", { description: `${name(item)} recebeu um convite para agendar outro dia.` }); },
     cancel: (item: Appointment) => { setAppointmentStatus(item.id, "Cancelada", "Consulta cancelada e horário liberado"); toast.warning("Consulta cancelada", { description: `Horário ${item.time} de ${formatDate(item.date)} liberado na agenda.` }); },
-    remind: (item: Appointment) => {
-      if (!sendReminder(item.id)) { toast.error("Lembrete não enviado", { description: "Cada consulta recebe um único lembrete, antes do horário marcado." }); return; }
-      toast.success("Lembrete enviado", { description: `${name(item)} recebeu o pedido de confirmação.` });
+    askConfirmation: (item: Appointment) => {
+      if (!sendReminder(item.id)) { toast.error("Pedido não enviado", { description: "Cada consulta recebe um único pedido de confirmação, antes do horário marcado." }); return; }
+      toast.success("Pedido de confirmação enviado", { description: `${name(item)} recebeu a mensagem no portal e por e-mail. A consulta fica confirmada quando o paciente responder.` });
     },
     remindPayment: async (item: Appointment) => {
       if (await sendPaymentReminder(item.id)) toast.success("Lembrete de pagamento enviado", { description: `Aviso enviado a ${name(item)} no portal e por e-mail.` });
     },
   };
 }
-
 
 export function RescheduleModal({ appointment, onClose }: { appointment: Appointment | null; onClose: () => void }) {
   const { availableSlots, rescheduleAppointment } = useClinic();
@@ -55,14 +54,26 @@ export function RescheduleModal({ appointment, onClose }: { appointment: Appoint
 
 /** Aviso exibido no topo do "Gerenciar consulta" conforme o momento da consulta. */
 function phaseNotice(item: Appointment, phase: AppointmentPhase) {
-  if (phase === "antes") return null;
-  if (phase === "atendimento") return { tone: "bg-warning/15", text: `Horário em andamento. Registre se a consulta foi realizada ou se o paciente não compareceu até as ${attendanceDeadline(item)}; depois disso ela é encerrada automaticamente.` };
+  if (phase === "antes") {
+    if (item.status === "Confirmada") return { tone: "bg-success-soft", text: "O paciente confirmou a presença." };
+    if (item.reminderSentAt) return { tone: "bg-muted/60", text: "Pedido de confirmação enviado. A consulta fica confirmada quando o paciente responder." };
+    return { tone: "bg-muted/60", text: "Aguardando a confirmação do paciente. Envie o pedido de confirmação para ele responder pelo portal." };
+  }
+  if (phase === "atendimento") return { tone: "bg-warning/15", text: `Horário em andamento. Registre se a consulta foi realizada ou se não aconteceu. Sem registro, às ${attendanceDeadline(item)} ela é encerrada automaticamente.` };
   if (openStatuses.includes(item.status)) return { tone: "bg-muted/60", text: "Esta consulta está sendo encerrada automaticamente. Em instantes o resultado aparece aqui." };
-  return { tone: "bg-muted/60", text: `Consulta encerrada como "${item.status}". Não é mais possível alterá-la.` };
+  if (item.status === "Cancelada") return { tone: "bg-muted/60", text: "Consulta cancelada. Não é mais possível alterá-la." };
+  return { tone: "bg-muted/60", text: `Consulta registrada como "${item.status === "Não compareceu" ? "não aconteceu" : "realizada"}". Se o registro estiver errado, corrija abaixo.` };
 }
 
 function formatDateTime(date: Date) {
   return date.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+}
+
+function cardText(patient: Patient | undefined) {
+  if (!patient || isPrivateInsurance(patient.insurance)) return "não se aplica (particular)";
+  if (!patient.card.number) return "não cadastrada";
+  const expired = patient.card.validUntil && patient.card.validUntil < isoDate(0);
+  return `${patient.card.number} · ${patient.card.plan} · validade ${formatDate(patient.card.validUntil)}${expired ? " (vencida)" : ""}`;
 }
 
 export function ManageModal({ appointment, onClose }: { appointment: Appointment | null; onClose: () => void }) {
@@ -79,7 +90,9 @@ export function ManageModal({ appointment, onClose }: { appointment: Appointment
   const notice = phaseNotice(item, phase);
   const payment = item.payment;
   const nextReminder = nextPaymentReminderAt(payment);
-  const canRemindPayment = phase === "encerrada" && payment?.status === "Pendente" && item.status !== "Cancelada";
+  const open = openStatuses.includes(item.status);
+  const paid = payment?.status === "Pago";
+  const canRemindPayment = item.status === "Realizada" && payment?.status === "Pendente" && phase === "encerrada";
   const close = () => { setConfirmCancel(false); onClose(); };
   const paymentText = payment
     ? `${payment.status} · ${formatMoney(payment.amount)}${payment.method ? ` · ${payment.method}` : ""}${payment.status === "Pendente" && payment.gatewayStatus === "aguardando confirmação" ? " · aguardando compensação" : ""}`
@@ -91,7 +104,7 @@ export function ManageModal({ appointment, onClose }: { appointment: Appointment
         <div className="mb-3 flex items-center gap-2"><StatusBadge status={item.status} />{phase === "atendimento" && <span className="rounded-full bg-warning/20 px-2 py-0.5 text-[11px] font-semibold">Em atendimento</span>}</div>
         {notice && <p className={`mb-3 rounded-md p-3 text-xs sm:text-sm ${notice.tone}`}>{notice.text}</p>}
 
-        {phase === "antes" && (confirmCancel
+        {confirmCancel
           ? <div className="grid gap-3 rounded-md border border-destructive/40 p-3 text-xs sm:text-sm">
               <p>Cancelar a consulta de <b>{patient?.name}</b> em {formatDate(item.date)} às {item.time}? O horário volta a ficar livre na agenda.</p>
               <div className="flex flex-wrap gap-2">
@@ -100,18 +113,15 @@ export function ManageModal({ appointment, onClose }: { appointment: Appointment
               </div>
             </div>
           : <div className="grid gap-3 sm:grid-cols-2">
-              {item.status !== "Confirmada" && <Button onClick={() => { actions.confirm(item); close(); }}><Check />Confirmar</Button>}
-              {item.status !== "Confirmada" && !item.reminderSentAt && <Button variant="outline" onClick={() => { actions.remind(item); close(); }}><Send />Enviar lembrete</Button>}
-              <Button variant="outline" onClick={() => setReschedule(item)}><CalendarClock />Remarcar</Button>
-              <Button variant="outline" onClick={() => setConfirmCancel(true)}><X />Cancelar consulta</Button>
-            </div>)}
+              {phase === "antes" && item.status !== "Confirmada" && !item.reminderSentAt && <Button onClick={() => { actions.askConfirmation(item); close(); }}><Send />Pedir confirmação</Button>}
+              {phase === "antes" && <Button variant="outline" onClick={() => setReschedule(item)}><CalendarClock />Remarcar</Button>}
+              {phase === "antes" && <Button variant="outline" onClick={() => setConfirmCancel(true)}><X />Cancelar consulta</Button>}
+              {(open || item.status === "Não compareceu") && <Button variant={phase === "atendimento" ? "default" : "outline"} onClick={() => { actions.complete(item); close(); }}><CheckCircle2 />{open ? "Registrar realizada" : "Mudar para realizada"}</Button>}
+              {(open || (item.status === "Realizada" && !paid)) && <Button variant="outline" onClick={() => { actions.noShow(item); close(); }}><CircleAlert />{open ? "Não aconteceu" : "Mudar para não aconteceu"}</Button>}
+            </div>}
+        {item.status === "Realizada" && paid && <p className="mt-3 rounded-md bg-muted/60 p-3 text-xs sm:text-sm">Esta consulta já foi paga, por isso não pode mais ser marcada como não aconteceu.</p>}
 
-        {phase === "atendimento" && <div className="grid gap-3 sm:grid-cols-2">
-          <Button onClick={() => { actions.complete(item); close(); }}><CheckCircle2 />Registrar realizada</Button>
-          <Button variant="outline" onClick={() => { actions.noShow(item); close(); }}><CircleAlert />Registrar ausência</Button>
-        </div>}
-
-        {canRemindPayment && <div className="flex flex-col gap-2 rounded-md border border-border p-3 text-xs sm:flex-row sm:items-center sm:justify-between sm:text-sm">
+        {canRemindPayment && <div className="mt-3 flex flex-col gap-2 rounded-md border border-border p-3 text-xs sm:flex-row sm:items-center sm:justify-between sm:text-sm">
           <span>Pagamento de <b>{formatMoney(payment.amount)}</b> pendente.{payment.reminderSentAt ? ` Último lembrete em ${formatDateTime(new Date(payment.reminderSentAt))}.` : ""}</span>
           <Button variant="outline" disabled={Boolean(nextReminder) || sending} onClick={async () => { setSending(true); await actions.remindPayment(item); setSending(false); }}>
             <Send />{nextReminder ? `Novo lembrete a partir de ${formatDateTime(nextReminder)}` : "Lembrar pagamento"}
@@ -122,9 +132,10 @@ export function ManageModal({ appointment, onClose }: { appointment: Appointment
           <b className="block">Dados da consulta</b>
           <p className="mt-1 text-muted-foreground">Especialidade: {item.specialty}</p>
           <p className="text-muted-foreground">Convênio do paciente: {patient?.insurance ?? "—"}</p>
+          <p className="text-muted-foreground">Carteirinha: {cardText(patient)}</p>
           <p className="text-muted-foreground">Canal do agendamento: {item.channel}</p>
           <p className="text-muted-foreground">Resposta do paciente: {item.confirmationReply}</p>
-          <p className="text-muted-foreground">Lembrete de confirmação: {item.reminderSentAt ? `enviado em ${formatDate(item.reminderSentAt)}` : "não enviado"}</p>
+          <p className="text-muted-foreground">Pedido de confirmação: {item.reminderSentAt ? `enviado em ${formatDate(item.reminderSentAt)}` : "não enviado"}</p>
           <p className="text-muted-foreground">Pagamento: {paymentText}</p>
         </div>
         <div className="mt-3 rounded-md border border-border p-3 text-xs sm:text-sm">
@@ -147,14 +158,14 @@ function PendingRecords() {
   return <>
     <section className="surface mb-6 border-l-4 border-warning p-4 md:p-6">
       <h2 className="flex items-center gap-2 text-sm font-bold"><Clock3 className="size-4" />Em atendimento: registre o resultado ({list.length})</h2>
-      <p className="mt-1 text-xs text-muted-foreground">Marque se a consulta foi realizada ou se o paciente não compareceu. Sem registro, 1 hora após o horário a consulta é encerrada automaticamente: confirmada vira realizada; sem confirmação, ausência.</p>
+      <p className="mt-1 text-xs text-muted-foreground">Marque se a consulta foi realizada ou se não aconteceu. Sem registro, 1 hora após o horário ela é encerrada automaticamente: confirmada vira realizada; sem confirmação, não aconteceu. Dá para corrigir depois em "Gerenciar consulta".</p>
       <div className="mt-3 divide-y divide-border/60">{list.map((item) => {
         const patient = patientById(item.patientId);
         return <div key={item.id} className="flex flex-col gap-2 py-3 md:flex-row md:items-center md:justify-between">
           <div className="min-w-0"><p className="truncate text-sm font-semibold">{patient?.name} <span className="font-normal text-muted-foreground">· {patient?.insurance}</span></p><p className="text-xs text-muted-foreground">{item.time} · {professionalById(item.professionalId)?.name} · {item.specialty} · encerra às {attendanceDeadline(item)}</p></div>
           <div className="flex shrink-0 flex-wrap gap-2">
             <Button size="sm" onClick={() => actions.complete(item)}><CheckCircle2 />Realizada</Button>
-            <Button size="sm" variant="outline" onClick={() => actions.noShow(item)}><CircleAlert />Não compareceu</Button>
+            <Button size="sm" variant="outline" onClick={() => actions.noShow(item)}><CircleAlert />Não aconteceu</Button>
             <Button size="sm" variant="ghost" className="bg-soft" onClick={() => setManage(item)}>Detalhes</Button>
           </div>
         </div>;
@@ -163,7 +174,6 @@ function PendingRecords() {
     <ManageModal appointment={manage} onClose={() => setManage(null)} />
   </>;
 }
-
 
 export function DashboardPage() {
   const { appointments, professionals, sendAllReminders, sendReminder, availableSlots, patientById, professionalById, session } = useClinic();
@@ -182,7 +192,7 @@ export function DashboardPage() {
   const slots = proId ? availableSlots(proId, calDate) : [];
   const chosen = slots.includes(slot) ? slot : slots[0] ?? "";
   const doctor = professionalById(proId);
-  const remindAll = () => { const sent = sendAllReminders(); toast[sent ? "success" : "info"](sent ? `${sent} lembrete(s) enviado(s)` : "Todos os lembretes já foram enviados"); };
+  const remindAll = () => { const sent = sendAllReminders(); toast[sent ? "success" : "info"](sent ? `${sent} pedido(s) de confirmação enviado(s)` : "Todos os pacientes já receberam o pedido de confirmação"); };
 
   return <>
     <header className="mb-6 md:mb-6">
@@ -221,7 +231,7 @@ export function DashboardPage() {
       <section className="surface overflow-hidden md:p-6">
         <div className="flex items-center justify-between gap-2 bg-soft px-4 py-3 md:bg-transparent md:p-0 md:pb-4">
           <h2 className="eyebrow">Aguardando confirmação ({pending.length})</h2>
-          <button type="button" onClick={remindAll} className="flex shrink-0 items-center gap-1.5 rounded-lg bg-accent/60 px-3 py-1.5 text-xs font-semibold leading-[18px] text-soft-foreground transition hover:bg-accent md:bg-soft md:text-[13px]"><Send className="size-3.5" /><span className="max-w-16 text-center md:max-w-none">Enviar lembretes</span></button>
+          <button type="button" onClick={remindAll} className="flex shrink-0 items-center gap-1.5 rounded-lg bg-accent/60 px-3 py-1.5 text-xs font-semibold leading-[18px] text-soft-foreground transition hover:bg-accent md:bg-soft md:text-[13px]"><Send className="size-3.5" /><span className="max-w-16 text-center md:max-w-none">Pedir confirmações</span></button>
         </div>
         {pending.length ? <div className="divide-y divide-border/60 md:divide-y-0">{pending.map((item, index) => (
           <div key={item.id}>
@@ -229,15 +239,15 @@ export function DashboardPage() {
             <div className="hidden items-center justify-between gap-3 md:-mx-2 md:flex md:rounded-lg md:px-2 md:py-3.5">
               <div className="flex min-w-0 items-center gap-3">
                 <span className="w-20 shrink-0"><b className="block text-sm leading-5">{formatDate(item.date).slice(0, 5)}</b><span className="block text-[11px] font-medium leading-[14px] text-muted-foreground">{item.time}</span></span>
-                <div className="min-w-0"><p className="truncate text-sm font-semibold leading-5">{patientById(item.patientId)?.name}</p><p className="truncate text-xs leading-4 text-subtle-foreground">{professionalById(item.professionalId)?.name} • {item.reminderSentAt ? "Lembrete enviado" : "Sem lembrete"}</p></div>
+                <div className="min-w-0"><p className="truncate text-sm font-semibold leading-5">{patientById(item.patientId)?.name}</p><p className="truncate text-xs leading-4 text-subtle-foreground">{professionalById(item.professionalId)?.name} • {item.reminderSentAt ? "Pedido enviado" : "Sem pedido de confirmação"}</p></div>
               </div>
               <StatusBadge status={item.status} />
             </div>
             <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 px-4 py-4 md:hidden">
               <b className="text-sm leading-5">{formatDate(item.date).slice(0, 5)} • {item.time}</b>
               <span className="justify-self-end"><StatusBadge status={item.status} /></span>
-              <div className="min-w-0"><p className="truncate text-sm font-semibold leading-5">{patientById(item.patientId)?.name}</p><p className="truncate text-xs leading-4 text-muted-foreground">{professionalById(item.professionalId)?.name} • {item.reminderSentAt ? "Lembrete enviado" : "Sem lembrete"}</p></div>
-              <button type="button" aria-label={item.reminderSentAt ? "Lembrete já enviado" : "Enviar lembrete"} disabled={Boolean(item.reminderSentAt)} onClick={() => { if (sendReminder(item.id)) toast.success("Lembrete enviado"); }} className="grid size-8 place-items-center self-end rounded-full bg-accent/70 text-foreground disabled:opacity-40"><MailCheck className="size-4" /></button>
+              <div className="min-w-0"><p className="truncate text-sm font-semibold leading-5">{patientById(item.patientId)?.name}</p><p className="truncate text-xs leading-4 text-muted-foreground">{professionalById(item.professionalId)?.name} • {item.reminderSentAt ? "Pedido enviado" : "Sem pedido de confirmação"}</p></div>
+              <button type="button" aria-label="Pedir confirmação" disabled={Boolean(item.reminderSentAt)} onClick={() => { if (sendReminder(item.id)) toast.success("Pedido de confirmação enviado"); }} className="grid size-8 place-items-center self-end rounded-full bg-accent/70 text-foreground disabled:opacity-40"><MailCheck className="size-4" /></button>
             </div>
           </div>
         ))}</div> : <div className="p-4 md:p-0"><EmptyHint>Nenhuma consulta aguardando lembrete ou confirmação.</EmptyHint></div>}
@@ -501,6 +511,10 @@ export function PacientesPage() {
   const eligibilityPatient = patients.find((item) => item.id === eligibilityOf) ?? null;
   const history = historyPatient ? appointments.filter((item) => item.patientId === historyPatient.id).sort((a, b) => `${b.date}${b.time}`.localeCompare(`${a.date}${a.time}`)) : [];
 
+  // Convênio escolhido no formulário (os campos da carteirinha dependem dele).
+  const [insuranceChoice, setInsuranceChoice] = useState<string | null>(null);
+  const formInsurance = insuranceChoice ?? patient?.insurance ?? "Particular";
+
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
@@ -510,8 +524,10 @@ export function PacientesPage() {
       phone: String(data.get("phone") ?? ""),
       email: String(data.get("email") ?? ""),
       birthDate: String(data.get("birthDate") ?? ""),
-      insurance: String(data.get("insurance") ?? "Particular"),
+      insurance: formInsurance,
+      card: cardFromForm(data, formInsurance),
     };
+    setInsuranceChoice(null);
     if (patient) { updatePatient(patient.id, payload); toast.success("Cadastro atualizado"); setEditing(null); }
     else { addPatient(payload); toast.success("Paciente cadastrado", { description: payload.name }); setFormOpen(false); }
   }
@@ -570,14 +586,15 @@ export function PacientesPage() {
       </div>
     </div>
 
-    <Modal open={formOpen || Boolean(patient)} title={patient ? "Editar paciente" : "Novo paciente"} onClose={() => { setFormOpen(false); setEditing(null); }}>
+    <Modal open={formOpen || Boolean(patient)} title={patient ? "Editar paciente" : "Novo paciente"} onClose={() => { setFormOpen(false); setEditing(null); setInsuranceChoice(null); }}>
       <form className="grid gap-4 sm:grid-cols-2" onSubmit={submit}>
         <Field label="Nome completo" name="name" required defaultValue={patient?.name ?? ""} />
         <Field label="CPF" name="cpf" required defaultValue={patient?.cpf ?? ""} placeholder="000.000.000-00" inputMode="numeric" maxLength={14} onChange={(event) => { event.target.value = maskCpf(event.target.value); }} />
         <Field label="Telefone" name="phone" required defaultValue={patient?.phone ?? ""} placeholder="(00) 00000-0000" inputMode="tel" maxLength={15} onChange={(event) => { event.target.value = maskPhone(event.target.value); }} />
         <Field label="E-mail" name="email" type="email" required defaultValue={patient?.email ?? ""} />
         <Field label="Data de nascimento" name="birthDate" type="date" required defaultValue={patient?.birthDate ?? ""} />
-        <SelectField label="Convênio" name="insurance" defaultValue={patient?.insurance ?? "Particular"} options={insurances.map((item) => ({ value: item.name, label: item.name }))} />
+        <SelectField label="Convênio" name="insurance" value={formInsurance} onChange={(event) => setInsuranceChoice(event.target.value)} options={insurances.filter((item) => item.active || item.name === patient?.insurance).map((item) => ({ value: item.name, label: item.name }))} />
+        <InsuranceCardFields insurance={formInsurance} card={formInsurance === patient?.insurance ? patient?.card : undefined} renderField={(field) => <Field key={`${formInsurance}-${field.name}`} {...field} />} />
         <div className="flex flex-wrap gap-2 sm:col-span-2"><Button type="submit">{patient ? "Salvar alterações" : "Cadastrar paciente"}</Button>
           {patient?.status === "Ativo" && <Button type="button" variant="ghost" className="bg-soft" onClick={() => { togglePatientStatus(patient.id); toast.success("Cadastro desativado", { description: "O histórico de consultas continua guardado." }); setEditing(null); }}>Desativar cadastro</Button>}
         </div>
@@ -761,7 +778,6 @@ export function ProfilePage() {
       </Section>
       <Section title="Confirmações">
         <div className="space-y-4">
-          <Toggle label="Confirmação automática" description="Consultas já criadas como confirmadas" checked={settings.autoConfirm} onChange={(value) => { updateSettings({ autoConfirm: value }); toast.success(value ? "Confirmação automática ativada" : "Confirmação automática desativada"); }} />
           <SelectField label="Antecedência do lembrete" value={String(settings.reminderHours)} onChange={(event) => { updateSettings({ reminderHours: Number(event.target.value) }); toast.success("Antecedência atualizada"); }} options={[{ value: "12", label: "12 horas" }, { value: "24", label: "24 horas" }, { value: "48", label: "48 horas" }]} />
         </div>
       </Section>
