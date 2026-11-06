@@ -63,7 +63,9 @@ export function PatientDashboardPage() {
   const upcoming = mine.filter((item) => openStatuses.includes(item.status) && !hasPassed(item)).sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`));
   const history = mine.filter((item) => !openStatuses.includes(item.status) || hasPassed(item)).sort((a, b) => `${b.date}${b.time}`.localeCompare(`${a.date}${a.time}`));
   const historyStatus = (item: Appointment) => (openStatuses.includes(item.status) ? "Aguardando registro" : item.status);
-  const pendingConfirm = upcoming.filter((item) => item.confirmationReply !== "Confirmou").length;
+  // O paciente confirma depois que a recepção envia o pedido de confirmação.
+  const canConfirm = (item: Appointment) => Boolean(item.reminderSentAt) && item.status !== "Confirmada";
+  const pendingConfirm = upcoming.filter(canConfirm).length;
   const confirm = (item: Appointment) => { clinic.setAppointmentStatus(item.id, "Confirmada", "Paciente confirmou presença"); toast.success("Consulta confirmada"); };
   const cancel = (item: Appointment) => setCanceling(item);
   const confirmCancel = () => { if (!canceling) return; clinic.setAppointmentStatus(canceling.id, "Cancelada", "Consulta cancelada pelo paciente"); toast.warning("Consulta cancelada", { description: "O horário foi liberado na agenda." }); setCanceling(null); };
@@ -95,7 +97,7 @@ export function PatientDashboardPage() {
             </div>
             <StatusBadge status={item.status} />
             <div className="flex shrink-0 items-center gap-2">
-              {item.confirmationReply !== "Confirmou" && <Button onClick={() => confirm(item)} className="h-10 rounded-lg bg-strong px-4 hover:bg-strong/90"><CheckCircle2 />Confirmar</Button>}
+              {canConfirm(item) && <Button onClick={() => confirm(item)} className="h-10 rounded-lg bg-strong px-4 hover:bg-strong/90"><CheckCircle2 />Confirmar</Button>}
               <Button variant="ghost" onClick={() => setReschedule(item)} className="h-10 rounded-lg bg-soft px-3.5 font-semibold hover:bg-accent">Remarcar</Button>
               <Button variant="ghost" onClick={() => setDetail(item)} className="h-10 rounded-lg bg-soft px-3.5 font-semibold hover:bg-accent">Detalhes</Button>
               <Button variant="ghost" onClick={() => cancel(item)} className="h-10 rounded-lg px-3.5 font-medium text-subtle-foreground">Cancelar</Button>
@@ -110,7 +112,7 @@ export function PatientDashboardPage() {
                 <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground"><CalendarDays className="size-3.5" />{relativeDay(item.date)} · Presencial</p>
               </div>
             </div>
-            {item.confirmationReply !== "Confirmou" && <Button onClick={() => confirm(item)} className="mt-4 h-9 w-full rounded-lg"><CheckCircle2 />Confirmar presença</Button>}
+            {canConfirm(item) && <Button onClick={() => confirm(item)} className="mt-4 h-9 w-full rounded-lg"><CheckCircle2 />Confirmar presença</Button>}
             <div className="mt-2 grid grid-cols-2 gap-2">
               <Button variant="ghost" onClick={() => setReschedule(item)} className="h-9 rounded-lg bg-soft font-semibold"><CalendarClock />Remarcar</Button>
               <Button variant="ghost" onClick={() => setDetail(item)} className="h-9 rounded-lg bg-soft font-semibold"><Eye />Detalhes</Button>

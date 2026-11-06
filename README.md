@@ -187,7 +187,8 @@ flowchart TD
 | Paciente, médico ou especialidade desativados | Deixam de aparecer no agendamento, mas o histórico continua visível |
 | Médico com consultas | Não pode ser excluído, apenas desativado |
 | Consulta particular realizada | O botão de pagamento aparece na consulta e nas notificações |
-| Consulta marcada | Fica aguardando confirmação; a recepção envia um único pedido de confirmação e só o paciente confirma, pelo portal ou pela própria notificação |
+| Consulta marcada | Fica aguardando confirmação; o botão de confirmar só aparece para o paciente depois que a recepção envia o pedido de confirmação |
+| Consultas e agenda do médico | Abrem no dia de hoje e viram o dia sozinhas à meia-noite; setas para os outros dias e opção "Todas as datas" |
 | Antes do horário da consulta | A recepção pode pedir a confirmação, remarcar ou cancelar (com confirmação) |
 | Resultado da consulta | A recepção marca "Realizada" ou "Não aconteceu" a qualquer momento e pode corrigir depois; consulta paga não deixa de ser realizada |
 | Do horário até 1 hora depois | A consulta aparece em "Em atendimento"; o médico só registra o resultado nesse período |

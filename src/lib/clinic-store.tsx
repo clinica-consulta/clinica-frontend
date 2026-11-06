@@ -481,7 +481,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         if (!availableSlots(appointment.professionalId, date, id).includes(time)) return false;
         patchList("appointments", id, (item) =>
           withLog(
-            { ...item, date, time, status: "Remarcada", confirmationReply: "Sem resposta" },
+            { ...item, date, time, status: "Remarcada", confirmationReply: "Sem resposta", reminderSentAt: null },
             `Remarcada de ${appointment.date} ${appointment.time} para ${date} ${time}`,
           ),
         );
