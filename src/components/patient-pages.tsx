@@ -1,6 +1,6 @@
 import { SiteSelect } from "@/components/site-select";
 import { DatePicker } from "@/components/date-picker";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Activity, ArrowRight, BadgeCheck, BarChart3, RefreshCw, Shield, TrendingUp, UserX, Bell, BriefcaseMedical, CalendarRange, CheckCheck, ClipboardList, ClipboardPlus, FileText, HeartPulse, Info, MoreVertical, SlidersHorizontal, ChevronRight, CircleX, Eye, Headset, History, MapPin, Plus, Syringe, CalendarCheck, CalendarClock, CalendarDays, Check, CheckCircle2, CircleAlert, Clock3, Lock, ShieldCheck, Stethoscope, Tags, UserCheck, UsersRound, X } from "lucide-react";
 import { AlarmClock, CreditCard, BellRing, CalendarX, ChevronDown, ChevronLeft, CircleCheck, CircleHelp, IdCard, ListFilter, Mail, Pencil, Phone, ScrollText, User } from "lucide-react";
@@ -17,6 +17,33 @@ import { printDocument } from "@/lib/export";
 
 import { AppointmentRow, Dot, Notice, NotificationList, usePatientScope, useProfessionalScope } from "@/components/role-shared";
 
+/** Na volta de um método de pagamento com redirecionamento (?pagamento=...&consulta=...), confere o pagamento na API. */
+function useCheckoutReturn(showReceipt: (appointment: Appointment) => void) {
+  const { verifyPayment } = useClinic();
+  const handled = useRef(false);
+  useEffect(() => {
+    if (handled.current || typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("consulta");
+    const outcome = params.get("pagamento");
+    if (!id || !outcome) return;
+    handled.current = true;
+    window.history.replaceState(null, "", window.location.pathname);
+    verifyPayment(id)
+      .then((appointment) => {
+        if (appointment.payment?.status === "Pago") {
+          toast.success("Pagamento confirmado", { description: `Comprovante: ${appointment.payment.code}` });
+          showReceipt(appointment);
+        } else if (outcome === "recusado") {
+          toast.error("Pagamento não aprovado", { description: "Nenhum valor foi cobrado. Tente de novo com outra forma de pagamento." });
+        } else {
+          toast.info("Pagamento em processamento", { description: "Assim que o pagamento for confirmado, você recebe um aviso aqui." });
+        }
+      })
+      .catch((error: Error) => toast.error("Não foi possível conferir o pagamento", { description: error.message }));
+  }, [verifyPayment, showReceipt]);
+}
+
 export function PatientDashboardPage() {
   const { clinic, patient, mine } = usePatientScope();
   const navigate = useNavigate();
@@ -26,6 +53,7 @@ export function PatientDashboardPage() {
   const [canceling, setCanceling] = useState<Appointment | null>(null);
   const [allHistory, setAllHistory] = useState(false);
   const [docsOpen, setDocsOpen] = useState(false);
+  useCheckoutReturn(setPaying);
   const documents = clinic.notificationsFor("patient").filter((item) => item.action === "documento");
   const plan = clinic.insurances.find((item) => item.name === patient?.insurance);
   const coverage = !plan || !plan.active || !plan.covered.length ? "cobre todas as especialidades" : `cobre ${plan.covered.join(", ")}`;
