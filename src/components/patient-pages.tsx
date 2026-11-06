@@ -408,6 +408,7 @@ function noticeMeta(title: string) {
   if (t.includes("pagamento")) return { tag: "Pagamento", tone: "text-info", icon: <CreditCard /> };
   if (t.includes("lembrete")) return { tag: "Requer Ação", tone: "text-foreground", icon: <AlarmClock /> };
   if (t.includes("fila") || t.includes("oferecid")) return { tag: "Fila Prioritária", tone: "text-info", icon: <Clock3 /> };
+  if (t.includes("sentimos sua falta")) return { tag: "Novo agendamento", tone: "text-info", icon: <CalendarClock /> };
   if (t.includes("cancel")) return { tag: "Cancelamento", tone: "text-destructive", icon: <CalendarX /> };
   if (t.includes("remarc")) return { tag: "Remarcação", tone: "text-info", icon: <CalendarClock /> };
   if (t.includes("confirm") || t.includes("agendad") || t.includes("consulta")) return { tag: "Agendamento Confirmado", tone: "text-success", icon: <CalendarCheck /> };
@@ -430,6 +431,7 @@ function HelpBanner({ text, mobileText }: { text: string; mobileText: string }) 
 
 export function PatientNotificationsPage() {
   const { clinic } = usePatientScope();
+  const navigate = useNavigate();
   const [onlyUnread, setOnlyUnread] = useState(false);
   const [paying, setPaying] = useState<Appointment | null>(null);
   const items = clinic.notificationsFor("patient");
@@ -478,6 +480,11 @@ export function PatientNotificationsPage() {
               clinic.markNotificationRead(item.id);
               if (!printDocument({ clinic: clinic.settings.name, title: item.title, body: item.text, footer: `Emitido em ${formatDate(item.createdAt)}` })) toast.error("Libere as janelas pop-up para imprimir");
             }} className="h-9 w-full shrink-0 self-center rounded-lg px-4 text-sm font-semibold md:w-auto"><FileText />Imprimir</Button>}
+            {item.action === "remarcar" && <Button type="button" onClick={(event) => {
+              event.stopPropagation();
+              clinic.markNotificationRead(item.id);
+              navigate({ to: "/paciente/agendar" });
+            }} className="h-9 w-full shrink-0 self-center rounded-lg px-4 text-sm font-semibold md:w-auto"><CalendarClock />Agendar novo horário</Button>}
             {(() => {
               const charge = item.action === "pagamento" ? clinic.appointments.find((appointment) => appointment.id === item.appointmentId) : undefined;
               if (!charge?.payment) return null;
