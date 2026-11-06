@@ -54,19 +54,23 @@ export function ManageModal({ appointment, onClose }: { appointment: Appointment
   const [reschedule, setReschedule] = useState<Appointment | null>(null);
   if (!appointment) return null;
   const patient = patientById(appointment.patientId);
-  const passed = openStatuses.includes(appointment.status) && hasPassed(appointment);
+  const open = openStatuses.includes(appointment.status);
+  const passed = open && hasPassed(appointment);
+  // Cada ação aparece uma única vez: some depois de feita e nada sobra quando a consulta já foi encerrada.
+  const canConfirm = open && !passed && appointment.status !== "Confirmada";
+  const canRemind = open && !passed && appointment.status !== "Confirmada" && !appointment.reminderSentAt;
   return (
     <>
       <Modal open={Boolean(appointment) && !reschedule} title="Gerenciar consulta" description={`${patient?.name} · ${professionalById(appointment.professionalId)?.name} · ${relativeDay(appointment.date)} às ${appointment.time}`} onClose={onClose}>
         {passed && <p className="mb-3 rounded-md bg-warning/15 p-3 text-xs sm:text-sm">O horário desta consulta já passou. Registre se foi realizada ou se o paciente não compareceu.</p>}
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Button disabled={passed} onClick={() => { actions.confirm(appointment); onClose(); }}><Check />Confirmar</Button>
-          <Button variant="outline" disabled={passed || Boolean(appointment.reminderSentAt)} title={appointment.reminderSentAt ? "Cada consulta recebe só um lembrete" : undefined} onClick={() => { actions.remind(appointment); onClose(); }}><Send />{appointment.reminderSentAt ? "Lembrete já enviado" : "Enviar lembrete"}</Button>
-          <Button variant="outline" onClick={() => setReschedule(appointment)}><CalendarClock />Remarcar</Button>
+        {open ? <div className="grid gap-3 sm:grid-cols-2">
+          {canConfirm && <Button onClick={() => { actions.confirm(appointment); onClose(); }}><Check />Confirmar</Button>}
+          {canRemind && <Button variant="outline" onClick={() => { actions.remind(appointment); onClose(); }}><Send />Enviar lembrete</Button>}
+          {!passed && <Button variant="outline" onClick={() => setReschedule(appointment)}><CalendarClock />Remarcar</Button>}
           <Button variant="outline" onClick={() => { actions.complete(appointment); onClose(); }}><CheckCircle2 />Registrar realizada</Button>
           <Button variant="outline" onClick={() => { actions.noShow(appointment); onClose(); }}><CircleAlert />Registrar ausência</Button>
           <Button variant="outline" onClick={() => { actions.cancel(appointment); onClose(); }}><X />Cancelar consulta</Button>
-        </div>
+        </div> : <p className="rounded-md bg-muted/60 p-3 text-xs sm:text-sm">Consulta já registrada como <b>{appointment.status}</b>. Não há ações pendentes.</p>}
         <div className="mt-4 rounded-md bg-muted/60 p-3 text-xs sm:text-sm">
           <b className="block">Dados da consulta</b>
           <p className="mt-1 text-muted-foreground">Especialidade: {appointment.specialty}</p>
@@ -125,7 +129,8 @@ export function DashboardPage() {
   const today = appointments.filter((item) => item.date === isoDate(0) && item.status !== "Cancelada").sort((a, b) => a.time.localeCompare(b.time));
   const confirmed = today.filter((item) => item.status === "Confirmada").length;
   const ready = today.length ? Math.round((confirmed / today.length) * 100) : 0;
-  const pending = appointments.filter((item) => item.confirmationReply === "Sem resposta" && openStatuses.includes(item.status) && item.date >= isoDate(0)).sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`));
+  // Some da lista assim que a consulta é confirmada ou recebe o lembrete: cada ação é feita uma única vez.
+  const pending = appointments.filter((item) => item.confirmationReply === "Sem resposta" && item.status !== "Confirmada" && !item.reminderSentAt && openStatuses.includes(item.status) && item.date >= isoDate(0)).sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`));
   const slots = proId ? availableSlots(proId, calDate) : [];
   const chosen = slots.includes(slot) ? slot : slots[0] ?? "";
   const doctor = professionalById(proId);
@@ -187,7 +192,7 @@ export function DashboardPage() {
               <button type="button" aria-label={item.reminderSentAt ? "Lembrete já enviado" : "Enviar lembrete"} disabled={Boolean(item.reminderSentAt)} onClick={() => { if (sendReminder(item.id)) toast.success("Lembrete enviado"); }} className="grid size-8 place-items-center self-end rounded-full bg-accent/70 text-foreground disabled:opacity-40"><MailCheck className="size-4" /></button>
             </div>
           </div>
-        ))}</div> : <div className="p-4 md:p-0"><EmptyHint>Todas as consultas estão confirmadas.</EmptyHint></div>}
+        ))}</div> : <div className="p-4 md:p-0"><EmptyHint>Nenhuma consulta aguardando lembrete ou confirmação.</EmptyHint></div>}
         <div className="hidden pt-6 md:block"><p className="flex items-center gap-3 rounded-lg bg-soft p-3 text-xs leading-[15px] text-muted-foreground"><MessageSquareText className="size-[18px] shrink-0 text-foreground" />Os lembretes chegam nas notificações do paciente, que confirma ou cancela a presença pelo site.</p></div>
       </section>
     </div>
