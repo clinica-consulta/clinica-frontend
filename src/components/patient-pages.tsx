@@ -17,7 +17,7 @@ import { printDocument } from "@/lib/export";
 
 import { AppointmentRow, Dot, Notice, NotificationList, usePatientScope, useProfessionalScope } from "@/components/role-shared";
 
-/** Na volta do Mercado Pago (?pagamento=...&consulta=...), confere o pagamento na API e mostra o resultado. */
+/** Na volta de um método de pagamento com redirecionamento (?pagamento=...&consulta=...), confere o pagamento na API. */
 function useCheckoutReturn(showReceipt: (appointment: Appointment) => void) {
   const { verifyPayment } = useClinic();
   const handled = useRef(false);
@@ -37,7 +37,7 @@ function useCheckoutReturn(showReceipt: (appointment: Appointment) => void) {
         } else if (outcome === "recusado") {
           toast.error("Pagamento não aprovado", { description: "Nenhum valor foi cobrado. Tente de novo com outra forma de pagamento." });
         } else {
-          toast.info("Pagamento em processamento", { description: "Assim que o Mercado Pago confirmar, você recebe um aviso aqui." });
+          toast.info("Pagamento em processamento", { description: "Assim que o pagamento for confirmado, você recebe um aviso aqui." });
         }
       })
       .catch((error: Error) => toast.error("Não foi possível conferir o pagamento", { description: error.message }));

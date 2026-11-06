@@ -95,11 +95,11 @@ type ClinicContextValue = ClinicState & {
   requestPasswordReset: (email: string, cpf: string) => Promise<{ message: string; testCode?: string }>;
   resetPassword: (email: string, code: string, newPassword: string) => Promise<void>;
   payAppointment: (id: string, method: PaymentMethod) => Promise<Appointment>;
-  /** Pagamento on-line ativo na API (Mercado Pago) ou null quando só há o modo simulado. */
+  /** Pagamento on-line ativo na API (Stripe) ou null quando só há o modo simulado. */
   onlinePayment: () => Promise<{ gateway: string | null; test: boolean }>;
-  /** Gera o link do checkout do Mercado Pago para a consulta. */
-  startCheckout: (id: string) => Promise<{ url: string; test: boolean }>;
-  /** Confere no Mercado Pago se o pagamento da consulta foi aprovado. */
+  /** Abre a sessão de pagamento do Stripe da consulta (exibida dentro do site). */
+  startCheckout: (id: string) => Promise<{ clientSecret: string; publishableKey: string; test: boolean }>;
+  /** Confere no Stripe se o pagamento da consulta foi aprovado. */
   verifyPayment: (id: string) => Promise<Appointment>;
   /** Recarrega todos os dados da API. */
   refresh: () => Promise<void>;
@@ -402,8 +402,8 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         return { gateway: config.gateway, test: config.teste };
       },
       startCheckout: async (id) => {
-        const result = await api<{ url: string; teste: boolean }>("POST", `/consultas/${id}/pagamento/checkout`);
-        return { url: result.url, test: result.teste };
+        const result = await api<{ clientSecret: string; chavePublica: string; teste: boolean }>("POST", `/consultas/${id}/pagamento/checkout`);
+        return { clientSecret: result.clientSecret, publishableKey: result.chavePublica, test: result.teste };
       },
       verifyPayment: async (id) => {
         const doc = await api<Doc>("POST", `/consultas/${id}/pagamento/verificar`);
