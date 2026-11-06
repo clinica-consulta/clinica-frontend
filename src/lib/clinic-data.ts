@@ -19,6 +19,11 @@ export const appointmentStatuses: AppointmentStatus[] = [
 
 export const openStatuses: AppointmentStatus[] = ["Agendada", "Confirmada", "Remarcada"];
 
+/** Carteirinha do convênio. Obrigatória para quem não é Particular. */
+export type InsuranceCard = { number: string; validUntil: string; plan: string };
+
+export const emptyCard: InsuranceCard = { number: "", validUntil: "", plan: "" };
+
 export type Patient = {
   id: string;
   name: string;
@@ -28,8 +33,24 @@ export type Patient = {
   email: string;
   birthDate: string;
   insurance: string;
+  card: InsuranceCard;
   status: "Ativo" | "Inativo";
 };
+
+/** Particular não tem convênio nem carteirinha. */
+export function isPrivateInsurance(insurance: string) {
+  return !insurance || insurance === "Particular";
+}
+
+/** Lê os campos da carteirinha de um formulário (vazia para Particular). */
+export function cardFromForm(data: FormData, insurance: string): InsuranceCard {
+  if (isPrivateInsurance(insurance)) return emptyCard;
+  return {
+    number: String(data.get("cardNumber") ?? "").trim(),
+    validUntil: String(data.get("cardValidUntil") ?? ""),
+    plan: String(data.get("cardPlan") ?? "").trim(),
+  };
+}
 
 export type DayAvailability = { active: boolean; start: string; end: string };
 export type Availability = Record<number, DayAvailability>;
