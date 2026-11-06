@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
-import { CheckCircle2, CreditCard, ExternalLink, QrCode, ShieldCheck } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { loadStripe, type StripeEmbeddedCheckout } from "@stripe/stripe-js";
+import { CheckCircle2, Clock3, CreditCard, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Field, Modal } from "@/components/page-kit";
@@ -16,14 +17,18 @@ const maskCard = (value: string) => value.replace(/\D/g, "").slice(0, 16).replac
 const maskExpiry = (value: string) => value.replace(/\D/g, "").slice(0, 4).replace(/^(\d{2})(\d)/, "$1/$2");
 
 /**
- * Pagamento da consulta. Com o Mercado Pago ativo na API, o paciente paga com Pix ou cartão no checkout do Mercado Pago.
- * Sem ele, cai no pagamento simulado: nenhum valor é cobrado e os dados do cartão não são enviados nem guardados.
+ * Pagamento da consulta. Com o Stripe ativo na API, o formulário do Stripe (Pix, cartão, boleto...) aparece
+ * aqui dentro, sem sair do site. Os dados de pagamento vão direto para o Stripe, nunca para a nossa API.
+ * Sem o Stripe, cai no pagamento simulado: nenhum valor é cobrado e os dados do cartão não são enviados nem guardados.
  */
 export function PaymentModal({ appointment, onClose }: { appointment: Appointment | null; onClose: () => void }) {
-  const { payAppointment, professionalById, settings, onlinePayment, startCheckout } = useClinic();
+  const { payAppointment, professionalById, settings, onlinePayment, startCheckout, verifyPayment } = useClinic();
   // undefined = ainda consultando a API; null = só modo simulado.
   const [gateway, setGateway] = useState<{ name: string; test: boolean } | null | undefined>(undefined);
-  const [redirecting, setRedirecting] = useState(false);
+  // Situação do formulário do Stripe dentro do modal.
+  const [online, setOnline] = useState<"loading" | "ready" | "waiting" | "error">("loading");
+  const [onlineError, setOnlineError] = useState("");
+  const checkoutBox = useRef<HTMLDivElement>(null);
   const [method, setMethod] = useState<PaymentMethod>("Pix");
   const [card, setCard] = useState("");
   const [expiry, setExpiry] = useState("");
@@ -33,7 +38,7 @@ export function PaymentModal({ appointment, onClose }: { appointment: Appointmen
   const amount = appointment?.payment?.amount ?? settings.appointmentPrice;
   const pixCode = appointment ? `00020126580014BR.GOV.BCB.PIX0136clinica-senai-${appointment.code}5204000053039865406${amount.toFixed(2)}5802BR` : "";
 
-  const close = () => { setReceipt(null); setCard(""); setExpiry(""); setMethod("Pix"); setRedirecting(false); onClose(); };
+  const close = () => { setReceipt(null); setCard(""); setExpiry(""); setMethod("Pix"); setOnline("loading"); setOnlineError(""); onClose(); };
 
   const open = Boolean(appointment);
   useEffect(() => {
@@ -43,17 +48,56 @@ export function PaymentModal({ appointment, onClose }: { appointment: Appointmen
       .catch(() => setGateway(null));
   }, [open, gateway, onlinePayment]);
 
-  async function goToCheckout() {
-    if (!appointment) return;
-    setRedirecting(true);
-    try {
-      const { url } = await startCheckout(appointment.id);
-      window.location.assign(url);
-    } catch (error) {
-      setRedirecting(false);
-      toast.error("Não foi possível abrir o pagamento", { description: (error as Error).message });
+  // Monta o Checkout do Stripe dentro do modal.
+  const appointmentId = appointment?.id;
+  const alreadyPaid = appointment?.payment?.status === "Pago";
+  useEffect(() => {
+    if (!gateway || !appointmentId || alreadyPaid) return;
+    let checkout: StripeEmbeddedCheckout | null = null;
+    let cancelled = false;
+
+    // Pix e boleto podem levar alguns segundos para compensar: confere algumas vezes.
+    async function confirm(id: string) {
+      for (let attempt = 0; attempt < 5 && !cancelled; attempt += 1) {
+        const updated = await verifyPayment(id).catch(() => null);
+        if (updated?.payment?.status === "Pago") {
+          checkout?.destroy();
+          checkout = null;
+          setReceipt(updated);
+          toast.success("Pagamento confirmado");
+          return;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 2500));
+      }
+      if (!cancelled) setOnline("waiting");
     }
-  }
+
+    void (async () => {
+      try {
+        const session = await startCheckout(appointmentId);
+        const stripe = await loadStripe(session.publishableKey);
+        if (!stripe) throw new Error("Não foi possível carregar o Stripe");
+        if (cancelled || !checkoutBox.current) return;
+        checkout = await stripe.createEmbeddedCheckoutPage({ clientSecret: session.clientSecret, onComplete: () => void confirm(appointmentId) });
+        if (cancelled || !checkoutBox.current) {
+          checkout.destroy();
+          return;
+        }
+        checkout.mount(checkoutBox.current);
+        setOnline("ready");
+      } catch (error) {
+        if (cancelled) return;
+        const message = (error as Error).message;
+        setOnlineError(message);
+        setOnline(message.includes("aguardando confirmação") ? "waiting" : "error");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      checkout?.destroy();
+    };
+  }, [gateway, appointmentId, alreadyPaid, startCheckout, verifyPayment]);
 
   async function pay(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -74,7 +118,7 @@ export function PaymentModal({ appointment, onClose }: { appointment: Appointmen
   if (!appointment) return null;
   const professional = professionalById(appointment.professionalId);
   return (
-    <Modal open title={done ? "Pagamento confirmado" : "Pagamento da consulta"} description={gateway ? (gateway.test ? "Pagamento pelo Mercado Pago em modo de teste: nenhum valor é cobrado de verdade." : "Pagamento seguro pelo Mercado Pago.") : gateway === null ? "Simulação de pagamento: nenhum valor é cobrado de verdade." : "Pagamento da consulta particular."} onClose={close}>
+    <Modal open title={done ? "Pagamento confirmado" : "Pagamento da consulta"} description={gateway ? (gateway.test ? "Ambiente de teste do Stripe: nenhum valor é cobrado de verdade." : "Pagamento seguro processado pelo Stripe.") : gateway === null ? "Simulação de pagamento: nenhum valor é cobrado de verdade." : "Pagamento da consulta particular."} onClose={close}>
       <dl className="mb-4 grid gap-1.5 rounded-lg bg-soft p-4 text-sm">
         <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Consulta</dt><dd className="text-right font-semibold">#{appointment.code} · {appointment.specialty}</dd></div>
         <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Profissional</dt><dd className="text-right font-semibold">{professional?.name ?? "—"}</dd></div>
@@ -92,13 +136,25 @@ export function PaymentModal({ appointment, onClose }: { appointment: Appointmen
       ) : gateway === undefined ? (
         <p className="py-6 text-center text-sm text-muted-foreground">Carregando formas de pagamento...</p>
       ) : gateway ? (
-        <div className="grid gap-4">
-          <div className="flex items-start gap-3 rounded-lg border border-border p-4 text-sm">
-            <ShieldCheck className="mt-0.5 size-5 shrink-0 text-success" aria-hidden />
-            <p>Você será levado ao <b>{gateway.name}</b> para pagar com <b>Pix, cartão de crédito ou débito</b>. Ao terminar, volta para o portal e a confirmação aparece aqui.</p>
+        online === "waiting" ? (
+          <div className="grid gap-3 text-center">
+            <Clock3 className="mx-auto size-12 text-muted-foreground" />
+            <p className="font-semibold">Pagamento aguardando confirmação</p>
+            <p className="text-sm text-muted-foreground">Pix e boleto podem levar alguns instantes para compensar. Assim que o pagamento for confirmado, você recebe um aviso nas notificações.</p>
+            <Button onClick={close}>Fechar</Button>
           </div>
-          <Button onClick={goToCheckout} disabled={redirecting}>{redirecting ? "Abrindo o Mercado Pago..." : <>Pagar {formatMoney(amount)}<ExternalLink /></>}</Button>
-        </div>
+        ) : online === "error" ? (
+          <div className="grid gap-3 text-center">
+            <p className="font-semibold">Não foi possível abrir o pagamento</p>
+            <p className="text-sm text-muted-foreground">{onlineError}</p>
+            <Button onClick={close}>Fechar</Button>
+          </div>
+        ) : (
+          <div className="grid gap-2">
+            {online === "loading" && <p className="py-6 text-center text-sm text-muted-foreground">Carregando o pagamento seguro...</p>}
+            <div ref={checkoutBox} className="min-h-px overflow-hidden rounded-lg" />
+          </div>
+        )
       ) : (
         <form className="grid gap-4" onSubmit={pay}>
           <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Forma de pagamento">
