@@ -92,6 +92,8 @@ export type AppointmentPayment = {
   method: string;
   code: string;
   paidAt: string | null;
+  /** Último lembrete de pagamento enviado ao paciente (no máximo um a cada 24 horas). */
+  reminderSentAt: string | null;
   /** "Stripe" quando paga on-line; "Recepção" quando paga no balcão. */
   gateway: string;
   /** Situação no gateway (ex.: "aguardando confirmação" para Pix ou boleto ainda não compensado). */
@@ -121,8 +123,8 @@ export type AppNotification = {
   read: boolean;
   /** Consulta ligada ao aviso, quando houver. */
   appointmentId: string | null;
-  /** "pagamento": consulta a pagar; "documento": atestado ou receita enviados pelo médico. */
-  action: "" | "pagamento" | "documento";
+  /** "pagamento": consulta a pagar; "documento": atestado ou receita enviados pelo médico; "remarcar": o paciente faltou. */
+  action: "" | "pagamento" | "documento" | "remarcar";
 };
 
 export type StaffUser = {
@@ -195,6 +197,41 @@ export function nowTime() {
 export function hasPassed(item: { date: string; time: string }) {
   const today = isoDate(0);
   return item.date < today || (item.date === today && item.time <= nowTime());
+}
+
+/** Minutos depois do horário marcado em que a consulta ainda aceita o registro do resultado. */
+export const ATTENDANCE_WINDOW_MINUTES = 60;
+
+/** Intervalo mínimo entre dois lembretes de pagamento da mesma consulta. */
+export const PAYMENT_REMINDER_INTERVAL_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Momento da consulta, contado a partir do horário marcado (mesma regra da API):
+ * - "antes": confirmar, enviar lembrete, remarcar ou cancelar;
+ * - "atendimento": do horário até 1 hora depois, registrar se foi realizada ou se o paciente faltou;
+ * - "encerrada": resultado registrado ou passou 1 hora; nada mais muda, só a cobrança do particular.
+ */
+export type AppointmentPhase = "antes" | "atendimento" | "encerrada";
+
+export function appointmentPhase(item: { date: string; time: string; status: AppointmentStatus }, now = Date.now()): AppointmentPhase {
+  if (!openStatuses.includes(item.status)) return "encerrada";
+  const start = new Date(`${item.date}T${item.time}:00`).getTime();
+  if (now < start) return "antes";
+  if (now < start + ATTENDANCE_WINDOW_MINUTES * 60_000) return "atendimento";
+  return "encerrada";
+}
+
+/** Horário (HH:MM) em que termina o registro do resultado da consulta. */
+export function attendanceDeadline(item: { date: string; time: string }) {
+  const end = new Date(new Date(`${item.date}T${item.time}:00`).getTime() + ATTENDANCE_WINDOW_MINUTES * 60_000);
+  return `${String(end.getHours()).padStart(2, "0")}:${String(end.getMinutes()).padStart(2, "0")}`;
+}
+
+/** Quando o próximo lembrete de pagamento pode ser enviado (null = já pode). */
+export function nextPaymentReminderAt(payment: AppointmentPayment | null, now = Date.now()) {
+  if (!payment?.reminderSentAt) return null;
+  const next = new Date(payment.reminderSentAt).getTime() + PAYMENT_REMINDER_INTERVAL_MS;
+  return next > now ? new Date(next) : null;
 }
 
 export function relativeDay(iso: string) {
