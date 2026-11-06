@@ -100,7 +100,10 @@ const blockFields: FieldMap = { professionalId: "profissional", startDate: "data
 const waitlistFields: FieldMap = { patientId: "paciente", specialty: "especialidade", preference: "preferencia", priority: "prioridade" };
 
 export const toApi = {
-  patient: (input: Partial<Patient>) => rename(input, patientFields),
+  patient: (input: Partial<Patient>) => ({
+    ...rename(input, patientFields),
+    ...(input.card && { carteirinha: { numero: input.card.number, validade: input.card.validUntil, plano: input.card.plan } }),
+  }),
   professional: (input: Partial<Professional>) => rename(input, professionalFields),
   settings: (input: Partial<ClinicSettings>) => rename(input, settingsFields),
   staff: (input: Partial<StaffUser>) => ({ ...rename(input, staffFields), ...(input.role && { tipo: toApiRole(input.role) }) }),
@@ -143,9 +146,15 @@ function paymentFrom(value: unknown): AppointmentPayment | null {
   };
 }
 
+function cardFrom(value: unknown) {
+  const card = (value ?? {}) as { numero?: string; validade?: string; plano?: string };
+  return { number: card.numero ?? "", validUntil: card.validade ?? "", plan: card.plano ?? "" };
+}
+
 export const fromApi = {
   patient: (doc: Doc): Patient => ({
-    ...(rename(doc, invert(patientFields)) as Omit<Patient, "id" | "initials">),
+    ...(rename(doc, invert(patientFields)) as Omit<Patient, "id" | "initials" | "card">),
+    card: cardFrom((doc as Record<string, unknown>)["carteirinha"]),
     id: doc.id,
     initials: str(doc.iniciais),
   }),
