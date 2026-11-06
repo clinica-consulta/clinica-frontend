@@ -4,7 +4,6 @@
 
 **Projeto Integrador · SENAI**
 
-![Versão](https://img.shields.io/github/v/release/clinica-consulta/clinica-frontend?label=vers%C3%A3o&color=0e8a16)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-4-06B6D4?logo=tailwindcss&logoColor=white)
@@ -337,6 +336,7 @@ O projeto resultou em uma interface publicada, integrada à API e utilizada pelo
 
 | Versão | Entregas |
 |---|---|
+| [1.4.0](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.4.0) | Recepção: lembrete, confirmação e registro de consulta realizada aparecem uma única vez |
 | [1.3.0](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.3.0) | Pagamento da consulta particular pelo Stripe dentro do site (Pix, cartão e boleto) e documentação no formato acadêmico |
 | [1.2.2](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.2.2) | Documentação profissional e padronização de issues, labels e cards |
 | [1.2.1](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.2.1) | Documentação do projeto e padronização do Git Flow |
