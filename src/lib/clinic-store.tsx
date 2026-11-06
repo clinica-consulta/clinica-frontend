@@ -44,6 +44,8 @@ type ClinicState = {
   specialties: Specialty[];
   insurances: InsurancePlan[];
   appointments: Appointment[];
+  /** Horários já tomados por qualquer paciente (só médico, data e hora). O paciente não vê as consultas dos outros, mas precisa saber que o horário está ocupado. */
+  busy: BusySlot[];
   blocks: ScheduleBlock[];
   waitlist: WaitlistEntry[];
   notifications: AppNotification[];
@@ -52,12 +54,15 @@ type ClinicState = {
   session: Session | null;
 };
 
+type BusySlot = { id: string; professionalId: string; date: string; time: string };
+
 const emptyState: ClinicState = {
   patients: [],
   professionals: [],
   specialties: [],
   insurances: [],
   appointments: [],
+  busy: [],
   blocks: [],
   waitlist: [],
   notifications: [],
@@ -195,12 +200,13 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     const staff = role === "receptionist" || role === "admin";
     const list = (path: string, allowed = true) => (allowed ? api<Doc[]>("GET", path) : Promise.resolve([] as Doc[]));
     try {
-      const [patients, professionals, specialties, insurances, appointments, blocks, waitlist, notifications, staffUsers, settings] = await Promise.all([
+      const [patients, professionals, specialties, insurances, appointments, busy, blocks, waitlist, notifications, staffUsers, settings] = await Promise.all([
         list("/pacientes"),
         list("/profissionais"),
         list("/especialidades"),
         list("/convenios"),
         list("/consultas"),
+        list("/consultas/ocupados"),
         list("/bloqueios"),
         list("/fila-espera", staff),
         list("/notificacoes"),
@@ -214,6 +220,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         specialties: specialties.map(fromApi.specialty),
         insurances: insurances.map(fromApi.insurance),
         appointments: appointments.map(fromApi.appointment),
+        busy: busy.map((item) => ({ id: String(item.id), professionalId: String(item["profissional"]), date: String(item["data"]), time: String(item["hora"]) })),
         blocks: blocks.map(fromApi.block),
         waitlist: waitlist.map(fromApi.waitlist),
         notifications: notifications.map(fromApi.notification),
@@ -313,6 +320,17 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     return () => window.clearInterval(timer);
   }, []);
 
+  // Outra pessoa pode marcar um horário enquanto a tela está aberta: a cada minuto, atualiza os ocupados.
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      if (!roleRef.current) return;
+      api<Doc[]>("GET", "/consultas/ocupados")
+        .then((busy) => setState((current) => ({ ...current, busy: busy.map((item) => ({ id: String(item.id), professionalId: String(item["profissional"]), date: String(item["data"]), time: String(item["hora"]) })) })))
+        .catch(() => undefined);
+    }, 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   // A API encerra sozinha a consulta 1 hora após o horário: quando alguma passa desse ponto, busca o resultado.
   const lastSync = useRef(0);
   useEffect(() => {
@@ -332,10 +350,14 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       const weekday = new Date(`${date}T12:00:00`).getDay();
       const day = professional.availability[weekday];
       if (!day || !day.active) return [];
-      const taken = state.appointments
-        .filter((item) => item.professionalId === professionalId && item.date === date && item.id !== ignoreAppointmentId)
-        .filter((item) => item.status !== "Cancelada")
-        .map((item) => item.time);
+      const taken = [
+        ...state.appointments
+          .filter((item) => item.professionalId === professionalId && item.date === date && item.id !== ignoreAppointmentId)
+          .filter((item) => item.status !== "Cancelada")
+          .map((item) => item.time),
+        // Ocupados por qualquer paciente (o paciente logado só recebe as próprias consultas).
+        ...state.busy.filter((item) => item.professionalId === professionalId && item.date === date && item.id !== ignoreAppointmentId).map((item) => item.time),
+      ];
       const blocks = state.blocks.filter((item) => item.professionalId === professionalId && item.startDate <= date && item.endDate >= date);
       return slotRange(day.start, day.end)
         .filter((slot) => minutesOf(slot) > now)
@@ -343,7 +365,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         .filter((slot) => !blocks.some((block) => minutesOf(slot) >= minutesOf(block.startTime) && minutesOf(slot) < minutesOf(block.endTime)));
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `clock` recalcula os horários de hoje com o passar do tempo.
-    [state.appointments, state.professionals, state.blocks, clock],
+    [state.appointments, state.busy, state.professionals, state.blocks, clock],
   );
 
   const value = useMemo<ClinicContextValue>(() => {
