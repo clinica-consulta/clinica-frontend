@@ -4,7 +4,6 @@
 
 **Projeto Integrador · SENAI**
 
-![Versão](https://img.shields.io/github/v/release/clinica-consulta/clinica-frontend?label=vers%C3%A3o&color=0e8a16)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-4-06B6D4?logo=tailwindcss&logoColor=white)
