@@ -126,7 +126,7 @@ function localDate(value: unknown) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-type ApiPayment = { status?: string | null; valor?: number; metodo?: string; codigo?: string; pagoEm?: string | null };
+type ApiPayment = { status?: string | null; valor?: number; metodo?: string; codigo?: string; pagoEm?: string | null; gateway?: string; situacaoGateway?: string };
 
 function paymentFrom(value: unknown): AppointmentPayment | null {
   const payment = value as ApiPayment | undefined;
@@ -137,6 +137,8 @@ function paymentFrom(value: unknown): AppointmentPayment | null {
     method: payment.metodo ?? "",
     code: payment.codigo ?? "",
     paidAt: payment.pagoEm ?? null,
+    gateway: payment.gateway ?? "",
+    gatewayStatus: payment.situacaoGateway ?? "",
   };
 }
 
