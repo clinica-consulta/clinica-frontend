@@ -92,6 +92,10 @@ export type AppointmentPayment = {
   method: string;
   code: string;
   paidAt: string | null;
+  /** "Stripe" quando paga on-line; "Recepção" quando paga no balcão. */
+  gateway: string;
+  /** Situação no gateway (ex.: "aguardando confirmação" para Pix ou boleto ainda não compensado). */
+  gatewayStatus: string;
 };
 
 export function formatMoney(value: number) {
