@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyHint, Field, Modal, PageHeader, SearchInput, Section, SelectField, StatCard, StatusBadge, Toggle, Toolbar } from "@/components/page-kit";
 import { AppointmentForm } from "@/components/appointment-form";
 import { RescheduleModal } from "@/components/clinic-pages";
-import { formatDate, isoDate, openStatuses, relativeDay, minutesOf, weekdays, type Appointment } from "@/lib/clinic-data";
+import { appointmentPhase, formatDate, isoDate, openStatuses, relativeDay, minutesOf, weekdays, type Appointment } from "@/lib/clinic-data";
 import { takeSearch } from "@/lib/search-handoff";
 import { useClinic, useReports } from "@/lib/clinic-store";
 import { handOffSearch } from "@/lib/search-handoff";
@@ -20,7 +20,7 @@ export function ProfessionalDashboardPage() {
   const { clinic, professional, mine } = useProfessionalScope();
   const navigate = useNavigate();
   const today = mine.filter((item) => item.date === isoDate(0) && item.status !== "Cancelada");
-  const open = today.filter((item) => openStatuses.includes(item.status)).sort((a, b) => a.time.localeCompare(b.time));
+  const open = today.filter((item) => appointmentPhase(item) !== "encerrada").sort((a, b) => a.time.localeCompare(b.time));
   const done = today.filter((item) => item.status === "Realizada");
   const greeting = professional?.name.split(" ").slice(0, 2).join(" ") ?? "";
   const complete = (item: Appointment) => { clinic.setAppointmentStatus(item.id, "Realizada", "Consulta realizada"); toast.success("Consulta registrada como realizada"); };
@@ -68,8 +68,10 @@ export function ProfessionalDashboardPage() {
               <b className="w-[72px] shrink-0 text-[22px] font-bold leading-7">{item.time}</b>
               <div className="min-w-0 flex-1"><p className="text-base font-semibold leading-6">{clinic.patientById(item.patientId)?.name}</p><p className="text-xs leading-4 text-muted-foreground">{professional?.name} • {item.specialty} • {relativeDay(item.date)}</p></div>
               <span className="flex items-center gap-2 text-sm font-medium"><span className={`size-2 rounded-full ${item.status === "Confirmada" ? "bg-success" : "bg-foreground"}`} />{item.status}</span>
-              <Button onClick={() => complete(item)} className="h-9 rounded-lg bg-strong px-5 text-sm font-semibold hover:bg-strong/90">Realizada</Button>
-              <Button variant="ghost" onClick={() => absent(item)} className="h-9 rounded-lg px-3 text-sm font-medium">Não compareceu</Button>
+              {appointmentPhase(item) === "atendimento" ? <>
+                <Button onClick={() => complete(item)} className="h-9 rounded-lg bg-strong px-5 text-sm font-semibold hover:bg-strong/90">Realizada</Button>
+                <Button variant="ghost" onClick={() => absent(item)} className="h-9 rounded-lg px-3 text-sm font-medium">Não compareceu</Button>
+              </> : <span className="text-xs text-muted-foreground">A partir das {item.time}</span>}
               <Button variant="ghost" size="icon" aria-label="Prontuário" title="Prontuário" onClick={() => openRecord(item)} className="size-9 rounded-lg bg-soft"><ClipboardList /></Button>
             </div>
             <div className="surface p-4 md:hidden">
@@ -79,8 +81,10 @@ export function ProfessionalDashboardPage() {
                 <StatusBadge status={item.status} />
               </div>
               <div className="mt-4 flex gap-2">
-                <Button onClick={() => complete(item)} className="h-9 flex-1 rounded-lg"><CheckCheck />Realizada</Button>
-                <Button variant="ghost" onClick={() => absent(item)} className="h-9 rounded-lg bg-soft px-3 font-semibold"><CalendarX2 />Ausente</Button>
+                {appointmentPhase(item) === "atendimento" ? <>
+                  <Button onClick={() => complete(item)} className="h-9 flex-1 rounded-lg"><CheckCheck />Realizada</Button>
+                  <Button variant="ghost" onClick={() => absent(item)} className="h-9 rounded-lg bg-soft px-3 font-semibold"><CalendarX2 />Ausente</Button>
+                </> : <span className="flex h-9 flex-1 items-center rounded-lg bg-soft px-3 text-xs text-muted-foreground">A partir das {item.time}</span>}
                 <Button variant="ghost" size="icon" aria-label="Prontuário" title="Prontuário" onClick={() => openRecord(item)} className="size-9 rounded-lg bg-soft"><ClipboardList /></Button>
               </div>
             </div>
@@ -251,7 +255,7 @@ export function ProfessionalAgendaPage() {
           <b className="w-[68px] shrink-0 text-[22px] font-bold leading-7">{item.time}</b>
           <div className="min-w-0 flex-1"><p className="text-base font-semibold leading-6">{clinic.patientById(item.patientId)?.name}</p><p className="text-xs leading-4 text-muted-foreground">{professional?.name} • {item.specialty} • {relativeDay(item.date)}</p></div>
           <span className="mr-2 flex items-center gap-2 text-sm font-medium"><span className={`size-1.5 rounded-full ${item.status === "Confirmada" ? "bg-success" : item.status === "Realizada" ? "bg-success" : "bg-subtle-foreground"}`} />{item.status}</span>
-          {openStatuses.includes(item.status) && <>
+          {appointmentPhase(item) === "atendimento" && <>
             <Button onClick={() => complete(item)} className="h-9 rounded-lg bg-strong px-4 text-sm font-semibold hover:bg-strong/90">Realizada</Button>
             <Button variant="ghost" onClick={() => absent(item)} className="h-9 rounded-lg px-3 text-sm font-medium">Não compareceu</Button>
           </>}
@@ -267,7 +271,7 @@ export function ProfessionalAgendaPage() {
       {list.length ? <div className="grid gap-3">{list.map((item) => {
         const patient = clinic.patientById(item.patientId);
         const confirmedItem = item.status === "Confirmada";
-        const open = openStatuses.includes(item.status);
+        const open = appointmentPhase(item) === "atendimento";
         return <article key={item.id} className="surface p-4">
           <div className="flex items-start gap-3">
             <div className={`grid h-12 w-11 shrink-0 place-items-center content-center rounded-lg ${confirmedItem ? "bg-strong text-white" : "bg-accent text-foreground"}`}><b className="text-[13px] leading-4">{item.time}</b><span className="text-[8px] font-medium uppercase leading-3 opacity-80">{periodOf(item.time)}</span></div>
