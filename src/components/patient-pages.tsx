@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { EmptyHint, Field, Modal, PageHeader, Section, SelectField, StatCard, StatusBadge, Toggle, Toolbar } from "@/components/page-kit";
 import { AppointmentForm } from "@/components/appointment-form";
 import { RescheduleModal } from "@/components/clinic-pages";
-import { formatDate, formatMoney, hasPassed, isoDate, openStatuses, relativeDay, weekdayName, weekdays, type Appointment } from "@/lib/clinic-data";
+import { InsuranceCardFields } from "@/components/insurance-card-fields";
+import { appointmentPhase, cardFromForm, formatDate, formatMoney, hasPassed, isoDate, openStatuses, relativeDay, weekdayName, weekdays, type Appointment } from "@/lib/clinic-data";
 import { PaymentModal } from "@/components/payment-modal";
 import { takeSearch } from "@/lib/search-handoff";
 import { useClinic, useReports } from "@/lib/clinic-store";
@@ -408,10 +409,13 @@ function noticeMeta(title: string) {
   if (t.includes("pagamento")) return { tag: "Pagamento", tone: "text-info", icon: <CreditCard /> };
   if (t.includes("lembrete")) return { tag: "Requer Ação", tone: "text-foreground", icon: <AlarmClock /> };
   if (t.includes("fila") || t.includes("oferecid")) return { tag: "Fila Prioritária", tone: "text-info", icon: <Clock3 /> };
+  if (t.includes("confirme sua consulta")) return { tag: "Requer Ação", tone: "text-foreground", icon: <AlarmClock /> };
   if (t.includes("sentimos sua falta")) return { tag: "Novo agendamento", tone: "text-info", icon: <CalendarClock /> };
   if (t.includes("cancel")) return { tag: "Cancelamento", tone: "text-destructive", icon: <CalendarX /> };
   if (t.includes("remarc")) return { tag: "Remarcação", tone: "text-info", icon: <CalendarClock /> };
-  if (t.includes("confirm") || t.includes("agendad") || t.includes("consulta")) return { tag: "Agendamento Confirmado", tone: "text-success", icon: <CalendarCheck /> };
+  if (t.includes("confirmad")) return { tag: "Agendamento Confirmado", tone: "text-success", icon: <CalendarCheck /> };
+  // A consulta marcada só fica confirmada quando o paciente responde ao pedido de confirmação.
+  if (t.includes("agendad") || t.includes("consulta")) return { tag: "Agendamento", tone: "text-info", icon: <CalendarCheck /> };
   return { tag: "", tone: "", icon: <CalendarDays /> };
 }
 
@@ -480,6 +484,19 @@ export function PatientNotificationsPage() {
               clinic.markNotificationRead(item.id);
               if (!printDocument({ clinic: clinic.settings.name, title: item.title, body: item.text, footer: `Emitido em ${formatDate(item.createdAt)}` })) toast.error("Libere as janelas pop-up para imprimir");
             }} className="h-9 w-full shrink-0 self-center rounded-lg px-4 text-sm font-semibold md:w-auto"><FileText />Imprimir</Button>}
+            {(() => {
+              // Pedido de confirmação da recepção: o paciente confirma direto pela notificação.
+              const pending = item.title === "Confirme sua consulta" ? clinic.appointments.find((appointment) => appointment.id === item.appointmentId) : undefined;
+              if (!pending) return null;
+              if (pending.status === "Confirmada") return <span className="flex shrink-0 items-center gap-1.5 self-center rounded-full bg-success-soft px-3 py-1 text-xs font-semibold text-success-strong"><CheckCheck className="size-3.5" />Confirmada</span>;
+              if (appointmentPhase(pending) !== "antes") return null;
+              return <Button type="button" onClick={(event) => {
+                event.stopPropagation();
+                clinic.markNotificationRead(item.id);
+                clinic.setAppointmentStatus(pending.id, "Confirmada", "Paciente confirmou presença");
+                toast.success("Presença confirmada", { description: `${formatDate(pending.date)} às ${pending.time}` });
+              }} className="h-9 w-full shrink-0 self-center rounded-lg px-4 text-sm font-semibold md:w-auto"><CheckCircle2 />Confirmar presença</Button>;
+            })()}
             {item.action === "remarcar" && <Button type="button" onClick={(event) => {
               event.stopPropagation();
               clinic.markNotificationRead(item.id);
@@ -510,7 +527,7 @@ function ProfileInput({ label, icon, className = "", ...props }: React.InputHTML
   if (props.type === "date") {
     return (
       <div className={`grid min-w-0 gap-2 text-[13px] font-semibold leading-[18px] text-foreground ${className}`}>{label}
-        <DatePicker aria-label={label} name={props.name} defaultValue={props.defaultValue as string | undefined} required={props.required} max={isoDate(0)} className="flex h-11 w-full items-center justify-between rounded-lg bg-soft px-3.5 text-[15px] font-normal text-foreground" />
+        <DatePicker aria-label={label} name={props.name} defaultValue={props.defaultValue as string | undefined} required={props.required} min={props.min as string | undefined} max={(props.max as string | undefined) ?? isoDate(0)} className="flex h-11 w-full items-center justify-between rounded-lg bg-soft px-3.5 text-[15px] font-normal text-foreground" />
       </div>
     );
   }
@@ -526,8 +543,10 @@ function ProfileInput({ label, icon, className = "", ...props }: React.InputHTML
 
 export function PatientProfilePage() {
   const { clinic, patient } = usePatientScope();
+  const [insuranceChoice, setInsuranceChoice] = useState<string | null>(null);
   if (!patient) return <EmptyHint>Cadastro não encontrado.</EmptyHint>;
   const active = patient.status === "Ativo";
+  const insurance = insuranceChoice ?? patient.insurance;
   const code = patient.cpf.replace(/\D/g, "").slice(-5) || patient.id;
   return <div className="mx-auto max-w-[1024px]">
     <PageHeader title="Meu perfil" description="Visualize e atualize seus dados pessoais e o convênio." />
@@ -540,8 +559,10 @@ export function PatientProfilePage() {
         phone: String(data.get("phone") ?? ""),
         email: String(data.get("email") ?? ""),
         birthDate: String(data.get("birthDate") ?? ""),
-        insurance: String(data.get("insurance") ?? "Particular"),
+        insurance,
+        card: cardFromForm(data, insurance),
       });
+      setInsuranceChoice(null);
       toast.success("Perfil atualizado", { description: "Suas informações foram salvas." });
     }}>
       <div className="flex items-center gap-4 md:gap-6">
@@ -566,17 +587,13 @@ export function PatientProfilePage() {
         <ProfileInput label="Data de nascimento" name="birthDate" type="date" defaultValue={patient.birthDate} required />
         <label className="grid min-w-0 gap-2 text-[13px] font-semibold leading-[18px] text-foreground">Convênio
           <span className="relative block">
-            <SiteSelect name="insurance" defaultValue={patient.insurance} className="h-11 w-full min-w-0 appearance-none rounded-lg bg-soft px-3.5 pr-10 text-[15px] font-normal outline-none focus:ring-2 focus:ring-ring">{clinic.insurances.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}</SiteSelect>
+            <SiteSelect name="insurance" value={insurance} onChange={(event) => setInsuranceChoice(event.target.value)} className="h-11 w-full min-w-0 appearance-none rounded-lg bg-soft px-3.5 pr-10 text-[15px] font-normal outline-none focus:ring-2 focus:ring-ring">{clinic.insurances.filter((item) => item.active || item.name === patient.insurance).map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}</SiteSelect>
           </span>
         </label>
+        <InsuranceCardFields insurance={insurance} card={insurance === patient.insurance ? patient.card : undefined} renderField={(field) => <ProfileInput key={`${insurance}-${field.name}`} {...field} max={field.type === "date" ? "2100-12-31" : undefined} />} />
       </div>
       <Button type="submit" className="mt-5 h-12 w-full rounded-lg bg-primary text-[15px] font-semibold md:mt-9 md:h-10 md:w-auto md:px-6"><CircleCheck className="md:hidden" /><Check className="hidden md:block" />Salvar alterações</Button>
     </form>
 
-    <button type="button" onClick={() => toast.info("Alteração de carteirinha", { description: `Fale com a central pelo ${clinic.settings.phone}.` })} className="mt-8 flex w-full items-center gap-3 rounded-xl bg-soft p-4 text-left md:hidden">
-      <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-accent text-foreground"><CircleHelp className="size-5" /></span>
-      <span className="min-w-0 flex-1"><b className="block text-[15px] leading-5">Precisa alterar a carteirinha?</b><span className="text-xs text-muted-foreground">Fale com nossa central de atendimento</span></span>
-      <ChevronRight className="size-5 text-foreground" />
-    </button>
   </div>;
 }

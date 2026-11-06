@@ -3,6 +3,8 @@ import { toast } from "sonner";
 import {
   appointmentPhase,
   defaultSettings,
+  formatDate,
+  isPrivateInsurance,
   initialsOf,
   isoDate,
   minutesOf,
@@ -106,7 +108,8 @@ type ClinicContextValue = ClinicState & {
   refresh: () => Promise<void>;
   patientById: (id: string) => Patient | undefined;
   professionalById: (id: string) => Professional | undefined;
-  checkEligibility: (patientId: string, specialty: string) => Eligibility;
+  /** Mesmas regras da API; `date` é o dia da consulta (a carteirinha precisa estar válida nele). */
+  checkEligibility: (patientId: string, specialty: string, date?: string) => Eligibility;
   availableSlots: (professionalId: string, date: string, ignoreAppointmentId?: string) => string[];
   createAppointment: (input: NewAppointment) => Appointment | null;
   setAppointmentStatus: (id: string, status: AppointmentStatus, note?: string) => void;
@@ -283,18 +286,22 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
 
   // Mesmas regras da API, calculadas aqui para a tela responder na hora.
   const checkEligibility = useCallback(
-    (patientId: string, specialty: string): Eligibility => {
+    (patientId: string, specialty: string, date = isoDate(0)): Eligibility => {
       const patient = state.patients.find((item) => item.id === patientId);
       if (!patient) return { ok: false, reason: "Paciente sem cadastro na clínica." };
       if (patient.status !== "Ativo") return { ok: false, reason: "Cadastro do paciente está inativo." };
       const list = state.specialties.find((item) => item.name === specialty);
       if (!list || !list.active) return { ok: false, reason: "Especialidade indisponível no momento." };
+      if (isPrivateInsurance(patient.insurance)) return { ok: true, reason: `Atendimento particular para ${specialty}.` };
       const plan = state.insurances.find((item) => item.name === patient.insurance);
-      if (!plan || !plan.active) return { ok: true, reason: `Atendimento particular para ${specialty}.` };
+      if (!plan || !plan.active) return { ok: false, reason: `O convênio ${patient.insurance} não é mais aceito pela clínica. Atualize o cadastro.` };
+      // Mesmas regras da API: carteirinha completa e válida no dia da consulta.
+      if (!patient.card.number || !patient.card.validUntil) return { ok: false, reason: `Cadastre a carteirinha do ${plan.name} (número, validade e plano) para agendar.` };
+      if (patient.card.validUntil < date) return { ok: false, reason: `A carteirinha do ${plan.name} venceu em ${formatDate(patient.card.validUntil)}. Atualize a validade no cadastro.` };
       if (plan.covered.length && !plan.covered.includes(specialty)) {
         return { ok: false, reason: `O convênio ${plan.name} não cobre ${specialty}.` };
       }
-      return { ok: true, reason: plan.covered.length ? `${plan.name} cobre ${specialty}.` : `Atendimento particular para ${specialty}.` };
+      return { ok: true, reason: `${plan.name} cobre ${specialty}.` };
     },
     [state.patients, state.specialties, state.insurances],
   );
@@ -391,8 +398,8 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         await api("PATCH", "/auth/senha", { senhaAtual: currentPassword, novaSenha: newPassword });
       },
 
-      signup: async ({ name, cpf, phone, email, birthDate, insurance, password }) => {
-        await api("POST", "/auth/cadastro", { nome: name, cpf, telefone: phone, email, dataNascimento: birthDate, convenio: insurance, senha: password });
+      signup: async ({ name, cpf, phone, email, birthDate, insurance, card, password }) => {
+        await api("POST", "/auth/cadastro", { ...toApi.patient({ name, cpf, phone, email, birthDate, insurance, card }), senha: password });
       },
 
       requestPasswordReset: async (email, cpf) => {
@@ -426,7 +433,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       createAppointment: ({ patientId, professionalId, date, time, notes, channel }) => {
         const professional = state.professionals.find((item) => item.id === professionalId);
         if (!professional) return null;
-        if (!checkEligibility(patientId, professional.specialty).ok) return null;
+        if (!checkEligibility(patientId, professional.specialty, date).ok) return null;
         if (!availableSlots(professionalId, date).includes(time)) return null;
         const origin = channel ?? "Recepção";
         const appointment: Appointment = {
@@ -437,11 +444,12 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           patientId,
           professionalId,
           specialty: professional.specialty,
-          status: state.settings.autoConfirm ? "Confirmada" : "Agendada",
+          // Só o paciente confirma: toda consulta nasce aguardando a confirmação dele.
+          status: "Agendada",
           notes: notes ?? "",
           channel: origin,
           reminderSentAt: null,
-          confirmationReply: state.settings.autoConfirm ? "Confirmou" : "Sem resposta",
+          confirmationReply: "Sem resposta",
           history: [{ at: isoDate(0), text: `Consulta criada (${origin.toLowerCase()})` }],
           payment: null,
         };
@@ -483,7 +491,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
 
       sendReminder: (id) => {
         const target = state.appointments.find((item) => item.id === id);
-        if (!target || target.reminderSentAt || appointmentPhase(target) !== "antes") return false;
+        if (!target || target.reminderSentAt || target.status === "Confirmada" || appointmentPhase(target) !== "antes") return false;
         patchList("appointments", id, (item) => withLog({ ...item, reminderSentAt: isoDate(0) }, "Lembrete de confirmação enviado"));
         send(api("POST", `/consultas/${id}/lembrete`), "Não foi possível enviar o lembrete");
         return true;

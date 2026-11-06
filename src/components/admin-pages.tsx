@@ -647,12 +647,8 @@ export function AdminSettingsPage() {
     </Modal>
 
     <section className="surface mt-4 p-6 md:mt-6">
-      <CardTitle icon={<SlidersHorizontal />}>Preferências de confirmação</CardTitle>
+      <CardTitle icon={<SlidersHorizontal />}>Lembretes e equipe</CardTitle>
       <div className="grid gap-5 md:flex md:items-center md:justify-between md:gap-6 md:rounded-lg md:bg-soft md:p-4">
-        <div className="flex items-center gap-4 rounded-lg bg-soft p-4 md:bg-transparent md:p-0">
-          <span className="order-2 md:order-none"><Switch label="Confirmação automática" checked={settings.autoConfirm} onChange={(value) => { updateSettings({ autoConfirm: value }); toast.success(value ? "Confirmação automática ativada" : "Confirmação automática desativada"); }} /></span>
-          <span className="min-w-0 flex-1"><b className="block text-[15px] font-semibold">Confirmação automática</b><span className="text-xs text-muted-foreground">Consultas já criadas como confirmadas</span></span>
-        </div>
         <label className="grid gap-2 text-[15px] font-semibold md:flex md:items-center md:gap-4">
           <span className="flex items-center gap-2"><Bell className="hidden size-4 text-info-strong md:block" />Antecedência do lembrete</span>
           <span className="relative block md:w-56"><SiteSelect value={String(settings.reminderHours)} onChange={(event) => { updateSettings({ reminderHours: Number(event.target.value) }); toast.success("Antecedência atualizada"); }} className="h-11 w-full appearance-none rounded-lg bg-soft px-3.5 text-[15px] font-normal outline-none focus:ring-1 focus:ring-ring md:h-11 md:bg-card">{[12, 24, 48].map((hours) => <option key={hours} value={hours}>{hours} horas antes</option>)}</SiteSelect></span>
