@@ -341,6 +341,7 @@ O projeto resultou em uma interface publicada, integrada à API e utilizada pelo
 
 | Versão | Entregas |
 |---|---|
+| [1.5.0](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.5.0) | Telas seguem o ciclo da consulta, com lembrete de pagamento e convite para remarcar após ausência |
 | [1.4.0](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.4.0) | Recepção: lembrete, confirmação e registro de consulta realizada aparecem uma única vez |
 | [1.3.0](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.3.0) | Pagamento da consulta particular pelo Stripe dentro do site (Pix, cartão e boleto) e documentação no formato acadêmico |
 | [1.2.2](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.2.2) | Documentação profissional e padronização de issues, labels e cards |
