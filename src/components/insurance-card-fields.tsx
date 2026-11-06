@@ -12,6 +12,8 @@ export type CardFieldProps = {
   autoComplete: "off";
   inputMode?: "numeric";
   min?: string;
+  /** Data digitada (dd/mm/aaaa), nos formulários que aceitam. */
+  typed?: boolean;
 };
 
 /**
@@ -37,7 +39,7 @@ export function InsuranceCardFields({
     <>
       {renderField({ label: `Número da carteirinha (${insurance})`, name: "cardNumber", type: "text", required: true, defaultValue: same?.number ?? "", placeholder: "Como aparece na carteirinha", autoComplete: "off", inputMode: "numeric" })}
       {renderField({ label: "Plano", name: "cardPlan", type: "text", required: true, defaultValue: same?.plan ?? "", placeholder: "Ex.: Enfermaria, Apartamento", autoComplete: "off" })}
-      {renderField({ label: "Validade da carteirinha", name: "cardValidUntil", type: "date", required: true, defaultValue: same?.validUntil ?? "", autoComplete: "off", min: isoDate(-3650) })}
+      {renderField({ label: "Validade da carteirinha", name: "cardValidUntil", type: "date", required: true, defaultValue: same?.validUntil ?? "", autoComplete: "off", min: isoDate(-3650), typed: true })}
     </>,
   );
 }

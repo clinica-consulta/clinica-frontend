@@ -199,7 +199,10 @@ const periodOf = (time: string) => (Number(time.slice(0, 2)) < 12 ? "Manhã" : "
 export function ProfessionalAgendaPage() {
   const { clinic, professional, mine } = useProfessionalScope();
   const [search, setSearch] = useState("");
-  const [date, setDate] = useState(isoDate(0));
+  // null = hoje (vira o dia sozinho à meia-noite); ou um dia escolhido.
+  const [picked, setPicked] = useState<string | null>(null);
+  const date = picked ?? isoDate(0);
+  const setDate = (value: string) => setPicked(value === isoDate(0) ? null : value);
   const blocks = professional ? clinic.blocks.filter((item) => item.professionalId === professional.id && item.startDate <= date && item.endDate >= date) : [];
   const [detail, setDetail] = useState<Appointment | null>(null);
   const [onlyOpen, setOnlyOpen] = useState(false);

@@ -185,6 +185,7 @@ export function DashboardPage() {
   const [calDate, setCalDate] = useState(isoDate(0));
   const [slot, setSlot] = useState("");
   const today = appointments.filter((item) => item.date === isoDate(0) && item.status !== "Cancelada").sort((a, b) => a.time.localeCompare(b.time));
+  const todayActions = useAppointmentActions();
   const confirmed = today.filter((item) => item.status === "Confirmada").length;
   const ready = today.length ? Math.round((confirmed / today.length) * 100) : 0;
   // Só consultas antes do horário, sem confirmação e sem lembrete: somem assim que uma das duas ações é feita.
@@ -222,7 +223,7 @@ export function DashboardPage() {
                 <span className="w-14 shrink-0 text-base font-bold leading-6">{item.time}</span>
                 <div className="min-w-0"><p className="truncate text-sm font-semibold leading-5">{patientById(item.patientId)?.name}</p><p className="truncate text-xs leading-4 text-muted-foreground">{professionalById(item.professionalId)?.name} • {item.specialty}</p></div>
               </div>
-              <StatusBadge status={item.status} />
+              <span className="flex shrink-0 items-center gap-2">{openStatuses.includes(item.status) && <Button size="sm" variant="outline" className="h-8" onClick={() => todayActions.complete(item)}><CheckCircle2 />Realizada</Button>}<StatusBadge status={item.status} /></span>
             </div>
           </div>
         ))}</div> : <div className="p-4 md:p-0"><EmptyHint>Nenhuma consulta para hoje.</EmptyHint></div>}
@@ -404,7 +405,13 @@ export function ConsultasPage() {
   const [status, setStatus] = useState("Todos");
   const [professional, setProfessional] = useState("Todos");
   const [specialty, setSpecialty] = useState("Todas");
-  const [date, setDate] = useState("");
+  // null = hoje (vira o dia sozinho à meia-noite); "todas" = sem filtro de data; ou um dia escolhido.
+  const [dayChoice, setDayChoice] = useState<string | null>(null);
+  const today = isoDate(0);
+  const date = dayChoice === null ? today : dayChoice === "todas" ? "" : dayChoice;
+  const setDate = (value: string) => setDayChoice(!value ? "todas" : value === today ? null : value);
+  const shiftDay = (days: number) => { const base = new Date(`${date || today}T12:00:00`); base.setDate(base.getDate() + days); setDate(base.toISOString().slice(0, 10)); setPage(1); };
+  const actions = useAppointmentActions();
   const [page, setPage] = useState(1);
   const [mobileCount, setMobileCount] = useState(5);
   const [filtersOpen, setFiltersOpen] = useState(true);
@@ -419,13 +426,22 @@ export function ConsultasPage() {
       const text = `${patientById(item.patientId)?.name} ${patientById(item.patientId)?.cpf} ${professionalById(item.professionalId)?.name} ${item.specialty}`.toLowerCase();
       return text.includes(search.toLowerCase());
     })
-    .sort((a, b) => `${b.date}${b.time}`.localeCompare(`${a.date}${a.time}`));
+    // Um dia: em ordem de horário. Todas as datas: as mais recentes primeiro.
+    .sort((a, b) => (date ? a.time.localeCompare(b.time) : `${b.date}${b.time}`.localeCompare(`${a.date}${a.time}`)));
   const pageSize = 5;
   const pages = Math.max(1, Math.ceil(list.length / pageSize));
   const current = Math.min(page, pages);
   const visible = list.slice((current - 1) * pageSize, current * pageSize);
-  const filtered = date || status !== "Todos" || professional !== "Todos" || specialty !== "Todas";
-  const clear = () => { setDate(""); setStatus("Todos"); setProfessional("Todos"); setSpecialty("Todas"); };
+  const filtered = dayChoice !== null || status !== "Todos" || professional !== "Todos" || specialty !== "Todas";
+  const clear = () => { setDayChoice(null); setStatus("Todos"); setProfessional("Todos"); setSpecialty("Todas"); };
+  const dayLabel = !date ? "Todas as datas" : date === today ? `Hoje • ${formatDate(date)}` : `${weekdayName(date)}, ${formatDate(date)}`;
+  const dayBar = <div className="flex flex-wrap items-center gap-2">
+    <Button type="button" variant="ghost" size="icon" aria-label="Dia anterior" className="size-8 bg-card" onClick={() => shiftDay(-1)}><ChevronLeft /></Button>
+    <b className="min-w-0 text-sm">{dayLabel}</b>
+    <Button type="button" variant="ghost" size="icon" aria-label="Próximo dia" className="size-8 bg-card" onClick={() => shiftDay(1)}><ChevronRight /></Button>
+    {date !== today && <Button type="button" variant="ghost" size="sm" className="bg-card" onClick={() => { setDayChoice(null); setPage(1); }}>Hoje</Button>}
+    {date && <Button type="button" variant="ghost" size="sm" className="bg-card" onClick={() => { setDayChoice("todas"); setPage(1); }}>Todas as datas</Button>}
+  </div>;
   const initials = (name = "") => name.split(" ").filter(Boolean).map((part) => part[0]).slice(0, 2).join("").toUpperCase();
   const todayChip = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" }).format(new Date()).replace(".", "").replace(" de ", " ").replace(/ (\p{L})/u, (_, c: string) => ` ${c.toUpperCase()}`);
   const filterList = [
@@ -436,7 +452,7 @@ export function ConsultasPage() {
   ];
 
   return <>
-    <PageHeader eyebrow="Atendimentos" title="Consultas" description="Acompanhe, confirme, remarque ou cancele os agendamentos." mobileDescription="Acompanhe, confirme, remarque ou cancele os agendamentos da recepção." action="Nova consulta" onAction={() => setNewOpen(true)} />
+    <PageHeader eyebrow="Atendimentos" title="Consultas" description="Acompanhe, peça a confirmação, remarque ou cancele os agendamentos." mobileDescription="Acompanhe, peça a confirmação, remarque ou cancele os agendamentos da recepção." action="Nova consulta" onAction={() => setNewOpen(true)} />
 
     <PendingRecords />
 
@@ -454,8 +470,10 @@ export function ConsultasPage() {
       {filtered && <button type="button" onClick={clear} className="mt-3 text-xs font-semibold text-muted-foreground underline">Limpar filtros</button>}
     </div>
 
+    <div className="mt-6">{dayBar}</div>
+
     {/* Lista desktop */}
-    <section className="surface mt-6 hidden overflow-hidden md:mt-7 md:block">
+    <section className="surface mt-4 hidden overflow-hidden md:block">
       <div className="flex items-center justify-between px-6 py-5"><h2 className="text-lg font-bold uppercase leading-6">Consultas ({list.length})</h2><div className="flex items-center gap-4">{filtered && <button type="button" onClick={clear} className="text-xs font-semibold text-muted-foreground underline">Limpar filtros</button>}<span className="flex items-center gap-1.5 text-xs text-muted-foreground"><span className="size-2 rounded-full bg-success" />Atualizado há instantes</span></div></div>
       {list.length ? <table className="w-full text-left">
         <thead className="bg-soft text-[11px] font-bold uppercase tracking-[0.55px] text-muted-foreground"><tr><th className="px-6 py-3.5">Horário</th><th className="px-6 py-3.5">Paciente</th><th className="px-6 py-3.5">Médico</th><th className="px-6 py-3.5">Status</th><th className="px-6 py-3.5 text-right">Ações</th></tr></thead>
@@ -464,7 +482,7 @@ export function ConsultasPage() {
           <td className="px-6 py-4"><b className="block font-semibold leading-5">{patientById(item.patientId)?.name}</b><span className="text-xs text-muted-foreground">#{item.code || "…"} • {item.channel === "Recepção" ? "Recepção" : "Paciente"}</span></td>
           <td className="px-6 py-4"><span className="block leading-5">{professionalById(item.professionalId)?.name}</span><span className="text-xs text-muted-foreground">{item.specialty}</span></td>
           <td className="px-6 py-4"><StatusBadge status={item.status} /></td>
-          <td className="px-6 py-4 text-right align-top"><Button variant="ghost" size="icon" className="size-8" onClick={() => setManage(item)} aria-label="Gerenciar"><MoreHorizontal /></Button></td>
+          <td className="px-6 py-4 text-right align-top"><span className="inline-flex items-center gap-1">{openStatuses.includes(item.status) && <Button variant="outline" size="sm" className="h-8" onClick={() => actions.complete(item)}><CheckCircle2 />Realizada</Button>}<Button variant="ghost" size="icon" className="size-8" onClick={() => setManage(item)} aria-label="Gerenciar"><MoreHorizontal /></Button></span></td>
         </tr>)}</tbody>
       </table> : <div className="px-6 pb-6"><EmptyHint>Nenhuma consulta encontrada com esses filtros.</EmptyHint></div>}
       <div className="flex items-center justify-between bg-soft px-6 py-3 text-xs text-muted-foreground">
@@ -479,7 +497,7 @@ export function ConsultasPage() {
 
     {/* Lista mobile */}
     <section className="mt-6 md:hidden">
-      <div className="mb-3 flex items-center gap-2 px-1"><h2 className="eyebrow">Consultas ({list.length})</h2><span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold">Hoje • {todayChip}</span><span className="ml-auto text-xs text-muted-foreground">Mostrando {Math.min(mobileCount, list.length)} de {list.length}</span></div>
+      <div className="mb-3 flex items-center gap-2 px-1"><h2 className="eyebrow">Consultas ({list.length})</h2><span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold">{date === today ? `Hoje • ${todayChip}` : date ? formatDate(date) : "Todas"}</span><span className="ml-auto text-xs text-muted-foreground">Mostrando {Math.min(mobileCount, list.length)} de {list.length}</span></div>
       {list.length ? <div className="grid gap-3">{list.slice(0, mobileCount).map((item) => {
         const patient = patientById(item.patientId);
         return <article key={item.id} className="surface p-4">
@@ -487,6 +505,10 @@ export function ConsultasPage() {
           <div className="mt-3 grid gap-2 rounded-lg bg-soft p-3">
             <div className="flex items-center justify-between gap-2"><span className="flex items-center gap-1.5 text-sm"><Clock3 className="size-4" /><b className="font-bold">{item.time}</b><span className="text-xs text-muted-foreground">• {formatDate(item.date)}{item.date === isoDate(0) ? " (Hoje)" : ""}</span></span><span className="scale-90 origin-right"><StatusBadge status={item.status} /></span></div>
             <p className="flex items-center gap-1.5 text-sm"><Stethoscope className="size-4" /><b className="font-semibold">{professionalById(item.professionalId)?.name}</b><span className="text-xs text-muted-foreground">• {item.specialty}</span></p>
+          </div>
+          <div className="mt-3 flex gap-2">
+            {openStatuses.includes(item.status) && <Button size="sm" className="h-9 flex-1" onClick={() => actions.complete(item)}><CheckCircle2 />Realizada</Button>}
+            <Button size="sm" variant="ghost" className="h-9 flex-1 bg-soft" onClick={() => setManage(item)}><MoreHorizontal />Gerenciar</Button>
           </div>
         </article>;
       })}</div> : <EmptyHint>Nenhuma consulta encontrada com esses filtros.</EmptyHint>}
@@ -592,7 +614,7 @@ export function PacientesPage() {
         <Field label="CPF" name="cpf" required defaultValue={patient?.cpf ?? ""} placeholder="000.000.000-00" inputMode="numeric" maxLength={14} onChange={(event) => { event.target.value = maskCpf(event.target.value); }} />
         <Field label="Telefone" name="phone" required defaultValue={patient?.phone ?? ""} placeholder="(00) 00000-0000" inputMode="tel" maxLength={15} onChange={(event) => { event.target.value = maskPhone(event.target.value); }} />
         <Field label="E-mail" name="email" type="email" required defaultValue={patient?.email ?? ""} />
-        <Field label="Data de nascimento" name="birthDate" type="date" required defaultValue={patient?.birthDate ?? ""} />
+        <Field label="Data de nascimento" name="birthDate" type="date" typed required max={isoDate(0)} defaultValue={patient?.birthDate ?? ""} />
         <SelectField label="Convênio" name="insurance" value={formInsurance} onChange={(event) => setInsuranceChoice(event.target.value)} options={insurances.filter((item) => item.active || item.name === patient?.insurance).map((item) => ({ value: item.name, label: item.name }))} />
         <InsuranceCardFields insurance={formInsurance} card={formInsurance === patient?.insurance ? patient?.card : undefined} renderField={(field) => <Field key={`${formInsurance}-${field.name}`} {...field} />} />
         <div className="flex flex-wrap gap-2 sm:col-span-2"><Button type="submit">{patient ? "Salvar alterações" : "Cadastrar paciente"}</Button>
