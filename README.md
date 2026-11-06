@@ -187,9 +187,12 @@ flowchart TD
 | Paciente, médico ou especialidade desativados | Deixam de aparecer no agendamento, mas o histórico continua visível |
 | Médico com consultas | Não pode ser excluído, apenas desativado |
 | Consulta particular realizada | O botão de pagamento aparece na consulta e nas notificações |
-| Antes do horário da consulta | A recepção pode confirmar, enviar um único lembrete, remarcar ou cancelar (com confirmação) |
-| Do horário até 1 hora depois | A consulta aparece em "Em atendimento" e só aceita "Realizada" ou "Não compareceu" |
-| Passou 1 hora sem registro | A API encerra a consulta sozinha e a tela se atualiza; nenhuma ação fica disponível |
+| Consulta marcada | Fica aguardando confirmação; a recepção envia um único pedido de confirmação e só o paciente confirma, pelo portal ou pela própria notificação |
+| Antes do horário da consulta | A recepção pode pedir a confirmação, remarcar ou cancelar (com confirmação) |
+| Resultado da consulta | A recepção marca "Realizada" ou "Não aconteceu" a qualquer momento e pode corrigir depois; consulta paga não deixa de ser realizada |
+| Do horário até 1 hora depois | A consulta aparece em "Em atendimento"; o médico só registra o resultado nesse período |
+| Passou 1 hora sem registro | A API encerra a consulta sozinha e a tela se atualiza; a recepção ainda pode corrigir o resultado |
+| Paciente com convênio | O cadastro pede número, plano e validade da carteirinha; com a carteirinha vencida, o agendamento é bloqueado |
 | Particular com pagamento pendente | A recepção pode lembrar o pagamento, no máximo uma vez a cada 24 horas |
 | Paciente não compareceu | O paciente recebe o aviso "Sentimos sua falta" com o botão "Agendar novo horário" |
 
@@ -341,6 +344,7 @@ O projeto resultou em uma interface publicada, integrada à API e utilizada pelo
 
 | Versão | Entregas |
 |---|---|
+| [1.6.0](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.6.0) | Pedido de confirmação ao paciente, resultado a qualquer momento e carteirinha do convênio no cadastro |
 | [1.5.0](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.5.0) | Telas seguem o ciclo da consulta, com lembrete de pagamento e convite para remarcar após ausência |
 | [1.4.0](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.4.0) | Recepção: lembrete, confirmação e registro de consulta realizada aparecem uma única vez |
 | [1.3.0](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.3.0) | Pagamento da consulta particular pelo Stripe dentro do site (Pix, cartão e boleto) e documentação no formato acadêmico |

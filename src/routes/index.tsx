@@ -1,7 +1,8 @@
 import { SiteSelect } from "@/components/site-select";
 import { DatePicker } from "@/components/date-picker";
 import { showWelcomeToast } from "@/components/welcome-toast";
-import { isoDate } from "@/lib/clinic-data";
+import { cardFromForm, isoDate } from "@/lib/clinic-data";
+import { InsuranceCardFields } from "@/components/insurance-card-fields";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowRight, CalendarDays, Eye, EyeOff, IdCard, KeyRound, LockKeyhole, Mail, Phone, ShieldCheck, UserRound } from "lucide-react";
@@ -20,6 +21,8 @@ function LoginPage() {
   const navigate = useNavigate();
   const { login, signup, requestPasswordReset, resetPassword, insurances } = useClinic();
   const [mode, setMode] = useState<"login" | "signup">("login");
+  /** Convênio escolhido no cadastro (os campos da carteirinha dependem dele). */
+  const [signupInsurance, setSignupInsurance] = useState("Particular");
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [recovery, setRecovery] = useState(false);
@@ -65,7 +68,8 @@ function LoginPage() {
         phone,
         email: String(data.get("email") ?? ""),
         birthDate: String(data.get("birthDate") ?? ""),
-        insurance: String(data.get("insurance") ?? "Particular"),
+        insurance: signupInsurance,
+        card: cardFromForm(data, signupInsurance),
         password: String(data.get("password") ?? ""),
       });
       setEmail(String(data.get("email") ?? ""));
@@ -110,7 +114,8 @@ function LoginPage() {
                   <AuthField label="E-mail" name="email" icon={<Mail />} type="email" autoComplete="email" placeholder="voce@exemplo.com" />
                   <PasswordField label="Senha" name="password" minLength={6} show={showPassword} onToggle={() => setShowPassword((visible) => !visible)} autoComplete="new-password" placeholder="Crie uma senha (mín. 6 caracteres)" />
                   <AuthField label="Data de nascimento" name="birthDate" icon={<CalendarDays />} type="date" autoComplete="bday" dark />
-                  <AuthSelect label="Convênio" name="insurance" icon={<ShieldCheck />} options={insurances.filter((item) => item.active).map((item) => item.name)} dark />
+                  <AuthSelect label="Convênio" name="insurance" icon={<ShieldCheck />} value={signupInsurance} onChange={(event) => setSignupInsurance(event.target.value)} options={insurances.filter((item) => item.active).map((item) => item.name)} dark />
+                  <InsuranceCardFields insurance={signupInsurance} renderField={(field) => <AuthField key={`${signupInsurance}-${field.name}`} {...field} icon={field.type === "date" ? <CalendarDays /> : <ShieldCheck />} max={field.type === "date" ? "2100-12-31" : undefined} dark={field.type === "date"} />} />
                   <Button type="submit" size="lg" disabled={busy || Boolean(cpfError)} className="h-9 w-full rounded-xl text-sm font-semibold hover:bg-primary hover:text-primary-foreground">{busy ? "Criando..." : "Criar conta"} <ArrowRight /></Button>
                 </form>
               </div>
@@ -194,7 +199,7 @@ function AuthField({ label, icon, dark = false, ...props }: React.InputHTMLAttri
     return (
       <div className={`grid text-xs font-semibold text-foreground ${dark ? "gap-0.5" : "gap-1 sm:text-sm"}`}>
         {label}
-        <DatePicker aria-label={label} name={props.name} required max={isoDate(0)}>{(value) => (
+        <DatePicker aria-label={label} name={props.name} required min={props.min as string | undefined} max={(props.max as string | undefined) ?? isoDate(0)}>{(value) => (
           <span className={`relative flex w-full items-center pl-10 pr-3 text-xs font-normal transition sm:text-sm ${dark ? darkField : "h-10 rounded-xl border-2 border-input bg-card text-foreground"}`}>
             <span className={`field-icon absolute left-3.5 top-1/2 size-4 -translate-y-1/2 [&>svg]:size-4 text-muted-foreground`} aria-hidden="true">{icon}</span>
             {value || <span className="text-muted-foreground">dd/mm/aaaa</span>}
