@@ -345,6 +345,7 @@ O projeto resultou em uma interface publicada, integrada à API e utilizada pelo
 
 | Versão | Entregas |
 |---|---|
+| [1.9.0](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.9.0) | Animação sutil ao rolar com GSAP |
 | [1.8.0](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.8.0) | Botão Excluir paciente no cadastro |
 | [1.7.1](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.7.1) | Horário já marcado some da agenda para todos, inclusive na tela do paciente |
 | [1.7.0](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.7.0) | Consultas por dia, botão Realizada à vista, confirmação após o pedido e data digitável |
