@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Bell, CalendarDays, LockKeyhole, LogOut, ShieldCheck, UserRound } from "lucide-react";
 import { AccountModal } from "@/components/account-modal";
 import { HeaderSearch } from "@/components/header-search";
@@ -10,6 +10,7 @@ import logo from "@/assets/logo-claro.png";
 import { roleFromPath, roleProfiles, type RoleProfile } from "@/lib/role-data";
 import { formatDate, formatLongDate, isoDate } from "@/lib/clinic-data";
 import { useClinic } from "@/lib/clinic-store";
+import { useScrollReveal } from "@/lib/scroll-reveal";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
@@ -18,6 +19,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { logout, session, hydrated, notificationsFor, profile: myProfile } = useClinic();
   const [accountOpen, setAccountOpen] = useState(false);
   const searchVersion = useSearchVersion();
+  // Cartões e seções aparecem com uma animação sutil ao rolar (depois que a tela de carregamento some).
+  const mainRef = useRef<HTMLElement>(null);
+  useScrollReveal(mainRef, !loading, searchVersion);
   const navigate = useNavigate();
   const ready = hydrated;
   const role = session?.role ?? pathRole;
@@ -104,7 +108,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Link to="/" onClick={logout} aria-label="Sair" className="grid size-10 shrink-0 place-items-center rounded-full text-sidebar-foreground transition hover:bg-sidebar-accent"><LogOut className="size-[18px]" /></Link>
       </header>
 
-      <main key={searchVersion} className="mx-auto w-full max-w-[1280px] flex-1 px-4 pb-24 pt-5 md:p-8">{children}</main>
+      <main key={searchVersion} ref={mainRef} className="mx-auto w-full max-w-[1280px] flex-1 px-4 pb-24 pt-5 md:p-8">{children}</main>
 
       {/* Rodapé desktop */}
       {profile.role === "professional" ? (
