@@ -1,6 +1,6 @@
 import { SiteSelect } from "@/components/site-select";
 import { useMemo, useState } from "react";
-import { Activity, Lightbulb, BriefcaseMedical, ListFilter, Pencil, Info, LogIn, ChevronDown, Clock3, MoreVertical, Stethoscope, CalendarCheck, CalendarCheck2, CalendarDays, MailCheck, Plus, SlidersHorizontal, CalendarClock, Check, CheckCircle2, ChevronLeft, ChevronRight, CircleAlert, History, MessageSquareText, MoreHorizontal, Phone, Send, ShieldCheck, Users, UsersRound, X } from "lucide-react";
+import { Activity, Lightbulb, BriefcaseMedical, ListFilter, Pencil, Info, LogIn, ChevronDown, Clock3, MoreVertical, Stethoscope, CalendarCheck, CalendarCheck2, CalendarDays, MailCheck, Plus, SlidersHorizontal, CalendarClock, Check, CheckCircle2, ChevronLeft, ChevronRight, CircleAlert, History, MessageSquareText, MoreHorizontal, Phone, Send, ShieldCheck, Trash2, Users, UsersRound, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { EmptyHint, Field, Modal, PageHeader, SearchInput, Section, SelectField, StatCard, StatusBadge, TextareaField, Toggle, Toolbar } from "@/components/page-kit";
@@ -521,7 +521,10 @@ export function ConsultasPage() {
 }
 
 export function PacientesPage() {
-  const { patients, appointments, insurances, activeSpecialties, checkEligibility, professionalById, addPatient, updatePatient, togglePatientStatus } = useClinic();
+  const { patients, appointments, insurances, activeSpecialties, checkEligibility, professionalById, addPatient, updatePatient, togglePatientStatus, deletePatient } = useClinic();
+  // Exclusão em dois passos: o primeiro clique mostra o que será apagado e pede confirmação.
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [search, setSearch] = useState(() => takeSearch("/pacientes"));
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
@@ -608,7 +611,7 @@ export function PacientesPage() {
       </div>
     </div>
 
-    <Modal open={formOpen || Boolean(patient)} title={patient ? "Editar paciente" : "Novo paciente"} onClose={() => { setFormOpen(false); setEditing(null); setInsuranceChoice(null); }}>
+    <Modal open={formOpen || Boolean(patient)} title={patient ? "Editar paciente" : "Novo paciente"} onClose={() => { setFormOpen(false); setEditing(null); setInsuranceChoice(null); setConfirmDelete(false); }}>
       <form className="grid gap-4 sm:grid-cols-2" onSubmit={submit}>
         <Field label="Nome completo" name="name" required defaultValue={patient?.name ?? ""} />
         <Field label="CPF" name="cpf" required defaultValue={patient?.cpf ?? ""} placeholder="000.000.000-00" inputMode="numeric" maxLength={14} onChange={(event) => { event.target.value = maskCpf(event.target.value); }} />
@@ -619,7 +622,27 @@ export function PacientesPage() {
         <InsuranceCardFields insurance={formInsurance} card={formInsurance === patient?.insurance ? patient?.card : undefined} renderField={(field) => <Field key={`${formInsurance}-${field.name}`} {...field} />} />
         <div className="flex flex-wrap gap-2 sm:col-span-2"><Button type="submit">{patient ? "Salvar alterações" : "Cadastrar paciente"}</Button>
           {patient?.status === "Ativo" && <Button type="button" variant="ghost" className="bg-soft" onClick={() => { togglePatientStatus(patient.id); toast.success("Cadastro desativado", { description: "O histórico de consultas continua guardado." }); setEditing(null); }}>Desativar cadastro</Button>}
+          {patient && !confirmDelete && <Button type="button" variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setConfirmDelete(true)}><Trash2 />Excluir paciente</Button>}
         </div>
+        {patient && confirmDelete && (() => {
+          const total = appointments.filter((item) => item.patientId === patient.id).length;
+          const paid = appointments.filter((item) => item.patientId === patient.id && item.payment?.status === "Pago").length;
+          return <div className="grid gap-3 rounded-md border border-destructive/40 p-3 text-xs sm:col-span-2 sm:text-sm">
+            {paid ? <p><b>{patient.name}</b> tem {paid} consulta(s) paga(s). Para manter o registro dos pagamentos, use "Desativar cadastro" em vez de excluir.</p>
+              : <p>Excluir <b>{patient.name}</b> de vez? Serão apagados o cadastro, o acesso ao portal{total ? `, ${total} consulta(s)` : ""} e as notificações. O CPF e o e-mail ficam livres para um novo cadastro. <b>Não dá para desfazer.</b></p>}
+            <div className="flex flex-wrap gap-2">
+              {!paid && <Button type="button" variant="destructive" disabled={deleting} onClick={async () => {
+                setDeleting(true);
+                const ok = await deletePatient(patient.id);
+                setDeleting(false);
+                if (!ok) return;
+                toast.success("Paciente excluído", { description: `${patient.name} foi removido do sistema.` });
+                setConfirmDelete(false); setEditing(null); setInsuranceChoice(null);
+              }}><Trash2 />{deleting ? "Excluindo..." : "Sim, excluir de vez"}</Button>}
+              <Button type="button" variant="outline" onClick={() => setConfirmDelete(false)}>Voltar</Button>
+            </div>
+          </div>;
+        })()}
       </form>
     </Modal>
 
