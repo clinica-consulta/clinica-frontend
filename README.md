@@ -348,6 +348,7 @@ O projeto resultou em uma interface publicada, integrada à API e utilizada pelo
 
 | Versão | Entregas |
 |---|---|
+| [1.10.1](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.10.1) | Site responsivo em tablet e celular e área do médico voltando a carregar |
 | [1.10.0](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.10.0) | Lista de espera por horário, Excluir no lugar de Desativar e convênios no cadastro |
 | [1.9.0](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.9.0) | Animação sutil ao rolar com GSAP |
 | [1.8.0](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.8.0) | Botão Excluir paciente no cadastro |
