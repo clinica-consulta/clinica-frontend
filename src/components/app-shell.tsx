@@ -154,7 +154,9 @@ function DesktopNav({ profile }: { profile: RoleProfile }) {
     <nav className="horizontal-nav mx-auto flex w-fit max-w-full items-center gap-1 overflow-x-auto" aria-label="Navegação principal">
       {profile.nav.map((item) => (
         <Link key={item.to} to={item.to} activeOptions={{ exact: true }} activeProps={{ className: pills ? "nav-pill-active" : "nav-active" }} className={pills ? "nav-link nav-pill" : "nav-link"}>
-          {item.label}
+          {/* Tablet e notebook pequeno: nomes curtos (os mesmos do menu do celular) para o menu caber inteiro. */}
+          <span className="xl:hidden">{item.short ?? item.label}</span>
+          <span className="hidden xl:inline">{item.label}</span>
         </Link>
       ))}
     </nav>

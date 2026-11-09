@@ -98,7 +98,7 @@ export function ProfessionalDashboardPage() {
           <span className="text-xs font-medium text-success md:hidden">Hoje</span>
         </div>
         <div className="space-y-3 md:space-y-4">
-          {today.filter((item) => item.confirmationReply === "Sem resposta").map((item) => <SummaryNote key={item.id} icon={<Info />} title="Confirmação pendente" text={`${clinic.patientById(item.patientId)?.name} ainda não confirmou o horário de ${item.time}.`} />)}
+          {today.filter((item) => item.confirmationReply === "Sem resposta" && appointmentPhase(item) === "antes").map((item) => <SummaryNote key={item.id} icon={<Info />} title="Confirmação pendente" text={`${clinic.patientById(item.patientId)?.name} ainda não confirmou o horário de ${item.time}.`} />)}
           <SummaryNote icon={<ClipboardPlus />} title={`${done.length} consulta(s) realizada(s)`} text="Registros enviados para o histórico do paciente." />
         </div>
         <div className="mt-4 grid gap-2 border-border md:mt-5 md:gap-0 md:border-t md:pt-3">
