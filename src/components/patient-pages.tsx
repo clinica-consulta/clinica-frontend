@@ -10,7 +10,7 @@ import { EmptyHint, Field, Modal, PageHeader, Section, SelectField, StatCard, St
 import { AppointmentForm } from "@/components/appointment-form";
 import { RescheduleModal } from "@/components/clinic-pages";
 import { InsuranceCardFields } from "@/components/insurance-card-fields";
-import { appointmentPhase, cardFromForm, formatDate, formatMoney, hasPassed, isoDate, openStatuses, relativeDay, weekdayName, weekdays, type Appointment } from "@/lib/clinic-data";
+import { appointmentPhase, cardFromForm, nowTime, WAITLIST_LIMIT, type WaitlistEntry, formatDate, formatMoney, hasPassed, isoDate, openStatuses, relativeDay, weekdayName, weekdays, type Appointment } from "@/lib/clinic-data";
 import { PaymentModal } from "@/components/payment-modal";
 import { takeSearch } from "@/lib/search-handoff";
 import { useClinic, useReports } from "@/lib/clinic-store";
@@ -122,6 +122,8 @@ export function PatientDashboardPage() {
         </article>
       ))}</div> : <div className="md:p-6"><EmptyHint>Nenhuma consulta agendada.</EmptyHint></div>}
     </section>
+
+    {patient && <MyWaitlist patientId={patient.id} />}
 
     <section className="mt-6 md:surface md:mt-8 md:overflow-hidden">
       <div className="flex items-center justify-between gap-2 px-1 pb-3 md:bg-soft/60 md:px-6 md:py-3.5">
@@ -262,7 +264,7 @@ export function PatientBookingPage() {
 }
 
 function PatientBookingForm({ patientId }: { patientId: string }) {
-  const { professionals, activeSpecialties, createAppointment, availableSlots, checkEligibility, patientById, settings } = useClinic();
+  const { professionals, activeSpecialties, createAppointment, availableSlots, checkEligibility, patientById, settings, busySlots, appointments, waitlist, joinWaitlist } = useClinic();
   const navigate = useNavigate();
   const patient = patientById(patientId);
   const [specialty, setSpecialty] = useState(() => takeSearch("/paciente/agendar") || activeSpecialties[0] || "");
@@ -279,7 +281,17 @@ function PatientBookingForm({ patientId }: { patientId: string }) {
   const [notes, setNotes] = useState("");
   const [time, setTime] = useState("");
   const [confirming, setConfirming] = useState(false);
+  // Horário ocupado que o paciente quer esperar (lista de espera). O horário livre escolhido vira a alternativa.
+  const [waitFor, setWaitFor] = useState<{ professionalId: string; date: string; time: string; position: number } | null>(null);
+  const [joining, setJoining] = useState(false);
   const slots = activeProfessionalId ? availableSlots(activeProfessionalId, date) : [];
+  const now = `${isoDate(0)}T${nowTime()}`;
+  const myAppointmentIds = new Set(appointments.filter((item) => item.patientId === patientId).map((item) => item.id));
+  const myQueue = (time: string) => waitlist.find((item) => item.patientId === patientId && item.professionalId === activeProfessionalId && item.date === date && item.time === time);
+  // Ocupados por outros pacientes, ainda no futuro: dá para entrar na lista de espera deles.
+  const occupied = activeProfessionalId
+    ? busySlots(activeProfessionalId, date).filter((slot) => !slot.reserved && !myAppointmentIds.has(slot.id) && `${slot.date}T${slot.time}` > now).sort((a, b) => a.time.localeCompare(b.time))
+    : [];
   const activeTime = slots.includes(time) ? time : slots[0] ?? "";
   const eligibility = activeSpecialty ? checkEligibility(patientId, activeSpecialty) : { ok: false, reason: "Selecione a especialidade." };
   const morning = slots.some((slot) => slot < "12:00");
@@ -289,11 +301,26 @@ function PatientBookingForm({ patientId }: { patientId: string }) {
   function review(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!eligibility.ok) { toast.error("Agendamento bloqueado", { description: eligibility.reason }); return; }
-    if (!activeProfessionalId || !activeTime) { toast.error("Selecione profissional e horário disponível."); return; }
+    if (!activeProfessionalId || !activeTime) { toast.error(waitFor ? "Escolha também um horário livre como alternativa." : "Selecione profissional e horário disponível."); return; }
     setConfirming(true);
   }
 
+  async function joinQueue() {
+    if (!waitFor) return;
+    setJoining(true);
+    const position = await joinWaitlist({ professionalId: waitFor.professionalId, date: waitFor.date, time: waitFor.time, alternative: { professionalId: activeProfessionalId, date, time: activeTime } });
+    setJoining(false);
+    setConfirming(false);
+    if (!position) return;
+    toast.success(`Você é o ${position}º da lista de espera`, { description: `Horário desejado: ${brDate(waitFor.date)} às ${waitFor.time}. Sua alternativa, ${brDate(date)} às ${activeTime}, já está marcada.` });
+    setWaitFor(null);
+    setNotes("");
+    setTime("");
+    navigate({ to: "/paciente" });
+  }
+
   function submit() {
+    if (waitFor) { void joinQueue(); return; }
     const created = createAppointment({ patientId, professionalId: activeProfessionalId, date, time: activeTime, notes, channel: "Paciente" });
     setConfirming(false);
     if (!created) { toast.error("Esse horário não está mais disponível."); return; }
@@ -348,6 +375,25 @@ function PatientBookingForm({ patientId }: { patientId: string }) {
                 {slots.length ? <div className="mt-2 grid grid-cols-4 gap-2 md:mt-0">{slots.map((slot) => (
                   <button type="button" key={slot} onClick={() => setTime(slot)} className={`h-9 rounded-lg text-[15px] font-semibold leading-5 transition-colors md:font-medium ${slot === activeTime ? "bg-strong text-strong-foreground md:ring-2 md:ring-strong md:ring-offset-2 md:ring-offset-soft" : `bg-soft hover:bg-accent md:bg-card md:shadow-[0_1px_2px_rgb(11_28_48/8%)]`}`}>{slot}</button>
                 ))}</div> : <div className="mt-2"><EmptyHint>Nenhum horário disponível nessa data.</EmptyHint></div>}
+                {waitFor && <div className="mt-3 rounded-lg border border-info/40 bg-card p-3 text-xs leading-5">
+                  <p><b>Lista de espera de {brDate(waitFor.date)} às {waitFor.time}:</b> você será o {waitFor.position}º.</p>
+                  <p className="mt-1 text-muted-foreground">Agora escolha acima um horário <b>livre</b> como alternativa. Ele fica marcado; se o horário desejado vagar e chegar a sua vez, avisamos e você pode trocar.</p>
+                  <button type="button" onClick={() => setWaitFor(null)} className="mt-2 font-semibold underline">Não quero entrar na lista</button>
+                </div>}
+                {occupied.length > 0 && <div className="mt-4">
+                  <p className="text-xs font-semibold text-soft-foreground">Horários ocupados · entre na lista de espera</p>
+                  <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">Até {WAITLIST_LIMIT} pessoas por horário. Você escolhe também um horário livre como alternativa.</p>
+                  <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">{occupied.map((slot) => {
+                    const mine = myQueue(slot.time);
+                    const full = slot.queue >= WAITLIST_LIMIT;
+                    const selected = waitFor?.date === slot.date && waitFor.time === slot.time && waitFor.professionalId === slot.professionalId;
+                    return <button type="button" key={slot.id} disabled={Boolean(mine) || full} onClick={() => setWaitFor({ professionalId: slot.professionalId, date: slot.date, time: slot.time, position: slot.queue + 1 })}
+                      className={`rounded-lg border px-2 py-1.5 text-left text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${selected ? "border-strong bg-strong text-strong-foreground" : "border-dashed border-input bg-card hover:bg-soft"}`}>
+                      <b className="block text-sm">{slot.time}</b>
+                      <span>{mine ? `Você é o ${mine.position ?? "?"}º` : full ? "Lista cheia" : slot.queue ? `Ocupado · ${slot.queue} na lista` : "Ocupado · lista vazia"}</span>
+                    </button>;
+                  })}</div>
+                </div>}
                 <p className="mt-4 hidden items-center gap-1.5 text-xs text-muted-foreground md:flex"><Clock3 className="size-3.5" />Duração estimada: 30 minutos por atendimento</p>
               </div>
             </div>
@@ -373,12 +419,12 @@ function PatientBookingForm({ patientId }: { patientId: string }) {
           <p className="flex items-center gap-2 text-xs text-muted-foreground"><ScrollText className="size-4 text-foreground" />Cancelamento e remarcação gratuitos até 24h antes do horário.</p>
           <div className="flex items-center gap-3">
             <Button type="button" variant="ghost" onClick={() => navigate({ to: "/paciente" })} className={`h-10 rounded-lg bg-card px-6 text-sm font-semibold ${softShadow}`}>Voltar</Button>
-            <Button type="submit" disabled={!slots.length || !eligibility.ok} className="h-10 rounded-lg bg-strong px-6 text-sm font-semibold hover:bg-strong/90">Continuar para confirmação<ArrowRight /></Button>
+            <Button type="submit" disabled={!slots.length || !eligibility.ok} className="h-10 rounded-lg bg-strong px-6 text-sm font-semibold hover:bg-strong/90">{waitFor ? "Entrar na lista e marcar alternativa" : "Continuar para confirmação"}<ArrowRight /></Button>
           </div>
         </div>
       </div>
       <div className="mt-4 md:hidden">
-        <Button type="submit" disabled={!slots.length || !eligibility.ok} className="h-12 w-full rounded-xl bg-primary text-base font-semibold shadow-[0_2px_6px_rgb(11_28_48/18%)]">Continuar para confirmação<ArrowRight /></Button>
+        <Button type="submit" disabled={!slots.length || !eligibility.ok} className="h-12 w-full rounded-xl bg-primary text-base font-semibold shadow-[0_2px_6px_rgb(11_28_48/18%)]">{waitFor ? "Entrar na lista e marcar alternativa" : "Continuar para confirmação"}<ArrowRight /></Button>
         <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted-foreground"><Lock className="size-3.5 text-success" />Cancelamento e remarcação gratuitos até 24h antes</p>
       </div>
     </form>
@@ -391,16 +437,77 @@ function PatientBookingForm({ patientId }: { patientId: string }) {
       ].map((item) => <article key={item.title} className="surface flex gap-4 p-4"><span className="grid size-9 shrink-0 place-items-center rounded-lg bg-soft text-foreground [&>svg]:size-[18px]">{item.icon}</span><div><p className="text-sm font-bold leading-5">{item.title}</p><p className="mt-1 text-xs leading-4 text-muted-foreground">{item.text}</p></div></article>)}
     </div>
 
-    <Modal open={confirming} title="Confirmar agendamento" description="Revise os dados antes de concluir." onClose={() => setConfirming(false)}>
+    <Modal open={confirming} title={waitFor ? "Entrar na lista de espera" : "Confirmar agendamento"} description={waitFor ? `Você será o ${waitFor.position}º da lista de ${brDate(waitFor.date)} às ${waitFor.time}. O horário abaixo fica marcado como alternativa.` : "Revise os dados antes de concluir."} onClose={() => setConfirming(false)}>
       <dl className="grid gap-2 rounded-xl bg-soft p-4 text-sm">
-        {[["Especialidade", activeSpecialty], ["Profissional", professional?.name ?? "—"], ["Data", `${weekdayName(date)}, ${brDate(date)}`], ["Horário", activeTime], ["Convênio", patient?.insurance ?? "—"], ["Observações", notes || "—"]].map(([k, v]) => <div key={k} className="flex justify-between gap-4"><dt className="text-muted-foreground">{k}</dt><dd className="text-right font-semibold">{v}</dd></div>)}
+        {[...(waitFor ? [["Horário desejado", `${brDate(waitFor.date)} às ${waitFor.time}`]] : []), ["Especialidade", activeSpecialty], ["Profissional", professional?.name ?? "—"], [waitFor ? "Alternativa (data)" : "Data", `${weekdayName(date)}, ${brDate(date)}`], [waitFor ? "Alternativa (horário)" : "Horário", activeTime], ["Convênio", patient?.insurance ?? "—"], ["Observações", notes || "—"]].map(([k, v]) => <div key={k} className="flex justify-between gap-4"><dt className="text-muted-foreground">{k}</dt><dd className="text-right font-semibold">{v}</dd></div>)}
       </dl>
       <div className="mt-5 flex justify-end gap-2">
         <Button type="button" variant="ghost" onClick={() => setConfirming(false)} className="h-10 rounded-lg bg-soft px-5 font-semibold">Voltar</Button>
-        <Button type="button" onClick={submit} className="h-10 rounded-lg bg-strong px-5 font-semibold hover:bg-strong/90"><CheckCircle2 />Confirmar agendamento</Button>
+        <Button type="button" onClick={submit} disabled={joining} className="h-10 rounded-lg bg-strong px-5 font-semibold hover:bg-strong/90"><CheckCircle2 />{waitFor ? (joining ? "Entrando..." : "Entrar na lista e marcar alternativa") : "Confirmar agendamento"}</Button>
       </div>
     </Modal>
   </>;
+}
+
+/* ---------------------------------------------------------------- Lista de espera */
+
+/** "Ficar com este horário" / "Não quero" para a vaga oferecida. */
+function WaitlistOfferButtons({ entry, onDone }: { entry: WaitlistEntry; onDone?: () => void }) {
+  const clinic = useClinic();
+  const [busy, setBusy] = useState(false);
+  const accept = async () => {
+    setBusy(true);
+    const ok = await clinic.acceptWaitlistOffer(entry.id);
+    setBusy(false);
+    if (!ok) return;
+    onDone?.();
+    toast.success("O horário é seu!", { description: `${brDate(entry.date)} às ${entry.time}. Sua consulta alternativa passou para esse horário.` });
+  };
+  const decline = async () => {
+    setBusy(true);
+    const ok = await clinic.removeFromWaitlist(entry.id);
+    setBusy(false);
+    if (!ok) return;
+    onDone?.();
+    toast.info("Tudo bem", { description: "O horário foi oferecido ao próximo da lista. Sua consulta alternativa continua marcada." });
+  };
+  return <span className="flex shrink-0 flex-wrap gap-2 self-center" onClick={(event) => event.stopPropagation()}>
+    <Button type="button" size="sm" disabled={busy} onClick={accept} className="h-9 rounded-lg px-4 font-semibold"><CheckCircle2 />Ficar com este horário</Button>
+    <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={decline} className="h-9 rounded-lg bg-soft px-3 font-semibold">Não quero</Button>
+  </span>;
+}
+
+/** Cartão da tela inicial: as listas de espera do paciente, com a posição e a vaga oferecida. */
+function MyWaitlist({ patientId }: { patientId: string }) {
+  const clinic = useClinic();
+  const [leaving, setLeaving] = useState<string | null>(null);
+  const mine = clinic.waitlist.filter((item) => item.patientId === patientId && item.professionalId).sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`));
+  if (!mine.length) return null;
+  const leave = async (id: string) => {
+    setLeaving(id);
+    if (await clinic.removeFromWaitlist(id)) toast.success("Você saiu da lista de espera", { description: "Sua consulta alternativa continua marcada." });
+    setLeaving(null);
+  };
+  return <section className="mt-6 md:surface md:mt-8 md:overflow-hidden">
+    <div className="flex items-center justify-between gap-2 px-1 pb-3 md:bg-soft/60 md:px-6 md:py-3.5">
+      <h2 className="eyebrow flex items-center gap-1.5 text-foreground md:text-muted-foreground"><Clock3 className="hidden size-4 text-foreground md:block" />Lista de espera ({mine.length})</h2>
+    </div>
+    <div className="grid gap-3 md:gap-0 md:divide-y md:divide-border/60">{mine.map((item) => {
+      const alternative = clinic.appointments.find((appointment) => appointment.id === item.alternativeId);
+      const offered = item.status === "Oferecido";
+      const until = item.offerExpiresAt ? new Date(item.offerExpiresAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "";
+      return <article key={item.id} className={`rounded-xl bg-card p-4 md:rounded-none md:px-6 ${offered ? "ring-2 ring-success md:ring-0 md:bg-success-soft/40" : ""}`}>
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="min-w-0">
+            <p className="text-[15px] font-bold">{weekdayName(item.date)}, {brDate(item.date)} às {item.time}</p>
+            <p className="text-sm text-muted-foreground">{clinic.professionalById(item.professionalId)?.name ?? "Médico"} · {item.specialty}</p>
+            <p className="mt-1 text-xs">{offered ? <b className="text-success-strong">O horário vagou e está reservado para você até as {until}.</b> : <>Você é o <b>{item.position ?? "?"}º</b> da lista.</>}{alternative ? ` Alternativa marcada: ${brDate(alternative.date)} às ${alternative.time}.` : ""}</p>
+          </div>
+          {offered ? <WaitlistOfferButtons entry={item} /> : <Button type="button" size="sm" variant="ghost" disabled={leaving === item.id} onClick={() => leave(item.id)} className="h-9 self-start rounded-lg bg-soft px-3 font-semibold md:self-center">Sair da lista</Button>}
+        </div>
+      </article>;
+    })}</div>
+  </section>;
 }
 
 /* ---------------------------------------------------------------- Notificações */
@@ -498,6 +605,11 @@ export function PatientNotificationsPage() {
                 clinic.setAppointmentStatus(pending.id, "Confirmada", "Paciente confirmou presença");
                 toast.success("Presença confirmada", { description: `${formatDate(pending.date)} às ${pending.time}` });
               }} className="h-9 w-full shrink-0 self-center rounded-lg px-4 text-sm font-semibold md:w-auto"><CheckCircle2 />Confirmar presença</Button>;
+            })()}
+            {(() => {
+              const entry = item.action === "fila" ? clinic.waitlist.find((queued) => queued.id === item.waitlistId) : undefined;
+              if (!entry || entry.status !== "Oferecido") return null;
+              return <WaitlistOfferButtons entry={entry} onDone={() => clinic.markNotificationRead(item.id)} />;
             })()}
             {item.action === "remarcar" && <Button type="button" onClick={(event) => {
               event.stopPropagation();

@@ -125,14 +125,28 @@ export function formatMoney(value: number) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+/** Até quantos pacientes podem esperar o mesmo horário. */
+export const WAITLIST_LIMIT = 5;
+
+/**
+ * Lista de espera de um horário já marcado (médico + data + hora).
+ * "Oferecido": o horário vagou e está reservado para este paciente até `offerExpiresAt`.
+ */
 export type WaitlistEntry = {
   id: string;
   patientId: string;
   specialty: string;
-  preference: string;
+  professionalId: string;
+  date: string;
+  time: string;
+  /** Consulta que o paciente marcou como alternativa (passa para o horário desejado se ele aceitar). */
+  alternativeId: string | null;
+  /** 1 = o próximo a receber a vaga. */
+  position: number | null;
+  offerExpiresAt: string | null;
   createdAt: string;
   priority: "Alta" | "Normal";
-  status: "Aguardando" | "Convidado";
+  status: "Aguardando" | "Oferecido" | "Convidado";
 };
 
 export type AppNotification = {
@@ -144,8 +158,10 @@ export type AppNotification = {
   read: boolean;
   /** Consulta ligada ao aviso, quando houver. */
   appointmentId: string | null;
-  /** "pagamento": consulta a pagar; "documento": atestado ou receita enviados pelo médico; "remarcar": o paciente faltou. */
-  action: "" | "pagamento" | "documento" | "remarcar";
+  /** "pagamento": consulta a pagar; "documento": atestado ou receita; "remarcar": o paciente faltou; "fila": o horário da lista de espera vagou. */
+  action: "" | "pagamento" | "documento" | "remarcar" | "fila";
+  /** Entrada da lista de espera ligada ao aviso (action "fila"). */
+  waitlistId: string | null;
 };
 
 export type StaffUser = {

@@ -4,7 +4,7 @@ import { showWelcomeToast } from "@/components/welcome-toast";
 import { cardFromForm, isoDate } from "@/lib/clinic-data";
 import { InsuranceCardFields } from "@/components/insurance-card-fields";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRight, CalendarDays, Eye, EyeOff, IdCard, KeyRound, LockKeyhole, Mail, Phone, ShieldCheck, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -19,8 +19,15 @@ export const Route = createFileRoute("/")({
 });
 function LoginPage() {
   const navigate = useNavigate();
-  const { login, signup, requestPasswordReset, resetPassword, insurances } = useClinic();
+  const { login, signup, requestPasswordReset, resetPassword, insurances, loadPublicInsurances } = useClinic();
+  // Enquanto os convênios carregam (a API pode estar acordando), "Particular" já fica disponível.
+  const signupInsurances = insurances.filter((item) => item.active).map((item) => item.name);
+  const insuranceOptions = signupInsurances.length ? signupInsurances : ["Particular"];
   const [mode, setMode] = useState<"login" | "signup">("login");
+  useEffect(() => {
+    if (mode === "signup" && !signupInsurances.length) loadPublicInsurances();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só ao abrir o cadastro sem convênios.
+  }, [mode]);
   /** Convênio escolhido no cadastro (os campos da carteirinha dependem dele). */
   const [signupInsurance, setSignupInsurance] = useState("Particular");
   const [showPassword, setShowPassword] = useState(false);
@@ -114,7 +121,8 @@ function LoginPage() {
                   <AuthField label="E-mail" name="email" icon={<Mail />} type="email" autoComplete="email" placeholder="voce@exemplo.com" />
                   <PasswordField label="Senha" name="password" minLength={6} show={showPassword} onToggle={() => setShowPassword((visible) => !visible)} autoComplete="new-password" placeholder="Crie uma senha (mín. 6 caracteres)" />
                   <AuthField label="Data de nascimento" name="birthDate" icon={<CalendarDays />} type="date" autoComplete="bday" dark />
-                  <AuthSelect label="Convênio" name="insurance" icon={<ShieldCheck />} value={signupInsurance} onChange={(event) => setSignupInsurance(event.target.value)} options={insurances.filter((item) => item.active).map((item) => item.name)} dark />
+                  <AuthSelect label="Convênio" name="insurance" icon={<ShieldCheck />} value={signupInsurance} onChange={(event) => setSignupInsurance(event.target.value)} options={insuranceOptions} dark />
+                  {!signupInsurances.length && <p className="text-[11px] text-muted-foreground">Carregando os convênios aceitos pela clínica…</p>}
                   <InsuranceCardFields insurance={signupInsurance} renderField={(field) => <AuthField key={`${signupInsurance}-${field.name}`} {...field} icon={field.type === "date" ? <CalendarDays /> : <ShieldCheck />} max={field.type === "date" ? "2100-12-31" : undefined} dark={field.type === "date"} />} />
                   <Button type="submit" size="lg" disabled={busy || Boolean(cpfError)} className="h-9 w-full rounded-xl text-sm font-semibold hover:bg-primary hover:text-primary-foreground">{busy ? "Criando..." : "Criar conta"} <ArrowRight /></Button>
                 </form>
