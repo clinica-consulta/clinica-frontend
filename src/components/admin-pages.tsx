@@ -208,7 +208,10 @@ const roleLabel = (role: string) => (role === "admin" ? "Administrador" : role =
 const USERS_PAGE = 4;
 
 export function AdminUsersPage() {
-  const { staff, patients, professionals, addStaff, updateStaff, togglePatientStatus, toggleProfessional } = useClinic();
+  const { staff, patients, professionals, appointments, addStaff, updateStaff, togglePatientStatus, toggleProfessional, deletePatient, deleteProfessional } = useClinic();
+  // Médico ou paciente a excluir (pede confirmação).
+  const [removingUser, setRemovingUser] = useState<{ kind: "medico" | "paciente"; id: string; name: string } | null>(null);
+  const [removingBusy, setRemovingBusy] = useState(false);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const editingStaff = staff.find((item) => item.id === editingId) ?? null;
@@ -217,8 +220,8 @@ export function AdminUsersPage() {
   const [page, setPage] = useState(0);
   const all = [
     ...staff.map((item) => ({ key: `s-${item.id}`, name: item.name, email: item.email, role: roleLabel(item.role), detail: "", admin: item.role === "admin", status: item.status as string, edit: () => setEditingId(item.id) as void, toggle: () => { updateStaff(item.id, { status: item.status === "Ativo" ? "Inativo" : "Ativo" }); toast.success("Acesso atualizado"); } })),
-    ...professionals.map((item) => ({ key: `m-${item.id}`, name: item.name, email: item.email, role: "Médico", detail: item.specialty, admin: false, status: item.active ? "Ativo" : "Inativo", edit: undefined as (() => void) | undefined, toggle: () => { toggleProfessional(item.id); toast.success("Acesso atualizado"); } })),
-    ...patients.map((item) => ({ key: `p-${item.id}`, name: item.name, email: item.email, role: "Paciente", detail: "", admin: false, status: item.status as string, edit: undefined as (() => void) | undefined, toggle: () => { togglePatientStatus(item.id); toast.success("Acesso atualizado"); } })),
+    ...professionals.map((item) => ({ key: `m-${item.id}`, name: item.name, email: item.email, role: "Médico", detail: item.specialty, admin: false, status: item.active ? "Ativo" : "Inativo", edit: undefined as (() => void) | undefined, toggle: () => { if (item.active) setRemovingUser({ kind: "medico", id: item.id, name: item.name }); else { toggleProfessional(item.id); toast.success("Médico reativado"); } } })),
+    ...patients.map((item) => ({ key: `p-${item.id}`, name: item.name, email: item.email, role: "Paciente", detail: "", admin: false, status: item.status as string, edit: undefined as (() => void) | undefined, toggle: () => { if (item.status === "Ativo") setRemovingUser({ kind: "paciente", id: item.id, name: item.name }); else { togglePatientStatus(item.id); toast.success("Paciente reativado"); } } })),
   ];
   const rows = all
     .filter((item) => (role === "Todos" ? true : item.role === role))
@@ -229,6 +232,20 @@ export function AdminUsersPage() {
   const actives = all.filter((item) => item.status === "Ativo").length;
   const pending = all.filter((item) => item.status === "Pendente").length;
   const roles = ["Todos", "Recepção", "Médico", "Administrador", "Paciente"];
+  const removeCount = removingUser ? appointments.filter((item) => (removingUser.kind === "medico" ? item.professionalId : item.patientId) === removingUser.id).length : 0;
+  async function confirmRemoveUser() {
+    if (!removingUser) return;
+    setRemovingBusy(true);
+    const ok = removingUser.kind === "medico" ? await deleteProfessional(removingUser.id) : await deletePatient(removingUser.id);
+    setRemovingBusy(false);
+    if (ok) { toast.success(removingUser.kind === "medico" ? "Médico excluído" : "Paciente excluído"); setRemovingUser(null); }
+  }
+  const removeUserModal = <Modal open={Boolean(removingUser)} title={removingUser?.kind === "medico" ? "Excluir médico" : "Excluir paciente"} onClose={() => setRemovingUser(null)}>
+    {removingUser && <div className="grid gap-4 text-sm">
+      <p>Excluir <b>{removingUser.name}</b> de vez? Serão apagados o cadastro, o login{removeCount ? <> e <b>{removeCount} consulta(s)</b>, inclusive as já pagas</> : ""}. <b>Não dá para desfazer.</b></p>
+      <div className="flex flex-wrap gap-2"><Button variant="destructive" disabled={removingBusy} onClick={() => void confirmRemoveUser()}><Trash2 />{removingBusy ? "Excluindo…" : "Sim, excluir de vez"}</Button><Button variant="ghost" className="bg-soft" onClick={() => setRemovingUser(null)}>Cancelar</Button></div>
+    </div>}
+  </Modal>;
   const avatarTone = (item: (typeof all)[number], mobile = false) => item.status === "Pendente" ? "bg-destructive-soft text-destructive" : item.admin ? (mobile ? "bg-avatar text-white" : "bg-success-soft text-success") : "bg-accent text-foreground";
   const roleIcon = (value: string) => value === "Administrador" ? <ShieldCheck /> : value === "Médico" ? <Stethoscope /> : value === "Paciente" ? <UserRound /> : <Contact />;
   const changeFilter = (value: string) => { setRole(value); setPage(0); };
@@ -248,7 +265,7 @@ export function AdminUsersPage() {
       <div className="mb-3 flex items-center justify-between"><p className="eyebrow">Usuários cadastrados ({rows.length})</p><span className="flex items-center gap-1.5 text-[11px] font-semibold text-success"><span className="size-1.5 rounded-full bg-success" />{actives} Ativos</span></div>
       {visible.length ? <div className="space-y-3">{visible.map((item) => <article key={item.key} className="surface p-4">
         <div className="flex items-start gap-3"><Initials name={item.name} className={`size-11 text-base ${avatarTone(item, true)}`} /><div className="min-w-0 flex-1 pt-1"><b className="flex items-center gap-1.5 text-[15px] font-semibold leading-5"><span className="truncate">{item.name}</span>{item.admin && <ShieldCheck className="size-3.5 shrink-0 text-muted-foreground" />}</b><p className="truncate text-[13px] text-muted-foreground">{item.email}</p></div><Pill status={item.status} /></div>
-        <div className="mt-3 flex items-center justify-between gap-3"><span className="flex min-w-0 items-center gap-1.5 truncate text-xs text-muted-foreground [&>svg]:size-3.5 [&>svg]:shrink-0">{roleIcon(item.role)}{item.role}{item.detail && <> • {item.detail}</>}</span><span className="flex shrink-0 gap-2">{item.edit && <button type="button" onClick={item.edit} className="h-8 rounded-lg bg-soft px-3 text-sm font-semibold">Editar</button>}<button type="button" onClick={item.toggle} className={`h-8 shrink-0 rounded-lg px-3.5 text-sm font-semibold ${item.status === "Ativo" ? "bg-accent text-foreground" : "bg-strong text-strong-foreground"}`}>{item.status === "Ativo" ? "Desativar" : "Ativar"}</button></span></div>
+        <div className="mt-3 flex items-center justify-between gap-3"><span className="flex min-w-0 items-center gap-1.5 truncate text-xs text-muted-foreground [&>svg]:size-3.5 [&>svg]:shrink-0">{roleIcon(item.role)}{item.role}{item.detail && <> • {item.detail}</>}</span><span className="flex shrink-0 gap-2">{item.edit && <button type="button" onClick={item.edit} className="h-8 rounded-lg bg-soft px-3 text-sm font-semibold">Editar</button>}<button type="button" onClick={item.toggle} className={`h-8 shrink-0 rounded-lg px-3.5 text-sm font-semibold ${item.status === "Ativo" ? "bg-accent text-foreground" : "bg-strong text-strong-foreground"}`}>{item.status === "Ativo" ? (item.role === "Médico" || item.role === "Paciente" ? "Excluir" : "Desativar") : "Ativar"}</button></span></div>
       </article>)}</div> : <EmptyHint>Nenhum usuário encontrado.</EmptyHint>}
     </div>
 
@@ -259,12 +276,13 @@ export function AdminUsersPage() {
         <div className="flex min-w-0 items-center gap-4"><Initials name={item.name} className={`size-10 text-sm ${avatarTone(item)}`} /><div className="min-w-0"><b className="flex items-center gap-1 text-sm font-semibold leading-5"><span className="truncate">{item.name}</span>{item.admin && <ShieldCheck className="size-4 shrink-0 text-success" />}</b><p className="truncate text-[13px] text-muted-foreground">{item.email}</p></div></div>
         <span className="text-[15px] text-muted-foreground">{item.role}</span>
         <DotStatus status={item.status} />
-        <span className="flex justify-self-end gap-2">{item.edit && <button type="button" onClick={item.edit} className="h-8 rounded-md px-3 text-sm font-semibold hover:bg-card">Editar</button>}<button type="button" onClick={item.toggle} className={`h-8 rounded-md px-4 text-sm font-semibold shadow-[0_1px_2px_rgb(0_0_0/6%)] ${item.status === "Ativo" ? "bg-card text-foreground" : "bg-success text-white"}`}>{item.status === "Ativo" ? "Desativar" : "Ativar"}</button></span>
+        <span className="flex justify-self-end gap-2">{item.edit && <button type="button" onClick={item.edit} className="h-8 rounded-md px-3 text-sm font-semibold hover:bg-card">Editar</button>}<button type="button" onClick={item.toggle} className={`h-8 rounded-md px-4 text-sm font-semibold shadow-[0_1px_2px_rgb(0_0_0/6%)] ${item.status === "Ativo" ? "bg-card text-foreground" : "bg-success text-white"}`}>{item.status === "Ativo" ? (item.role === "Médico" || item.role === "Paciente" ? "Excluir" : "Desativar") : "Ativar"}</button></span>
       </div>)}</div> : <EmptyHint>Nenhum usuário encontrado.</EmptyHint>}
       <div className="mt-8 flex items-center justify-between text-xs text-muted-foreground"><span>Exibindo {visible.length} de {rows.length} usuários registrados</span><span className="flex items-center gap-3"><button type="button" aria-label="Página anterior" disabled={current === 0} onClick={() => setPage(current - 1)} className="grid size-8 place-items-center rounded-md bg-soft disabled:opacity-40"><ChevronLeft className="size-4" /></button><b className="font-semibold text-foreground">Página {current + 1}</b><button type="button" aria-label="Próxima página" disabled={current >= pages - 1} onClick={() => setPage(current + 1)} className="grid size-8 place-items-center rounded-md bg-accent text-foreground disabled:opacity-40"><ChevronRight className="size-4" /></button></span></div>
     </section>
     {pages > 1 && <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground md:hidden"><span>Exibindo {visible.length} de {rows.length}</span><span className="flex items-center gap-3"><button type="button" aria-label="Página anterior" disabled={current === 0} onClick={() => setPage(current - 1)} className="grid size-8 place-items-center rounded-md bg-card disabled:opacity-40"><ChevronLeft className="size-4" /></button><b className="font-semibold text-foreground">Página {current + 1}</b><button type="button" aria-label="Próxima página" disabled={current >= pages - 1} onClick={() => setPage(current + 1)} className="grid size-8 place-items-center rounded-md bg-accent disabled:opacity-40"><ChevronRight className="size-4" /></button></span></div>}
 
+    {removeUserModal}
     <Modal open={open || Boolean(editingStaff)} title={editingStaff ? "Editar usuário interno" : "Novo usuário interno"} description={editingStaff ? editingStaff.email : "Cadastre equipe de recepção e administradores. A senha inicial é 123456 e a pessoa troca no primeiro acesso, clicando no próprio nome."} onClose={() => { setOpen(false); setEditingId(null); }}>
       <form key={editingStaff?.id ?? "novo"} className="grid gap-4" onSubmit={(event) => {
         event.preventDefault();
@@ -290,7 +308,7 @@ function StatStrip({ items }: { items: { icon: ReactNode; label: string; value: 
 
 export function AdminProfessionalsPage() {
   const { professionals, appointments, specialties, activeSpecialties, addProfessional, updateProfessional, toggleProfessional, deleteProfessional, session } = useClinic();
-  // Só a administração exclui médicos; a recepção pode cadastrar, editar e desativar.
+  // Só a administração exclui médicos; a recepção pode cadastrar e editar.
   const canDelete = session?.role === "admin";
   const [open, setOpen] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
@@ -353,7 +371,7 @@ export function AdminProfessionalsPage() {
         <p className="mt-4 flex items-center gap-2 truncate text-[13px] text-muted-foreground"><Mail className="size-4 shrink-0" />{professional.email}</p>
         <div className="mt-2 flex items-center justify-between rounded-lg bg-soft px-3 py-2.5 text-sm font-semibold"><span className="flex items-center gap-2"><CalendarCheck className="size-4" />Consultas registradas</span><b className="font-bold">{countFor(professional.id)}</b></div>
         <Button variant="ghost" onClick={() => setEditing(professional.id)} className="mt-4 h-11 w-full rounded-lg bg-accent text-[15px] font-semibold hover:bg-accent/80"><Pencil />Editar dados</Button>
-        <div className="mt-2 flex items-center justify-center gap-6"><button type="button" onClick={() => toggle(professional.id, professional.active)} className="flex h-9 items-center gap-1.5 text-sm font-medium"><Ban className="size-4" />{professional.active ? "Desativar médico" : "Ativar médico"}</button>{canDelete && <button type="button" onClick={() => setRemoving(professional.id)} className="flex h-9 items-center gap-1.5 text-sm font-medium text-destructive"><Trash2 className="size-4" />Excluir</button>}</div>
+        <div className="mt-2 flex items-center justify-center gap-6">{!professional.active && <button type="button" onClick={() => toggle(professional.id, professional.active)} className="flex h-9 items-center gap-1.5 text-sm font-medium"><Ban className="size-4" />Reativar médico</button>}{canDelete && <button type="button" onClick={() => setRemoving(professional.id)} className="flex h-9 items-center gap-1.5 text-sm font-medium text-destructive"><Trash2 className="size-4" />Excluir</button>}</div>
       </div>
       {/* Desktop */}
       <div className="hidden md:block">
@@ -363,7 +381,7 @@ export function AdminProfessionalsPage() {
         <p className="mt-1 truncate text-[13px] text-muted-foreground">{professional.email}</p>
         <div className="mt-6 border-t border-border pt-6 text-sm text-muted-foreground"><b className="mr-2 font-bold text-foreground">{countFor(professional.id)}</b>consultas registradas</div>
         <Button variant="ghost" onClick={() => setEditing(professional.id)} className="mt-6 h-9 w-full rounded-lg bg-accent text-sm font-semibold hover:bg-accent/80">Editar dados</Button>
-        <div className="mt-2 flex items-center justify-center gap-6"><button type="button" onClick={() => toggle(professional.id, professional.active)} className="h-8 text-xs font-medium text-muted-foreground hover:text-foreground">{professional.active ? "Desativar" : "Ativar"}</button>{canDelete && <button type="button" onClick={() => setRemoving(professional.id)} className="flex h-8 items-center gap-1 text-xs font-medium text-destructive hover:opacity-80"><Trash2 className="size-3.5" />Excluir</button>}</div>
+        <div className="mt-2 flex items-center justify-center gap-6">{!professional.active && <button type="button" onClick={() => toggle(professional.id, professional.active)} className="h-8 text-xs font-medium text-muted-foreground hover:text-foreground">Reativar</button>}{canDelete && <button type="button" onClick={() => setRemoving(professional.id)} className="flex h-8 items-center gap-1 text-xs font-medium text-destructive hover:opacity-80"><Trash2 className="size-3.5" />Excluir</button>}</div>
       </div>
     </article>)}</div> : <EmptyHint>Nenhum médico encontrado.</EmptyHint>}
 
@@ -374,14 +392,9 @@ export function AdminProfessionalsPage() {
     </aside>
 
     <Modal open={Boolean(toRemove)} title="Excluir médico" onClose={() => setRemoving(null)}>
-      {toRemove && (removeCount > 0
-        ? <div className="grid gap-4 text-sm">
-            <p><b>{toRemove.name}</b> tem {plural(removeCount, "consulta registrada", "consultas registradas")}. Para não apagar o histórico dos pacientes, ele não pode ser excluído.</p>
-            <p className="text-muted-foreground">Você pode desativá-lo: ele sai da agenda de marcação e perde o acesso ao sistema, mas o histórico continua guardado.</p>
-            <div className="flex flex-wrap gap-2">{toRemove.active && <Button onClick={() => { toggle(toRemove.id, true); setRemoving(null); }}><Ban />Desativar médico</Button>}<Button variant="ghost" className="bg-soft" onClick={() => setRemoving(null)}>Voltar</Button></div>
-          </div>
-        : <div className="grid gap-4 text-sm">
-            <p>Excluir <b>{toRemove.name}</b> ({toRemove.specialty})? O cadastro, o login e os bloqueios de agenda dele serão apagados. Isso não pode ser desfeito.</p>
+      {toRemove && (
+          <div className="grid gap-4 text-sm">
+            <p>Excluir <b>{toRemove.name}</b> ({toRemove.specialty}) de vez? Serão apagados o cadastro, o login, os bloqueios de agenda{removeCount ? <> e <b>{plural(removeCount, "consulta", "consultas")}</b> dele, inclusive as já pagas</> : ""}. <b>Não dá para desfazer.</b></p>
             <div className="flex flex-wrap gap-2"><Button variant="destructive" disabled={deleting} onClick={() => void confirmRemove()}><Trash2 />{deleting ? "Excluindo…" : "Excluir médico"}</Button><Button variant="ghost" className="bg-soft" onClick={() => setRemoving(null)}>Cancelar</Button></div>
           </div>)}
     </Modal>
@@ -651,7 +664,7 @@ export function AdminSettingsPage() {
       <div className="grid gap-5 md:flex md:items-center md:justify-between md:gap-6 md:rounded-lg md:bg-soft md:p-4">
         <label className="grid gap-2 text-[15px] font-semibold md:flex md:items-center md:gap-4">
           <span className="flex items-center gap-2"><Bell className="hidden size-4 text-info-strong md:block" />Antecedência do lembrete</span>
-          <span className="relative block md:w-56"><SiteSelect value={String(settings.reminderHours)} onChange={(event) => { updateSettings({ reminderHours: Number(event.target.value) }); toast.success("Antecedência atualizada"); }} className="h-11 w-full appearance-none rounded-lg bg-soft px-3.5 text-[15px] font-normal outline-none focus:ring-1 focus:ring-ring md:h-11 md:bg-card">{[12, 24, 48].map((hours) => <option key={hours} value={hours}>{hours} horas antes</option>)}</SiteSelect></span>
+          <span className="relative block md:w-56"><SiteSelect value={String(settings.reminderHours)} onChange={(event) => { updateSettings({ reminderHours: Number(event.target.value) }); toast.success("Antecedência atualizada"); }} className="h-11 w-full appearance-none rounded-lg bg-soft px-3.5 text-[15px] font-normal outline-none focus:ring-1 focus:ring-ring md:h-11 md:bg-card">{[1, 2, 3, 6, 12, 24, 48].map((hours) => <option key={hours} value={hours}>{hours} {hours === 1 ? "hora" : "horas"} antes</option>)}</SiteSelect></span>
         </label>
       </div>
       <div className="mt-6 md:mt-6 md:border-t md:border-border md:pt-6">
