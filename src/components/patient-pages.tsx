@@ -88,7 +88,7 @@ export function PatientDashboardPage() {
       </div>
       {upcoming.length ? <div className="grid gap-3 md:gap-0 md:divide-y md:divide-border/60">{upcoming.map((item) => (
         <article key={item.id} className="overflow-hidden rounded-xl border-t-4 border-success bg-card md:border-border/60 shadow-[0_1px_1px_rgb(0_0_0/5%)] md:rounded-none md:border-t-0 md:shadow-none">
-          <div className="hidden items-center gap-6 px-6 py-6 md:flex">
+          <div className="hidden items-center gap-6 px-6 py-6 lg:flex">
             <div className="grid w-[98px] shrink-0 place-items-center rounded-xl bg-soft py-3"><span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Horário</span><b className="text-[26px] font-bold leading-8">{item.time}</b></div>
             <div className="min-w-0 flex-1">
               <p className="flex items-center gap-2 text-base font-bold leading-6">{patient?.name}<span className="rounded bg-accent px-2 py-0.5 text-[11px] font-semibold text-accent-foreground">Presencial</span></p>
@@ -103,7 +103,7 @@ export function PatientDashboardPage() {
               <Button variant="ghost" onClick={() => cancel(item)} className="h-10 rounded-lg px-3.5 font-medium text-subtle-foreground">Cancelar</Button>
             </div>
           </div>
-          <div className="p-4 md:hidden">
+          <div className="p-4 md:px-6 lg:hidden">
             <div className="flex gap-3">
               <div className="grid h-[58px] w-[76px] shrink-0 place-items-center rounded-lg bg-soft"><b className="text-xl font-semibold leading-6">{item.time}</b><span className="text-xs text-muted-foreground">horário</span></div>
               <div className="min-w-0 flex-1">

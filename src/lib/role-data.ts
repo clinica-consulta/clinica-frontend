@@ -138,7 +138,7 @@ export const roleProfiles: Record<UserRole, RoleProfile> = {
     headerStyle: "tabs",
     notifications: "/administrador/notificacoes",
     nav: [
-      { to: "/administrador", label: "Visão geral", short: "Visão Geral", mobileTitle: "Overview", icon: LayoutDashboard },
+      { to: "/administrador", label: "Visão geral", short: "Visão Geral", mobileTitle: "Visão geral", icon: LayoutDashboard },
       { to: "/administrador/usuarios", label: "Usuários", icon: UsersRound },
       { to: "/administrador/profissionais", label: "Médicos", icon: Stethoscope },
       { to: "/administrador/especialidades", label: "Especialidades", icon: Tags, desktopOnly: true },
