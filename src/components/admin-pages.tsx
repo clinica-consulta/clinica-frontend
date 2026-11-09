@@ -61,7 +61,8 @@ export function AdminDashboardPage() {
       <div className="hidden items-center gap-3 md:flex"><span className="flex items-center gap-1.5 rounded-full bg-accent/70 px-3 py-1 text-xs font-medium"><span className="size-1.5 rounded-full bg-success" />Sistema Operacional</span><button type="button" onClick={() => void reload()} disabled={refreshing} aria-label="Atualizar dados" title="Atualizar dados" className="grid size-8 place-items-center rounded-lg text-muted-foreground hover:bg-soft hover:text-foreground"><RefreshCw className={`size-4 ${refreshing ? "animate-spin" : ""}`} /></button></div>
     </header>
 
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
+    {/* Celular e tablet: 2 por linha (o terceiro ocupa a linha toda); notebook: 3. */}
+    <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-3">
       <article className="surface p-4 md:flex md:gap-4 md:p-6">
         <span className="order-2 ml-auto grid size-8 place-items-center rounded-lg bg-accent/70 md:order-none md:ml-0 md:size-12 md:rounded-xl md:bg-soft [&>svg]:size-4 md:[&>svg]:size-5 float-right"><UsersRound /></span>
         <div><p className="text-sm leading-5">Usuários</p><p className="mt-3 flex items-baseline gap-1.5 text-[32px] font-bold leading-10 md:mt-0">{patients.length + professionals.length + staff.length}<span className="hidden rounded-full bg-success-soft/70 px-1.5 text-xs font-medium text-success md:inline">{staff.length} da equipe</span></p><p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground md:text-[13px]"><span className="size-1.5 rounded-full bg-success-soft md:bg-input" />{patients.length} pacientes<span className="hidden md:inline">cadastrados</span></p></div>
@@ -70,7 +71,7 @@ export function AdminDashboardPage() {
         <span className="float-right grid size-8 place-items-center rounded-lg bg-success-soft text-success md:size-12 md:rounded-xl [&>svg]:size-4 md:[&>svg]:size-5"><Stethoscope /></span>
         <div><p className="text-sm leading-5">Médicos ativos</p><p className="mt-3 flex items-baseline gap-1.5 text-[32px] font-bold leading-10 md:mt-0">{activePros.length}<span className="hidden text-xs font-medium text-ring md:inline">de {professionals.length} cadastrados</span></p><p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground md:text-[13px]"><span className="size-1.5 rounded-full bg-success" />{activeSpecs.length} <span className="md:hidden">esp. ativas</span><span className="hidden md:inline">especialidades ativas</span></p></div>
       </article>
-      <article className="surface col-span-2 flex items-center gap-4 p-4 md:col-span-1 md:items-start md:p-6">
+      <article className="surface col-span-2 flex items-center gap-4 p-4 md:p-6 lg:col-span-1 lg:items-start">
         <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-accent/60 md:size-12 md:bg-soft [&>svg]:size-5"><CalendarDays /></span>
         <div className="flex-1"><p className="text-sm leading-5">Consultas no mês</p><p className="flex items-baseline gap-2 text-[32px] font-bold leading-10">{monthly}<span className="text-xs font-normal text-muted-foreground"><span className="md:hidden">{reports.attendance}% de presença</span><span className="hidden md:inline">{todayCount} hoje</span></span></p><p className="hidden items-center gap-1.5 text-[13px] text-muted-foreground md:flex"><span className="size-1.5 rounded-full bg-success" /><b className="font-medium text-success">{reports.attendance}% de presença</b> média global</p></div>
         <span className="rounded-full bg-soft px-2.5 py-1 text-xs font-medium md:hidden">Em curso</span>
@@ -104,7 +105,7 @@ export function AdminDashboardPage() {
       <Button variant="ghost" onClick={() => setReportOpen(true)} className="col-span-2 h-12 rounded-xl bg-card text-[15px] shadow-[0_1px_1px_rgb(0_0_0/5%)]"><BarChart3 />Relatório completo</Button>
     </div>
 
-    <div className="mt-6 hidden gap-4 md:grid md:grid-cols-3">
+    <div className="mt-6 hidden gap-4 md:grid md:grid-cols-2 lg:grid-cols-3">
       <article className="surface flex flex-col p-6 pb-0">
         <div className="flex items-center justify-between"><h3 className="eyebrow text-foreground">Equipe médica ativa</h3><span className="size-2 rounded-full bg-success" /></div>
         <ul className="mt-3 flex-1 space-y-2.5">{activePros.slice(0, 3).map((pro) => <li key={pro.id} className="flex items-center gap-2.5"><span className="grid size-8 place-items-center rounded-full bg-strong text-xs font-bold text-strong-foreground">{initials(pro.name)}</span><span><b className="block text-sm font-medium leading-4">{pro.name}</b><span className="text-xs text-muted-foreground">{pro.specialty}</span></span></li>)}</ul>
@@ -303,7 +304,8 @@ export function AdminUsersPage() {
 /* ---------- Gestão de médicos ---------- */
 
 function StatStrip({ items }: { items: { icon: ReactNode; label: string; value: string }[] }) {
-  return <div className="mb-6 hidden grid-cols-4 gap-4 rounded-xl bg-soft p-2 md:mb-10 md:grid">{items.map((item) => <div key={item.label} className="flex items-center gap-3 rounded-lg bg-card px-4 py-2 shadow-[0_1px_2px_rgb(0_0_0/5%)]"><span className="[&>svg]:size-[18px]">{item.icon}</span><span className="min-w-0"><span className="block text-[11px] leading-4">{item.label}</span><b className="block truncate text-sm font-semibold leading-5">{item.value}</b></span></div>)}</div>;
+  // Tablet: 2 por linha (cabe o texto inteiro); telas largas: 4.
+  return <div className="mb-6 hidden grid-cols-2 gap-4 rounded-xl bg-soft p-2 md:mb-10 md:grid xl:grid-cols-4">{items.map((item) => <div key={item.label} className="flex items-center gap-3 rounded-lg bg-card px-4 py-2 shadow-[0_1px_2px_rgb(0_0_0/5%)]"><span className="[&>svg]:size-[18px]">{item.icon}</span><span className="min-w-0"><span className="block text-[11px] leading-4">{item.label}</span><b className="block truncate text-sm font-semibold leading-5">{item.value}</b></span></div>)}</div>;
 }
 
 export function AdminProfessionalsPage() {
@@ -350,7 +352,7 @@ export function AdminProfessionalsPage() {
   }
 
   return <>
-    <AdminHeader eyebrow="Equipe clínica" dot eyebrowClass="text-foreground md:text-success" title="Gestão de médicos" description={canDelete ? "Cadastre, edite, desative ou exclua médicos sem apagar o histórico de consultas." : "Cadastre, edite ou desative médicos sem apagar o histórico de consultas."} badge={<span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium">{actives} ativos</span>} action="Novo médico" onAction={() => setOpen(true)} mobileBlockAction />
+    <AdminHeader eyebrow="Equipe clínica" dot eyebrowClass="text-foreground md:text-success" title="Gestão de médicos" description={canDelete ? "Cadastre, edite e exclua os médicos da clínica." : "Cadastre e edite os médicos da clínica."} badge={<span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium">{actives} ativos</span>} action="Novo médico" onAction={() => setOpen(true)} mobileBlockAction />
 
     <StatStrip items={[
       { icon: <UserCheck />, label: "Ativos", value: plural(actives, "profissional", "profissionais") },
@@ -364,7 +366,7 @@ export function AdminProfessionalsPage() {
       <SelectField label="" aria-label="Filtrar por especialidade" value={specialtyFilter} onChange={(event) => setSpecialtyFilter(event.target.value)} options={[{ value: "Todas", label: "Todas as especialidades" }, ...specialties.map((item) => ({ value: item.name, label: item.name }))]} className="[&_button]:h-12" />
     </div>
 
-    {filtered.length ? <div className="grid gap-4 md:grid-cols-2 md:gap-6 lg:grid-cols-3">{filtered.map((professional) => <article key={professional.id} className="surface p-4 md:p-6">
+    {filtered.length ? <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 lg:grid-cols-3">{filtered.map((professional) => <article key={professional.id} className="surface p-4 md:p-6">
       {/* Mobile */}
       <div className="md:hidden">
         <div className="flex items-start gap-3"><Initials name={professional.name} className="size-12 bg-accent text-base text-foreground" /><div className="min-w-0 flex-1 pt-1.5"><h2 className="truncate text-base font-bold leading-5">{professional.name}</h2><p className="truncate text-xs text-muted-foreground">{professional.specialty} • {professional.crm}</p></div><Pill status={professional.active ? "Ativo" : "Inativo"} /></div>
@@ -387,8 +389,7 @@ export function AdminProfessionalsPage() {
 
     <aside className="mt-6 flex items-start gap-4 rounded-xl bg-soft p-4 md:mt-14 md:items-center md:p-6">
       <span className="grid size-8 shrink-0 place-items-center rounded-full bg-accent md:size-10 md:bg-success-soft md:text-success [&>svg]:size-4 md:[&>svg]:size-5"><ShieldCheck /></span>
-      <div className="min-w-0 flex-1"><b className="block text-sm font-bold leading-5 md:text-[15px] md:font-semibold"><span className="md:hidden">Histórico Preservado</span><span className="hidden md:inline">Histórico protegido e auditado</span></b><p className="text-xs leading-4 text-muted-foreground md:text-[13px]"><span className="md:hidden">Ao desativar um médico da equipe, os agendamentos anteriores e relatórios clínicos permanecem acessíveis no arquivo central.</span><span className="hidden md:inline">Desativar um médico remove-o da nova agenda de marcação, mantendo todos os prontuários anteriores intactos.</span></p></div>
-      <button type="button" onClick={() => toast.info("Políticas de desativação", { description: "Médicos inativos saem da agenda de marcação; consultas e prontuários anteriores continuam disponíveis." })} className="hidden shrink-0 items-center gap-1 text-sm font-semibold md:flex">Políticas de desativação<ArrowRight className="size-4" /></button>
+      <div className="min-w-0 flex-1"><b className="block text-sm font-bold leading-5 md:text-[15px] md:font-semibold"><span className="md:hidden">Exclusão definitiva</span><span className="hidden md:inline">Excluir um médico é definitivo</span></b><p className="text-xs leading-4 text-muted-foreground md:text-[13px]">Ao excluir, o cadastro, o acesso e as consultas do médico (inclusive as pagas) são apagados e não dá para desfazer.</p></div>
     </aside>
 
     <Modal open={Boolean(toRemove)} title="Excluir médico" onClose={() => setRemoving(null)}>
