@@ -238,7 +238,8 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         list("/consultas"),
         list("/consultas/ocupados"),
         list("/bloqueios"),
-        list("/fila-espera"),
+        // O médico não acessa a lista de espera (a API responde 403 e derrubaria a carga inteira).
+        list("/fila-espera", role !== "professional"),
         list("/notificacoes"),
         list("/usuarios", role === "admin"),
         api<Doc>("GET", "/configuracoes"),
