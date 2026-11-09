@@ -194,6 +194,9 @@ flowchart TD
 | Do horário até 1 hora depois | A consulta aparece em "Em atendimento"; o médico só registra o resultado nesse período |
 | Passou 1 hora sem registro | A API encerra a consulta sozinha e a tela se atualiza; a recepção ainda pode corrigir o resultado |
 | Paciente com convênio | O cadastro pede número, plano e validade da carteirinha; com a carteirinha vencida, o agendamento é bloqueado |
+| Horário ocupado | Aparece com o tamanho da lista de espera; o paciente entra na lista escolhendo um horário livre como alternativa |
+| Horário da lista vagou | O primeiro da lista vê "Ficar com este horário" na tela inicial e na notificação, com 2 horas para decidir |
+| Excluir médico ou paciente | Apaga também as consultas dele, inclusive as pagas; a confirmação mostra quantas |
 | Particular com pagamento pendente | A recepção pode lembrar o pagamento, no máximo uma vez a cada 24 horas |
 | Paciente não compareceu | O paciente recebe o aviso "Sentimos sua falta" com o botão "Agendar novo horário" |
 
@@ -218,7 +221,7 @@ flowchart TD
 | **Agenda** | Agenda de todos os médicos, com filtros e horários livres, ocupados e bloqueados |
 | **Consultas** | Filtros por data, médico, especialidade e status; agendar, confirmar, remarcar, cancelar, enviar lembretes e registrar realizada ou não compareceu |
 | **Pacientes** | Cadastro com máscaras de CPF e telefone, edição, desativação e histórico |
-| **Fila de espera** | Pacientes aguardando vaga, com prioridade, convite e agendamento direto |
+| **Fila de espera** | Listas de espera por horário (até 5 pacientes), com a vaga oferecida e a consulta alternativa de cada um |
 | **Médicos** | Corpo clínico com filtro por especialidade |
 | **Horários e bloqueios** | Expedientes dos médicos e bloqueio de horários ou períodos |
 | **Notificações** | Avisos da equipe e envio de avisos a pacientes e médicos |
@@ -345,6 +348,7 @@ O projeto resultou em uma interface publicada, integrada à API e utilizada pelo
 
 | Versão | Entregas |
 |---|---|
+| [1.10.0](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.10.0) | Lista de espera por horário, Excluir no lugar de Desativar e convênios no cadastro |
 | [1.9.0](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.9.0) | Animação sutil ao rolar com GSAP |
 | [1.8.0](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.8.0) | Botão Excluir paciente no cadastro |
 | [1.7.1](https://github.com/clinica-consulta/clinica-frontend/releases/tag/v1.7.1) | Horário já marcado some da agenda para todos, inclusive na tela do paciente |

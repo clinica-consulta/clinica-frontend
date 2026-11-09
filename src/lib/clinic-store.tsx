@@ -54,7 +54,14 @@ type ClinicState = {
   session: Session | null;
 };
 
-type BusySlot = { id: string; professionalId: string; date: string; time: string };
+/** Horário ocupado; `queue` = quantos esperam na lista; `reserved` = oferecido a alguém da lista de espera. */
+type BusySlot = { id: string; professionalId: string; date: string; time: string; queue: number; reserved: boolean };
+
+const busyFrom = (busy: Doc[]): BusySlot[] =>
+  busy.map((item) => {
+    const raw = item as Record<string, unknown>;
+    return { id: String(item.id), professionalId: String(raw["profissional"]), date: String(raw["data"]), time: String(raw["hora"]), queue: Number(raw["fila"] ?? 0), reserved: Boolean(raw["reservado"]) };
+  });
 
 const emptyState: ClinicState = {
   patients: [],
@@ -111,6 +118,8 @@ type ClinicContextValue = ClinicState & {
   verifyPayment: (id: string) => Promise<Appointment>;
   /** Recarrega todos os dados da API. */
   refresh: () => Promise<void>;
+  /** Busca de novo os convênios da tela de cadastro (sem login). */
+  loadPublicInsurances: () => void;
   patientById: (id: string) => Patient | undefined;
   professionalById: (id: string) => Professional | undefined;
   /** Mesmas regras da API; `date` é o dia da consulta (a carteirinha precisa estar válida nele). */
@@ -142,9 +151,14 @@ type ClinicContextValue = ClinicState & {
   toggleInsurance: (id: string) => void;
   addBlock: (input: Omit<ScheduleBlock, "id">) => void;
   removeBlock: (id: string) => void;
-  addToWaitlist: (input: Omit<WaitlistEntry, "id" | "createdAt" | "status">) => void;
-  inviteFromWaitlist: (id: string) => void;
-  removeFromWaitlist: (id: string) => void;
+  /** Horários ocupados (de qualquer paciente), com o tamanho da lista de espera de cada um. */
+  busySlots: (professionalId: string, date: string) => BusySlot[];
+  /** Entra na lista de espera de um horário ocupado; o paciente marca junto um horário alternativo. Devolve a posição ou null (com aviso). */
+  joinWaitlist: (input: { patientId?: string; professionalId: string; date: string; time: string; alternative?: { professionalId: string; date: string; time: string } }) => Promise<number | null>;
+  /** Fica com o horário que vagou (a consulta alternativa passa para ele). */
+  acceptWaitlistOffer: (id: string) => Promise<boolean>;
+  /** Sai da lista (ou recusa a vaga oferecida, que passa para o próximo). */
+  removeFromWaitlist: (id: string) => Promise<boolean>;
   addStaff: (input: Omit<StaffUser, "id" | "status"> & { status?: StaffUser["status"] }) => void;
   updateStaff: (id: string, changes: Partial<StaffUser>) => void;
   notify: (input: { title: string; text: string; audience: UserRole[] }) => void;
@@ -182,10 +196,24 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
   const roleRef = useRef<UserRole | null>(null);
 
   /** Convênios são públicos: a tela de cadastro precisa deles mesmo sem login. */
+  // Convênios para a tela de cadastro (sem login). A API do Render dorme quando fica parada e leva
+  // perto de 1 minuto para acordar: se a primeira chamada falhar, tenta de novo a cada 5 s (até ~3 min).
+  const insuranceRetry = useRef<number | null>(null);
   const loadPublicInsurances = useCallback(() => {
-    api<Doc[]>("GET", "/convenios")
-      .then((docs) => !roleRef.current && setState((current) => ({ ...current, insurances: docs.map(fromApi.insurance) })))
-      .catch(() => undefined);
+    if (insuranceRetry.current) window.clearTimeout(insuranceRetry.current);
+    let attempts = 0;
+    const attempt = () => {
+      attempts += 1;
+      api<Doc[]>("GET", "/convenios")
+        .then((docs) => {
+          insuranceRetry.current = null;
+          if (!roleRef.current) setState((current) => ({ ...current, insurances: docs.map(fromApi.insurance) }));
+        })
+        .catch(() => {
+          if (attempts < 36 && !roleRef.current) insuranceRetry.current = window.setTimeout(attempt, 5000);
+        });
+    };
+    attempt();
   }, []);
 
   const logout = useCallback(() => {
@@ -210,7 +238,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         list("/consultas"),
         list("/consultas/ocupados"),
         list("/bloqueios"),
-        list("/fila-espera", staff),
+        list("/fila-espera"),
         list("/notificacoes"),
         list("/usuarios", role === "admin"),
         api<Doc>("GET", "/configuracoes"),
@@ -222,7 +250,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         specialties: specialties.map(fromApi.specialty),
         insurances: insurances.map(fromApi.insurance),
         appointments: appointments.map(fromApi.appointment),
-        busy: busy.map((item) => ({ id: String(item.id), professionalId: String(item["profissional"]), date: String(item["data"]), time: String(item["hora"]) })),
+        busy: busyFrom(busy),
         blocks: blocks.map(fromApi.block),
         waitlist: waitlist.map(fromApi.waitlist),
         notifications: notifications.map(fromApi.notification),
@@ -327,7 +355,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     const timer = window.setInterval(() => {
       if (!roleRef.current) return;
       api<Doc[]>("GET", "/consultas/ocupados")
-        .then((busy) => setState((current) => ({ ...current, busy: busy.map((item) => ({ id: String(item.id), professionalId: String(item["profissional"]), date: String(item["data"]), time: String(item["hora"]) })) })))
+        .then((busy) => setState((current) => ({ ...current, busy: busyFrom(busy) })))
         .catch(() => undefined);
     }, 60_000);
     return () => window.clearInterval(timer);
@@ -403,6 +431,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       checkEligibility,
       availableSlots,
       refresh,
+      loadPublicInsurances,
       logout,
 
       login: async (email, password) => {
@@ -654,19 +683,49 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         send(api("DELETE", `/bloqueios/${id}`));
       },
 
-      addToWaitlist: (input) => {
-        setState((current) => ({ ...current, waitlist: [...current.waitlist, { ...input, id: tempId("w"), createdAt: isoDate(0), status: "Aguardando" }] }));
-        send(api("POST", "/fila-espera", toApi.waitlist(input)), "Não foi possível adicionar à fila");
+      busySlots: (professionalId, date) => state.busy.filter((item) => item.professionalId === professionalId && item.date === date),
+
+      joinWaitlist: async ({ patientId, professionalId, date, time, alternative }) => {
+        try {
+          const created = await api<Doc>("POST", "/fila-espera", {
+            ...(patientId && { paciente: patientId }),
+            profissional: professionalId,
+            data: date,
+            hora: time,
+            ...(alternative && { alternativa: { profissional: alternative.professionalId, data: alternative.date, hora: alternative.time } }),
+          });
+          return Number((created as Record<string, unknown>)["posicao"] ?? 0) || null;
+        } catch (error) {
+          toast.error("Não foi possível entrar na lista de espera", { description: (error as Error).message });
+          return null;
+        } finally {
+          await refresh();
+        }
       },
 
-      inviteFromWaitlist: (id) => {
-        patchList("waitlist", id, (item) => ({ ...item, status: "Convidado" }));
-        send(api("PATCH", `/fila-espera/${id}/convidar`));
+      acceptWaitlistOffer: async (id) => {
+        try {
+          await api("POST", `/fila-espera/${id}/aceitar`);
+          return true;
+        } catch (error) {
+          toast.error("Não foi possível ficar com o horário", { description: (error as Error).message });
+          return false;
+        } finally {
+          await refresh();
+        }
       },
 
-      removeFromWaitlist: (id) => {
-        setState((current) => ({ ...current, waitlist: current.waitlist.filter((item) => item.id !== id) }));
-        send(api("DELETE", `/fila-espera/${id}`));
+      removeFromWaitlist: async (id) => {
+        try {
+          await api("DELETE", `/fila-espera/${id}`);
+          setState((current) => ({ ...current, waitlist: current.waitlist.filter((item) => item.id !== id) }));
+          return true;
+        } catch (error) {
+          toast.error("Não foi possível sair da lista", { description: (error as Error).message });
+          return false;
+        } finally {
+          void refresh();
+        }
       },
 
       addStaff: (input) => {
@@ -708,7 +767,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         send(api("PUT", "/configuracoes", toApi.settings(changes)), "Não foi possível salvar as configurações");
       },
     };
-  }, [state, hydrated, availableSlots, checkEligibility, patientById, professionalById, refresh, logout, send, startSession, personalize]);
+  }, [state, hydrated, availableSlots, checkEligibility, patientById, professionalById, refresh, loadPublicInsurances, logout, send, startSession, personalize]);
 
   return <ClinicContext.Provider value={value}>{children}</ClinicContext.Provider>;
 }
