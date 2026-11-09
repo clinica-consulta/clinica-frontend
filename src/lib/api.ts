@@ -185,13 +185,24 @@ export const fromApi = {
     history: ((doc.historico as { em: string; texto: string }[]) ?? []).map((item) => ({ at: item.em, text: item.texto })),
     payment: paymentFrom(doc.pagamento),
   }),
-  waitlist: (doc: Doc): WaitlistEntry => ({
-    ...(rename(doc, invert(waitlistFields)) as Omit<WaitlistEntry, "id" | "createdAt" | "status">),
-    id: doc.id,
-    patientId: str(doc.paciente),
-    createdAt: str(doc.entradaEm),
-    status: doc.status as WaitlistEntry["status"],
-  }),
+  waitlist: (doc: Doc): WaitlistEntry => {
+    const raw = doc as Record<string, unknown>;
+    const offer = (raw["oferta"] ?? {}) as { expiraEm?: string | null };
+    return {
+      id: doc.id,
+      patientId: str(doc.paciente),
+      specialty: str(doc.especialidade),
+      professionalId: str(doc.profissional),
+      date: str(doc.data),
+      time: str(doc.hora),
+      alternativeId: raw["consultaAlternativa"] ? String(raw["consultaAlternativa"]) : null,
+      position: typeof raw["posicao"] === "number" ? (raw["posicao"] as number) : null,
+      offerExpiresAt: offer.expiraEm ?? null,
+      createdAt: str(doc.entradaEm),
+      priority: (str(raw["prioridade"]) || "Normal") as WaitlistEntry["priority"],
+      status: doc.status as WaitlistEntry["status"],
+    };
+  },
   notification: (doc: Doc): AppNotification => ({
     id: doc.id,
     title: str(doc.titulo),
@@ -200,7 +211,8 @@ export const fromApi = {
     audience: ((doc.publico as string[]) ?? []).map(fromApiRole).filter(Boolean),
     read: Boolean(doc.lida),
     appointmentId: doc.consulta ? str(doc.consulta) : null,
-    action: doc.acao === "pagamento" || doc.acao === "documento" || doc.acao === "remarcar" ? doc.acao : "",
+    action: doc.acao === "pagamento" || doc.acao === "documento" || doc.acao === "remarcar" || doc.acao === "fila" ? doc.acao : "",
+    waitlistId: (doc as Record<string, unknown>)["fila"] ? String((doc as Record<string, unknown>)["fila"]) : null,
   }),
   staff: (doc: Doc): StaffUser => ({ id: doc.id, name: str(doc.nome), email: str(doc.email), role: fromApiRole(str(doc.tipo)), status: doc.status as StaffUser["status"] }),
   settings: (doc: Doc): ClinicSettings => rename(doc, invert(settingsFields)) as ClinicSettings,
