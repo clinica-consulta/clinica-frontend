@@ -92,8 +92,9 @@ function LoginPage() {
   }
 
   return (
-    <main className={`relative flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden px-4 transition-colors duration-700 bg-background`}>
-      <section className={`mx-auto flex min-h-0 w-full max-w-[370px] flex-1 flex-col justify-center overflow-hidden font-display ${isSignup ? "py-1" : "py-6"}`}>
+    <main className={`relative flex min-h-dvh flex-col overflow-x-hidden px-4 transition-colors duration-700 bg-background`}>
+      {/* Altura mínima (não fixa): quando o formulário não cabe na tela (celular, cadastro com convênio), a página rola. */}
+      <section className={`mx-auto flex w-full max-w-[370px] flex-1 flex-col justify-center font-display ${isSignup ? "py-3" : "py-6"}`}>
         <div className={`${isSignup ? "mb-2" : "mb-4"} flex items-center justify-center gap-2`} aria-label="Gestão de Consultas">
           <img src={logo} alt="" className={`${isSignup ? "size-9 sm:size-10" : "size-10 sm:size-12"} object-contain`} />
           <span className={`font-display text-lg uppercase transition-colors duration-700 sm:text-xl text-primary`}>Gestão de Consultas</span>
