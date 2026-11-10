@@ -19,7 +19,7 @@ export function InfoLinks({ topics, separator }: { topics: Topic[]; separator?: 
     terms: <div className="space-y-3 text-sm text-muted-foreground">
       <p>Ao usar o sistema você se compromete a informar dados verdadeiros e a manter sua senha em segredo.</p>
       <p>Consultas podem ser canceladas ou remarcadas pelo próprio site. Faltas sem aviso ficam registradas no histórico.</p>
-      <p>O pagamento de consultas particulares neste site é uma simulação: nenhum valor é cobrado de verdade.</p>
+      <p>A consulta particular é cobrada depois de realizada e pode ser paga pelo site (Pix, cartão ou boleto, processados pelo Stripe) ou na recepção. Os dados de pagamento não passam pelos servidores da clínica.</p>
     </div>,
     support: <div className="space-y-3 text-sm">
       <p className="text-muted-foreground">Fale com a equipe de {clinic}:</p>

@@ -156,7 +156,7 @@ flowchart TD
 | RF06 | Permitir ao paciente confirmar, remarcar e cancelar consultas. |
 | RF07 | Exibir o histórico de consultas e o histórico de alterações de cada consulta. |
 | RF08 | Disponibilizar à recepção a agenda de todos os médicos, com filtros. |
-| RF09 | Permitir à recepção cadastrar pacientes, gerenciar a fila de espera, enviar lembretes e registrar bloqueios. |
+| RF09 | Permitir à recepção cadastrar pacientes, acompanhar as listas de espera por horário, pedir confirmações e registrar bloqueios. |
 | RF10 | Permitir ao profissional registrar atendimento ou ausência e emitir atestados e receitas. |
 | RF11 | Permitir ao administrador gerenciar usuários, médicos, especialidades, convênios, expedientes e configurações. |
 | RF12 | Exibir indicadores e permitir a exportação de planilhas e relatórios. |
@@ -184,10 +184,10 @@ flowchart TD
 | Agendamento para hoje | Só aparecem horários a partir da hora atual |
 | Consulta cancelada | O horário volta a ficar livre na agenda |
 | Consulta remarcada | O paciente precisa confirmar a nova data |
-| Paciente, médico ou especialidade desativados | Deixam de aparecer no agendamento, mas o histórico continua visível |
-| Médico com consultas | Não pode ser excluído, apenas desativado |
+| Especialidade ou convênio desativados | Deixam de aparecer no agendamento, mas o histórico continua visível |
 | Consulta particular realizada | O botão de pagamento aparece na consulta e nas notificações |
 | Consulta marcada | Fica aguardando confirmação; o botão de confirmar só aparece para o paciente depois que a recepção envia o pedido de confirmação |
+| Cancelar ou remarcar | O paciente pode cancelar ou remarcar sem custo até o horário da consulta |
 | Consultas e agenda do médico | Abrem no dia de hoje e viram o dia sozinhas à meia-noite; setas para os outros dias e opção "Todas as datas" |
 | Antes do horário da consulta | A recepção pode pedir a confirmação, remarcar ou cancelar (com confirmação) |
 | Resultado da consulta | A recepção marca "Realizada" ou "Não aconteceu" a qualquer momento e pode corrigir depois; consulta paga não deixa de ser realizada |
@@ -197,7 +197,7 @@ flowchart TD
 | Horário ocupado | Aparece com o tamanho da lista de espera; o paciente entra na lista escolhendo um horário livre como alternativa |
 | Horário da lista vagou | O primeiro da lista vê "Ficar com este horário" na tela inicial e na notificação, com 2 horas para decidir |
 | Excluir médico ou paciente | Apaga também as consultas dele, inclusive as pagas; a confirmação mostra quantas |
-| Particular com pagamento pendente | A recepção pode lembrar o pagamento, no máximo uma vez a cada 24 horas |
+| Particular com pagamento pendente | A recepção pode lembrar o pagamento, no máximo uma vez a cada 24 horas, ou registrar o pagamento feito no balcão |
 | Paciente não compareceu | O paciente recebe o aviso "Sentimos sua falta" com o botão "Agendar novo horário" |
 
 ---
@@ -219,12 +219,12 @@ flowchart TD
 |---|---|
 | **Dashboard** | Indicadores e atendimentos do dia; um horário vago abre o agendamento já preenchido |
 | **Agenda** | Agenda de todos os médicos, com filtros e horários livres, ocupados e bloqueados |
-| **Consultas** | Filtros por data, médico, especialidade e status; agendar, confirmar, remarcar, cancelar, enviar lembretes e registrar realizada ou não compareceu |
-| **Pacientes** | Cadastro com máscaras de CPF e telefone, edição, desativação e histórico |
+| **Consultas** | Filtros por data, médico, especialidade e status; agendar, confirmar, remarcar, cancelar, pedir confirmação, registrar realizada ou não compareceu e registrar o pagamento feito no balcão |
+| **Pacientes** | Cadastro com máscaras de CPF e telefone, edição, exclusão completa e histórico |
 | **Fila de espera** | Listas de espera por horário (até 5 pacientes), com a vaga oferecida e a consulta alternativa de cada um |
 | **Médicos** | Corpo clínico com filtro por especialidade |
 | **Horários e bloqueios** | Expedientes dos médicos e bloqueio de horários ou períodos |
-| **Notificações** | Avisos da equipe e envio de avisos a pacientes e médicos |
+| **Notificações** | Avisos da equipe, como entradas na lista de espera, consultas encerradas e pedidos dos médicos |
 
 ### 8.3 Profissional de saúde
 
@@ -242,7 +242,7 @@ flowchart TD
 |---|---|
 | **Visão geral** | Indicadores da clínica, relatório completo e planilhas de consultas e de alterações prontas para o Excel |
 | **Usuários** | Acessos da recepção e de outros administradores |
-| **Médicos** | Cadastro, edição, ativação, desativação e exclusão de médicos sem consultas |
+| **Médicos** | Cadastro, edição e exclusão completa (com as consultas do médico) |
 | **Especialidades** | Catálogo de especialidades |
 | **Agendas e horários** | Expediente semanal de cada médico e bloqueios |
 | **Configurações** | Dados da clínica, convênios com as especialidades cobertas e valor da consulta particular |
