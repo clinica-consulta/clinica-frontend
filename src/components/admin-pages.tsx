@@ -607,7 +607,7 @@ export function AdminSettingsPage() {
 
     <div className="grid gap-4 md:gap-6 lg:grid-cols-[minmax(0,1fr)_390px] lg:items-start">
       <section className="surface p-6">
-        <CardTitle icon={<Building2 />} action={<><span className="rounded-full bg-success-soft px-2 py-0.5 text-[11px] font-medium text-success-strong md:hidden">Ativa</span><span className="hidden rounded bg-soft px-2 py-1 text-[11px] font-medium md:inline">ID: CLI-2026-SP</span></>}>Dados da clínica</CardTitle>
+        <CardTitle icon={<Building2 />} action={<span className="rounded-full bg-success-soft px-2 py-0.5 text-[11px] font-medium text-success-strong">Ativa</span>}>Dados da clínica</CardTitle>
         <form key={`${settings.name}-${settings.appointmentPrice}`} className="grid gap-4 md:grid-cols-2 md:gap-x-4 md:gap-y-4 md:pt-4" onSubmit={(event) => {
           event.preventDefault();
           const data = new FormData(event.currentTarget);

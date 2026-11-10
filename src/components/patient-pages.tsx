@@ -361,7 +361,7 @@ function PatientBookingForm({ patientId }: { patientId: string }) {
             <div className="mb-4 flex items-center justify-between gap-2">
               <h2 className="eyebrow flex items-center gap-1.5 text-soft-foreground md:hidden"><CalendarDays className="size-4 text-foreground" />Data e horário</h2>
               <h2 className="hidden text-[17px] font-bold leading-6 md:block">Data e horário</h2>
-              <span className={`${chip} md:hidden`}>Passo 2 de 3</span>
+              <span className={`${chip} md:hidden`}>Etapa 1 de 2</span>
               <span className="hidden text-xs text-muted-foreground md:block">Fuso horário: Horário de Brasília (GMT-3)</span>
             </div>
             <div className="grid gap-4 md:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)] md:items-start md:gap-6">
@@ -416,7 +416,7 @@ function PatientBookingForm({ patientId }: { patientId: string }) {
           </section>
         </div>
         <div className="hidden items-center justify-between gap-4 border-t border-border/70 px-6 py-5 md:flex">
-          <p className="flex items-center gap-2 text-xs text-muted-foreground"><ScrollText className="size-4 text-foreground" />Cancelamento e remarcação gratuitos até 24h antes do horário.</p>
+          <p className="flex items-center gap-2 text-xs text-muted-foreground"><ScrollText className="size-4 text-foreground" />Cancelamento e remarcação gratuitos até o horário da consulta.</p>
           <div className="flex items-center gap-3">
             <Button type="button" variant="ghost" onClick={() => navigate({ to: "/paciente" })} className={`h-10 rounded-lg bg-card px-6 text-sm font-semibold ${softShadow}`}>Voltar</Button>
             <Button type="submit" disabled={!slots.length || !eligibility.ok} className="h-10 rounded-lg bg-strong px-6 text-sm font-semibold hover:bg-strong/90">{waitFor ? "Entrar na lista e marcar alternativa" : "Continuar para confirmação"}<ArrowRight /></Button>
@@ -425,7 +425,7 @@ function PatientBookingForm({ patientId }: { patientId: string }) {
       </div>
       <div className="mt-4 md:hidden">
         <Button type="submit" disabled={!slots.length || !eligibility.ok} className="h-12 w-full rounded-xl bg-primary text-base font-semibold shadow-[0_2px_6px_rgb(11_28_48/18%)]">{waitFor ? "Entrar na lista e marcar alternativa" : "Continuar para confirmação"}<ArrowRight /></Button>
-        <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted-foreground"><Lock className="size-3.5 text-success" />Cancelamento e remarcação gratuitos até 24h antes</p>
+        <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted-foreground"><Lock className="size-3.5 text-success" />Cancelamento e remarcação gratuitos até o horário</p>
       </div>
     </form>
 
