@@ -403,7 +403,7 @@ export function AgendaPage() {
           return <div key={hour} className="grid grid-cols-[52px_minmax(0,1fr)] gap-3">
             <div className="pt-3"><b className="block text-[15px] leading-5">{hour}</b>{items.length > 0 && <span className="text-xs font-medium text-success">30 min</span>}</div>
             <div className="grid gap-2">
-              {items.map((item) => <article key={item.id} className="rounded-xl border-l-4 border-strong bg-accent/60 p-4 shadow-[0_1px_2px_rgb(0_0_0/6%)]">
+              {items.map((item) => <article key={item.id} className="rounded-xl border border-border/60 bg-accent/60 p-4 shadow-[0_1px_2px_rgb(0_0_0/6%)]">
                 <div className="flex items-start gap-2"><div className="min-w-0 flex-1"><p className="flex flex-wrap items-center gap-2 text-base font-bold leading-5">{patientById(item.patientId)?.name}<span className="scale-90 origin-left"><StatusBadge status={item.status} /></span></p><p className="mt-0.5 text-[13px] text-muted-foreground">{professionalById(item.professionalId)?.name} • {item.specialty}</p></div><Button variant="ghost" size="icon" className="size-8 rounded-lg bg-card" aria-label="Gerenciar" onClick={() => setManage(item)}><MoreVertical /></Button></div>
                 <div className="mt-3 flex items-center justify-between border-t border-input/50 pt-3 text-xs"><span className="text-muted-foreground">Convênio: <b className="font-semibold text-foreground">{patientById(item.patientId)?.insurance}</b></span><button type="button" onClick={() => setManage(item)} className="flex items-center gap-1 rounded-md bg-strong px-2.5 py-1 font-semibold text-strong-foreground"><SlidersHorizontal className="size-3.5" />Gerenciar</button></div>
               </article>)}

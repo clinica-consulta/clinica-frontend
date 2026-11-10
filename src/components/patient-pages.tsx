@@ -87,7 +87,7 @@ export function PatientDashboardPage() {
         {pendingConfirm > 0 && <span className="hidden rounded-full bg-success-soft/60 px-2 py-0.5 text-[11px] font-medium text-success md:inline">{pendingConfirm} confirmação pendente</span>}
       </div>
       {upcoming.length ? <div className="grid gap-3 md:gap-0 md:divide-y md:divide-border/60">{upcoming.map((item) => (
-        <article key={item.id} className="overflow-hidden rounded-xl border-t-4 border-success bg-card md:border-border/60 shadow-[0_1px_1px_rgb(0_0_0/5%)] md:rounded-none md:border-t-0 md:shadow-none">
+        <article key={item.id} className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-[0_1px_1px_rgb(0_0_0/5%)] md:rounded-none md:border-0 md:shadow-none">
           <div className="hidden items-center gap-6 px-6 py-6 lg:flex">
             <div className="grid w-[98px] shrink-0 place-items-center rounded-xl bg-soft py-3"><span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Horário</span><b className="text-[26px] font-bold leading-8">{item.time}</b></div>
             <div className="min-w-0 flex-1">
