@@ -101,11 +101,11 @@ export type Appointment = {
   reminderSentAt: string | null;
   confirmationReply: "Confirmou" | "Cancelou" | "Sem resposta";
   history: AppointmentLog[];
-  /** Pagamento simulado; null quando não há cobrança. */
+  /** Cobrança da consulta particular; null quando não há cobrança. */
   payment: AppointmentPayment | null;
 };
 
-export type PaymentMethod = "Pix" | "Cartão de crédito" | "Cartão de débito";
+export type PaymentMethod = "Pix" | "Cartão de crédito" | "Cartão de débito" | "Dinheiro";
 
 export type AppointmentPayment = {
   status: "Pendente" | "Pago";
