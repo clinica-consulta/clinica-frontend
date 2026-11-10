@@ -304,11 +304,20 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     let active = true;
     (async () => {
       if (tokenStore.get()) {
-        try {
-          const user = await api<ApiUser>("GET", "/auth/me");
-          if (active) await startSession(user);
-        } catch {
-          tokenStore.set(null);
+        // A API do Render pode estar "acordando": falha de rede não apaga a sessão, só tenta de novo.
+        for (let attempt = 0; active; attempt++) {
+          try {
+            const user = await api<ApiUser>("GET", "/auth/me");
+            if (active) await startSession(user);
+            break;
+          } catch (error) {
+            const offline = error instanceof ApiError && (error.status === 0 || error.status >= 500);
+            if (!offline || attempt >= 12) {
+              if (!offline) tokenStore.set(null);
+              break;
+            }
+            await new Promise((resolve) => setTimeout(resolve, 5000));
+          }
         }
       }
       if (active && !roleRef.current) loadPublicInsurances();
