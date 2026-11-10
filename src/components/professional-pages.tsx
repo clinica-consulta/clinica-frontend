@@ -447,7 +447,7 @@ export function ProfessionalAvailabilityPage() {
         : <div className="grid place-items-center rounded-xl bg-soft px-6 py-8 text-center md:py-9">
           <span className="grid size-12 place-items-center rounded-full bg-card text-soft-foreground md:size-auto md:bg-transparent md:text-subtle-foreground"><CalendarCheck className="size-6 md:size-7" /></span>
           <p className="mt-3 text-base font-bold leading-6 md:mt-2 md:text-[15px] md:font-normal">Nenhum período bloqueado na sua agenda.</p>
-          <p className="mt-1 max-w-[280px] text-xs leading-4 text-muted-foreground md:max-w-none md:text-[11px]">Férias, congressos ou folgas agendadas aparecerão aqui quando confirmadas pelo RH.</p>
+          <p className="mt-1 max-w-[280px] text-xs leading-4 text-muted-foreground md:max-w-none md:text-[11px]">Férias, congressos ou folgas agendadas aparecerão aqui quando forem registradas na agenda pela clínica.</p>
         </div>}
     </section>
 

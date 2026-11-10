@@ -1,12 +1,12 @@
 import { SiteSelect } from "@/components/site-select";
 import { useMemo, useState } from "react";
-import { Activity, Lightbulb, BriefcaseMedical, ListFilter, Pencil, Info, LogIn, ChevronDown, Clock3, MoreVertical, Stethoscope, CalendarCheck, CalendarCheck2, CalendarDays, MailCheck, Plus, SlidersHorizontal, CalendarClock, Check, CheckCircle2, ChevronLeft, ChevronRight, CircleAlert, History, MessageSquareText, MoreHorizontal, Phone, Send, ShieldCheck, Trash2, Users, UsersRound, X } from "lucide-react";
+import { Activity, Lightbulb, BriefcaseMedical, ListFilter, Pencil, Info, ChevronDown, Clock3, MoreVertical, Stethoscope, CalendarCheck, CalendarCheck2, CalendarDays, MailCheck, Plus, SlidersHorizontal, CalendarClock, Check, CheckCircle2, ChevronLeft, ChevronRight, CircleAlert, History, MessageSquareText, MoreHorizontal, Phone, Send, ShieldCheck, Trash2, Users, UsersRound, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { EmptyHint, Field, Modal, PageHeader, SearchInput, Section, SelectField, StatCard, StatusBadge, TextareaField, Toggle, Toolbar } from "@/components/page-kit";
 import { AppointmentForm, type AppointmentDefaults } from "@/components/appointment-form";
 import { MiniCalendar, SlotPicker } from "@/components/mini-calendar";
-import { appointmentPhase, appointmentStatuses, attendanceDeadline, cardFromForm, formatDate, isPrivateInsurance, isoDate, nextPaymentReminderAt, openStatuses, relativeDay, slotRange, weekdayName, formatMoney, nowTime, WAITLIST_LIMIT, type Appointment, type AppointmentPhase, type Patient, type WaitlistEntry } from "@/lib/clinic-data";
+import { appointmentPhase, appointmentStatuses, attendanceDeadline, cardFromForm, formatDate, isPrivateInsurance, isoDate, nextPaymentReminderAt, openStatuses, relativeDay, slotRange, weekdayName, formatMoney, nowTime, WAITLIST_LIMIT, type Appointment, type AppointmentPhase, type PaymentMethod, type Patient, type WaitlistEntry } from "@/lib/clinic-data";
 import { takeSearch } from "@/lib/search-handoff";
 import { useClinic, useReports } from "@/lib/clinic-store";
 import { maskCpf, maskPhone } from "@/lib/cpf";
@@ -82,6 +82,8 @@ export function ManageModal({ appointment, onClose }: { appointment: Appointment
   const [reschedule, setReschedule] = useState<Appointment | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [sending, setSending] = useState(false);
+  const { payAppointment } = useClinic();
+  const [deskMethod, setDeskMethod] = useState<PaymentMethod>("Dinheiro");
   if (!appointment) return null;
   // Sempre a versão mais recente da consulta (ela pode mudar com o modal aberto).
   const item = appointments.find((entry) => entry.id === appointment.id) ?? appointment;
@@ -126,6 +128,25 @@ export function ManageModal({ appointment, onClose }: { appointment: Appointment
           <Button variant="outline" disabled={Boolean(nextReminder) || sending} onClick={async () => { setSending(true); await actions.remindPayment(item); setSending(false); }}>
             <Send />{nextReminder ? `Novo lembrete a partir de ${formatDateTime(nextReminder)}` : "Lembrar pagamento"}
           </Button>
+        </div>}
+
+        {item.status === "Realizada" && payment?.status === "Pendente" && <div className="mt-3 grid gap-2 rounded-md border border-border p-3 text-xs sm:text-sm">
+          <span>Pagou na recepção? Registre a forma de pagamento para dar baixa na cobrança.</span>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <select aria-label="Forma de pagamento" value={deskMethod} onChange={(event) => setDeskMethod(event.target.value as PaymentMethod)} className="h-9 rounded-md border border-input bg-card px-2 text-sm">
+              {(["Dinheiro", "Pix", "Cartão de crédito", "Cartão de débito"] as PaymentMethod[]).map((method) => <option key={method} value={method}>{method}</option>)}
+            </select>
+            <Button variant="outline" disabled={sending} onClick={async () => {
+              setSending(true);
+              try {
+                await payAppointment(item.id, deskMethod);
+                toast.success("Pagamento registrado", { description: `${formatMoney(payment.amount)} em ${deskMethod.toLowerCase()}.` });
+              } catch (error) {
+                toast.error("Pagamento não registrado", { description: (error as Error).message });
+              }
+              setSending(false);
+            }}><CheckCircle2 />Registrar pagamento</Button>
+          </div>
         </div>}
 
         <div className="mt-4 rounded-md bg-muted/60 p-3 text-xs sm:text-sm">
@@ -382,9 +403,9 @@ export function AgendaPage() {
           return <div key={hour} className="grid grid-cols-[52px_minmax(0,1fr)] gap-3">
             <div className="pt-3"><b className="block text-[15px] leading-5">{hour}</b>{items.length > 0 && <span className="text-xs font-medium text-success">30 min</span>}</div>
             <div className="grid gap-2">
-              {items.map((item) => <article key={item.id} className="rounded-xl border-l-4 border-strong bg-accent/60 p-4 shadow-[0_1px_2px_rgb(0_0_0/6%)]">
+              {items.map((item) => <article key={item.id} className="rounded-xl border border-border/60 bg-accent/60 p-4 shadow-[0_1px_2px_rgb(0_0_0/6%)]">
                 <div className="flex items-start gap-2"><div className="min-w-0 flex-1"><p className="flex flex-wrap items-center gap-2 text-base font-bold leading-5">{patientById(item.patientId)?.name}<span className="scale-90 origin-left"><StatusBadge status={item.status} /></span></p><p className="mt-0.5 text-[13px] text-muted-foreground">{professionalById(item.professionalId)?.name} • {item.specialty}</p></div><Button variant="ghost" size="icon" className="size-8 rounded-lg bg-card" aria-label="Gerenciar" onClick={() => setManage(item)}><MoreVertical /></Button></div>
-                <div className="mt-3 flex items-center justify-between border-t border-input/50 pt-3 text-xs"><span className="text-muted-foreground">Convênio: <b className="font-semibold text-foreground">{patientById(item.patientId)?.insurance}</b></span>{item.status !== "Realizada" && <button type="button" onClick={() => { setAppointmentStatus(item.id, "Confirmada", "Check-in realizado na recepção"); toast.success("Check-in realizado"); }} className="flex items-center gap-1 rounded-md bg-strong px-2.5 py-1 font-semibold text-strong-foreground"><LogIn className="size-3.5" />Check-in</button>}</div>
+                <div className="mt-3 flex items-center justify-between border-t border-input/50 pt-3 text-xs"><span className="text-muted-foreground">Convênio: <b className="font-semibold text-foreground">{patientById(item.patientId)?.insurance}</b></span><button type="button" onClick={() => setManage(item)} className="flex items-center gap-1 rounded-md bg-strong px-2.5 py-1 font-semibold text-strong-foreground"><SlidersHorizontal className="size-3.5" />Gerenciar</button></div>
               </article>)}
               {freeRooms > 0 && !items.length && <button type="button" onClick={() => setNewOpen({ professionalId: active.find((pro) => availableSlots(pro.id, date).includes(hour))?.id ?? "", date, time: hour })} className="surface flex items-center gap-3 p-4 text-left"><span className="grid size-7 place-items-center rounded-md bg-accent/70"><Plus className="size-4" /></span><span className="min-w-0 flex-1"><b className="block text-[15px] font-semibold leading-5">Horário vago</b><span className="text-[13px] text-muted-foreground">Disponível em {freeRooms} consultório{freeRooms > 1 ? "s" : ""}</span></span><span className="rounded-full bg-success-soft/70 px-2 py-0.5 text-[11px] font-semibold text-success">Livre</span></button>}
             </div>
