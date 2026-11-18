@@ -22,7 +22,7 @@ const maskExpiry = (value: string) => value.replace(/\D/g, "").slice(0, 4).repla
  * Sem o Stripe, cai no pagamento simulado: nenhum valor é cobrado e os dados do cartão não são enviados nem guardados.
  */
 export function PaymentModal({ appointment, onClose }: { appointment: Appointment | null; onClose: () => void }) {
-  const { payAppointment, professionalById, settings, onlinePayment, startCheckout, verifyPayment } = useClinic();
+  const { payAppointment, simulatePayment, professionalById, settings, onlinePayment, startCheckout, verifyPayment } = useClinic();
   // undefined = ainda consultando a API; null = só modo simulado.
   const [gateway, setGateway] = useState<{ name: string; test: boolean } | null | undefined>(undefined);
   // Situação do formulário do Stripe dentro do modal.
@@ -115,8 +115,25 @@ export function PaymentModal({ appointment, onClose }: { appointment: Appointmen
     }
   }
 
+  // "Já paguei" de demonstração: não cobra nada e confirma a consulta.
+  async function simulate() {
+    if (!appointment) return;
+    setBusy(true);
+    try {
+      const updated = await simulatePayment(appointment.id);
+      setReceipt(updated);
+      toast.success(updated.status === "Confirmada" ? "Pagamento registrado e consulta confirmada" : "Pagamento registrado");
+    } catch (error) {
+      toast.error("Pagamento não registrado", { description: (error as Error).message });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (!appointment) return null;
   const professional = professionalById(appointment.professionalId);
+  // Antes da consulta, pagar é o que confirma a presença.
+  const confirms = appointment.status === "Agendada" || appointment.status === "Remarcada";
   return (
     <Modal open title={done ? "Pagamento confirmado" : "Pagamento da consulta"} description={gateway ? (gateway.test ? "Ambiente de teste do Stripe: nenhum valor é cobrado de verdade." : "Pagamento seguro processado pelo Stripe.") : gateway === null ? "Simulação de pagamento: nenhum valor é cobrado de verdade." : "Pagamento da consulta particular."} onClose={close}>
       <dl className="mb-4 grid gap-1.5 rounded-lg bg-soft p-4 text-sm">
@@ -125,11 +142,13 @@ export function PaymentModal({ appointment, onClose }: { appointment: Appointmen
         <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Data</dt><dd className="text-right font-semibold">{weekdayName(appointment.date)}, {formatDate(appointment.date)} às {appointment.time}</dd></div>
         <div className="flex justify-between gap-3 border-t border-border pt-2"><dt className="font-semibold">Valor</dt><dd className="text-lg font-bold">{formatMoney(amount)}</dd></div>
       </dl>
+      {!done && confirms && <p className="mb-4 rounded-lg bg-success-soft/60 p-3 text-sm text-soft-foreground">Sua consulta só fica <b className="text-foreground">confirmada depois do pagamento</b>. Assim que ele for aprovado, a confirmação chega nas suas notificações.</p>}
 
       {done ? (
         <div className="grid gap-3 text-center">
           <CheckCircle2 className="mx-auto size-12 text-success" />
           <p className="font-semibold">Pago via {done.payment?.method}</p>
+          {done.status === "Confirmada" && <p className="text-sm font-semibold text-success-strong">Consulta confirmada</p>}
           <p className="text-sm text-muted-foreground">Comprovante: <b className="text-foreground">{done.payment?.code}</b></p>
           <Button onClick={close}>Fechar</Button>
         </div>
@@ -183,6 +202,12 @@ export function PaymentModal({ appointment, onClose }: { appointment: Appointmen
           )}
           <Button type="submit" disabled={busy}>{busy ? "Processando..." : method === "Pix" ? `Já paguei ${formatMoney(amount)}` : `Pagar ${formatMoney(amount)}`}</Button>
         </form>
+      )}
+      {!done && gateway !== undefined && online !== "waiting" && (
+        <div className="mt-4 grid gap-1.5 border-t border-border/60 pt-4 text-center">
+          <Button type="button" variant="ghost" disabled={busy} onClick={() => void simulate()} className="bg-soft font-semibold hover:bg-accent"><CheckCircle2 />{busy ? "Registrando..." : "Já paguei (simulação)"}</Button>
+          <p className="text-xs text-muted-foreground">Só para demonstração: marca a consulta como paga sem cobrar nada{confirms ? " e a confirma" : ""}.</p>
+        </div>
       )}
     </Modal>
   );

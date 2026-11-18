@@ -110,6 +110,8 @@ type ClinicContextValue = ClinicState & {
   requestPasswordReset: (email: string, cpf: string) => Promise<{ message: string; testCode?: string }>;
   resetPassword: (email: string, code: string, newPassword: string) => Promise<void>;
   payAppointment: (id: string, method: PaymentMethod) => Promise<Appointment>;
+  /** Botão "Já paguei" (só demonstração): marca como paga sem cobrar, e a consulta fica confirmada. */
+  simulatePayment: (id: string) => Promise<Appointment>;
   /** Pagamento on-line ativo na API (Stripe) ou null quando só há o modo simulado. */
   onlinePayment: () => Promise<{ gateway: string | null; test: boolean }>;
   /** Abre a sessão de pagamento do Stripe da consulta (exibida dentro do site). */
@@ -476,6 +478,11 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
 
       payAppointment: async (id, method) => {
         const doc = await api<Doc>("POST", `/consultas/${id}/pagamento`, { metodo: method });
+        await refresh();
+        return fromApi.appointment(doc);
+      },
+      simulatePayment: async (id) => {
+        const doc = await api<Doc>("POST", `/consultas/${id}/pagamento/simular`);
         await refresh();
         return fromApi.appointment(doc);
       },
