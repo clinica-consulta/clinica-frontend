@@ -66,7 +66,14 @@ export function PatientDashboardPage() {
   // O paciente confirma depois que a recepção envia o pedido de confirmação.
   const canConfirm = (item: Appointment) => Boolean(item.reminderSentAt) && item.status !== "Confirmada";
   const pendingConfirm = upcoming.filter(canConfirm).length;
-  const confirm = (item: Appointment) => { clinic.setAppointmentStatus(item.id, "Confirmada", "Paciente confirmou presença"); toast.success("Consulta confirmada"); };
+  // Particular confirma pagando (o pedido da recepção já traz a cobrança); convênio confirma direto.
+  const mustPay = (item: Appointment) => item.payment?.status === "Pendente";
+  const confirm = (item: Appointment) => {
+    if (mustPay(item)) { setPaying(item); return; }
+    clinic.setAppointmentStatus(item.id, "Confirmada", "Paciente confirmou presença");
+    toast.success("Consulta confirmada");
+  };
+  const confirmLabel = (item: Appointment, short = false) => (mustPay(item) ? `Pagar ${formatMoney(item.payment!.amount)} e confirmar` : short ? "Confirmar" : "Confirmar presença");
   const cancel = (item: Appointment) => setCanceling(item);
   const confirmCancel = () => { if (!canceling) return; clinic.setAppointmentStatus(canceling.id, "Cancelada", "Consulta cancelada pelo paciente"); toast.warning("Consulta cancelada", { description: "O horário foi liberado na agenda." }); setCanceling(null); };
   const doctorName = (item: Appointment) => clinic.professionalById(item.professionalId)?.name ?? "";
@@ -97,7 +104,7 @@ export function PatientDashboardPage() {
             </div>
             <StatusBadge status={item.status} />
             <div className="flex shrink-0 items-center gap-2">
-              {canConfirm(item) && <Button onClick={() => confirm(item)} className="h-10 rounded-lg bg-strong px-4 hover:bg-strong/90"><CheckCircle2 />Confirmar</Button>}
+              {canConfirm(item) && <Button onClick={() => confirm(item)} className="h-10 rounded-lg bg-strong px-4 hover:bg-strong/90">{mustPay(item) ? <CreditCard /> : <CheckCircle2 />}{confirmLabel(item, true)}</Button>}
               <Button variant="ghost" onClick={() => setReschedule(item)} className="h-10 rounded-lg bg-soft px-3.5 font-semibold hover:bg-accent">Remarcar</Button>
               <Button variant="ghost" onClick={() => setDetail(item)} className="h-10 rounded-lg bg-soft px-3.5 font-semibold hover:bg-accent">Detalhes</Button>
               <Button variant="ghost" onClick={() => cancel(item)} className="h-10 rounded-lg px-3.5 font-medium text-subtle-foreground">Cancelar</Button>
@@ -112,7 +119,8 @@ export function PatientDashboardPage() {
                 <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground"><CalendarDays className="size-3.5" />{relativeDay(item.date)} · Presencial</p>
               </div>
             </div>
-            {canConfirm(item) && <Button onClick={() => confirm(item)} className="mt-4 h-9 w-full rounded-lg"><CheckCircle2 />Confirmar presença</Button>}
+            {canConfirm(item) && <Button onClick={() => confirm(item)} className="mt-4 h-9 w-full rounded-lg">{mustPay(item) ? <CreditCard /> : <CheckCircle2 />}{confirmLabel(item)}</Button>}
+            {canConfirm(item) && mustPay(item) && <p className="mt-1.5 text-center text-xs text-muted-foreground">A consulta só fica confirmada depois do pagamento.</p>}
             <div className="mt-2 grid grid-cols-2 gap-2">
               <Button variant="ghost" onClick={() => setReschedule(item)} className="h-9 rounded-lg bg-soft font-semibold"><CalendarClock />Remarcar</Button>
               <Button variant="ghost" onClick={() => setDetail(item)} className="h-9 rounded-lg bg-soft font-semibold"><Eye />Detalhes</Button>
@@ -433,7 +441,7 @@ function PatientBookingForm({ patientId }: { patientId: string }) {
       {[
         { icon: <IdCard />, title: "Documentação Necessária", text: "Leve documento original com foto e sua carteirinha física ou digital no app." },
         { icon: <MapPin />, title: "Local do Atendimento", text: `${settings.name || "Clínica"}${settings.phone ? ` · ${settings.phone}` : ""}. Chegue 15 minutos antes do horário.` },
-        { icon: <BellRing />, title: "Lembretes", text: "O lembrete chega nas suas notificações. Confirme a presença por lá ou na tela inicial." },
+        { icon: <BellRing />, title: "Lembretes", text: "O pedido de confirmação chega nas suas notificações. Particular confirma pagando a consulta; convênio confirma a presença por lá ou na tela inicial." },
       ].map((item) => <article key={item.title} className="surface flex gap-4 p-4"><span className="grid size-9 shrink-0 place-items-center rounded-lg bg-soft text-foreground [&>svg]:size-[18px]">{item.icon}</span><div><p className="text-sm font-bold leading-5">{item.title}</p><p className="mt-1 text-xs leading-4 text-muted-foreground">{item.text}</p></div></article>)}
     </div>
 
@@ -598,7 +606,8 @@ export function PatientNotificationsPage() {
               const pending = item.title === "Confirme sua consulta" ? clinic.appointments.find((appointment) => appointment.id === item.appointmentId) : undefined;
               if (!pending) return null;
               if (pending.status === "Confirmada") return <span className="flex shrink-0 items-center gap-1.5 self-center rounded-full bg-success-soft px-3 py-1 text-xs font-semibold text-success-strong"><CheckCheck className="size-3.5" />Confirmada</span>;
-              if (appointmentPhase(pending) !== "antes") return null;
+              // Particular confirma pagando: o botão de pagamento da própria notificação faz isso.
+              if (pending.payment || appointmentPhase(pending) !== "antes") return null;
               return <Button type="button" onClick={(event) => {
                 event.stopPropagation();
                 clinic.markNotificationRead(item.id);
@@ -622,7 +631,7 @@ export function PatientNotificationsPage() {
               return charge.payment.status === "Pago"
                 ? <span className="flex shrink-0 items-center gap-1.5 self-center rounded-full bg-success-soft px-3 py-1 text-xs font-semibold text-success-strong"><CheckCheck className="size-3.5" />Pago</span>
                 : charge.status === "Cancelada" ? null
-                : <Button type="button" onClick={(event) => { event.stopPropagation(); clinic.markNotificationRead(item.id); setPaying(charge); }} className="h-9 w-full shrink-0 self-center rounded-lg px-4 text-sm font-semibold md:w-auto"><CreditCard />Pagar {formatMoney(charge.payment.amount)}</Button>;
+                : <Button type="button" onClick={(event) => { event.stopPropagation(); clinic.markNotificationRead(item.id); setPaying(charge); }} className="h-9 w-full shrink-0 self-center rounded-lg px-4 text-sm font-semibold md:w-auto"><CreditCard />Pagar {formatMoney(charge.payment.amount)}{charge.status === "Agendada" || charge.status === "Remarcada" ? " e confirmar" : ""}</Button>;
             })()}
             <button type="button" onClick={(event) => { event.stopPropagation(); clinic.markNotificationRead(item.id); }} disabled={item.read} className="hidden shrink-0 items-center gap-3 text-xs text-soft-foreground disabled:text-subtle-foreground md:flex">{item.read ? "Lida" : "Marcar lida"}<ChevronRight className="size-4 text-foreground" /></button>
           </article>

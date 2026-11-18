@@ -21,7 +21,8 @@ function useAppointmentActions() {
     cancel: (item: Appointment) => { setAppointmentStatus(item.id, "Cancelada", "Consulta cancelada e horário liberado"); toast.warning("Consulta cancelada", { description: `Horário ${item.time} de ${formatDate(item.date)} liberado na agenda.` }); },
     askConfirmation: (item: Appointment) => {
       if (!sendReminder(item.id)) { toast.error("Pedido não enviado", { description: "Cada consulta recebe um único pedido de confirmação, antes do horário marcado." }); return; }
-      toast.success("Pedido de confirmação enviado", { description: `${name(item)} recebeu a mensagem no portal e por e-mail. A consulta fica confirmada quando o paciente responder.` });
+      const particular = patientById(item.patientId)?.insurance === "Particular";
+      toast.success(particular ? "Confirmação e pagamento enviados" : "Pedido de confirmação enviado", { description: particular ? `${name(item)} recebeu o pedido com o pagamento no portal e por e-mail. A consulta só fica confirmada depois do pagamento.` : `${name(item)} recebeu a mensagem no portal e por e-mail. A consulta fica confirmada quando o paciente responder.` });
     },
     remindPayment: async (item: Appointment) => {
       if (await sendPaymentReminder(item.id)) toast.success("Lembrete de pagamento enviado", { description: `Aviso enviado a ${name(item)} no portal e por e-mail.` });
@@ -55,7 +56,8 @@ export function RescheduleModal({ appointment, onClose }: { appointment: Appoint
 /** Aviso exibido no topo do "Gerenciar consulta" conforme o momento da consulta. */
 function phaseNotice(item: Appointment, phase: AppointmentPhase) {
   if (phase === "antes") {
-    if (item.status === "Confirmada") return { tone: "bg-success-soft", text: "O paciente confirmou a presença." };
+    if (item.status === "Confirmada") return { tone: "bg-success-soft", text: item.payment?.status === "Pago" ? "Consulta paga e confirmada." : "O paciente confirmou a presença." };
+    if (item.reminderSentAt && item.payment?.status === "Pendente") return { tone: "bg-muted/60", text: "Pedido de confirmação e pagamento enviados. A consulta fica confirmada quando o paciente pagar (on-line ou no balcão)." };
     if (item.reminderSentAt) return { tone: "bg-muted/60", text: "Pedido de confirmação enviado. A consulta fica confirmada quando o paciente responder." };
     return { tone: "bg-muted/60", text: "Aguardando a confirmação do paciente. Envie o pedido de confirmação para ele responder pelo portal." };
   }
@@ -130,8 +132,8 @@ export function ManageModal({ appointment, onClose }: { appointment: Appointment
           </Button>
         </div>}
 
-        {item.status === "Realizada" && payment?.status === "Pendente" && <div className="mt-3 grid gap-2 rounded-md border border-border p-3 text-xs sm:text-sm">
-          <span>Pagou na recepção? Registre a forma de pagamento para dar baixa na cobrança.</span>
+        {(item.status === "Realizada" || item.status === "Agendada" || item.status === "Remarcada") && payment?.status === "Pendente" && <div className="mt-3 grid gap-2 rounded-md border border-border p-3 text-xs sm:text-sm">
+          <span>{item.status === "Realizada" ? "Pagou na recepção? Registre a forma de pagamento para dar baixa na cobrança." : "Pagou na recepção? Registre o pagamento: a consulta fica confirmada na hora."}</span>
           <div className="flex flex-col gap-2 sm:flex-row">
             <select aria-label="Forma de pagamento" value={deskMethod} onChange={(event) => setDeskMethod(event.target.value as PaymentMethod)} className="h-9 rounded-md border border-input bg-card px-2 text-sm">
               {(["Dinheiro", "Pix", "Cartão de crédito", "Cartão de débito"] as PaymentMethod[]).map((method) => <option key={method} value={method}>{method}</option>)}
@@ -273,7 +275,7 @@ export function DashboardPage() {
             </div>
           </div>
         ))}</div> : <div className="p-4 md:p-0"><EmptyHint>Nenhuma consulta aguardando lembrete ou confirmação.</EmptyHint></div>}
-        <div className="hidden pt-6 md:block"><p className="flex items-center gap-3 rounded-lg bg-soft p-3 text-xs leading-[15px] text-muted-foreground"><MessageSquareText className="size-[18px] shrink-0 text-foreground" />Os lembretes chegam nas notificações do paciente, que confirma ou cancela a presença pelo site.</p></div>
+        <div className="hidden pt-6 md:block"><p className="flex items-center gap-3 rounded-lg bg-soft p-3 text-xs leading-[15px] text-muted-foreground"><MessageSquareText className="size-[18px] shrink-0 text-foreground" />Os pedidos chegam nas notificações do paciente. Particular confirma pagando a consulta; convênio confirma a presença pelo site.</p></div>
       </section>
     </div>
 

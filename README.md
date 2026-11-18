@@ -185,7 +185,7 @@ flowchart TD
 | Consulta cancelada | O horário volta a ficar livre na agenda |
 | Consulta remarcada | O paciente precisa confirmar a nova data |
 | Especialidade ou convênio desativados | Deixam de aparecer no agendamento, mas o histórico continua visível |
-| Consulta particular realizada | O botão de pagamento aparece na consulta e nas notificações |
+| Consulta particular | O pedido de confirmação chega com o pagamento; a consulta só fica confirmada depois de pagar (on-line, no balcão ou pelo botão "Já paguei" de demonstração) |
 | Consulta marcada | Fica aguardando confirmação; o botão de confirmar só aparece para o paciente depois que a recepção envia o pedido de confirmação |
 | Cancelar ou remarcar | O paciente pode cancelar ou remarcar sem custo até o horário da consulta |
 | Consultas e agenda do médico | Abrem no dia de hoje e viram o dia sozinhas à meia-noite; setas para os outros dias e opção "Todas as datas" |
@@ -275,7 +275,7 @@ A interface foi projetada considerando usuários de todas as idades:
 
 ## 10. Pagamento da consulta
 
-Quando a consulta de um paciente do convênio **Particular** é registrada como realizada, o paciente recebe uma notificação de pagamento disponível. O pagamento é feito **dentro do próprio site**: o modal de pagamento exibe o **Checkout embutido do Stripe**, com as formas de pagamento ativas na conta da clínica.
+Para o paciente do convênio **Particular**, o pedido de confirmação da recepção já chega com o pagamento: a consulta só fica **confirmada depois que ele paga**. O botão "Pagar e confirmar" aparece na tela inicial e na notificação, e o modal de pagamento tem também o botão **"Já paguei (simulação)"**, que confirma sem cobrar nada, só para demonstração. Paciente de convênio continua confirmando com o botão "Confirmar presença". O pagamento é feito **dentro do próprio site**: o modal de pagamento exibe o **Checkout embutido do Stripe**, com as formas de pagamento ativas na conta da clínica.
 
 | Forma de pagamento | Experiência no site |
 |---|---|
